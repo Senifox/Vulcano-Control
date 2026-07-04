@@ -5,8 +5,44 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Vulcano_Control"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+        Title="Vulcano Control" Height="450" Width="500">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,16">
+            <Button Content="Verbinden" Command="{Binding ConnectCommand}" Padding="12,4" Margin="0,0,8,0"/>
+            <Button Content="Trennen" Command="{Binding DisconnectCommand}" Padding="12,4" Margin="0,0,8,0"/>
+            <TextBlock Text="{Binding ConnectionState}" VerticalAlignment="Center" FontWeight="Bold"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,16">
+            <TextBlock Text="Aktuelle Temperatur: " VerticalAlignment="Center" FontSize="18"/>
+            <TextBlock Text="{Binding CurrentTemperature, StringFormat={}{0:0.0} °C}" FontSize="24" FontWeight="Bold"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,16">
+            <TextBlock Text="Zieltemperatur: " VerticalAlignment="Center"/>
+            <Slider Minimum="40" Maximum="230" Width="220" VerticalAlignment="Center"
+                    Value="{Binding TargetTemperature, UpdateSourceTrigger=PropertyChanged}"/>
+            <TextBox Text="{Binding TargetTemperature, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0.0}}"
+                     Width="60" VerticalAlignment="Center" Margin="8,0"/>
+            <Button Content="Setzen" Command="{Binding ApplyTargetTemperatureCommand}" Padding="12,4"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,0,0,16">
+            <ToggleButton Content="Heizung" IsChecked="{Binding IsHeaterOn, Mode=OneWay}"
+                          Command="{Binding ToggleHeaterCommand}" Padding="16,8" Margin="0,0,8,0"/>
+            <ToggleButton Content="Pumpe" IsChecked="{Binding IsPumpOn, Mode=OneWay}"
+                          Command="{Binding TogglePumpCommand}" Padding="16,8"/>
+        </StackPanel>
+
+        <TextBlock Grid.Row="4" Text="{Binding StatusMessage}" Foreground="Gray"
+                   VerticalAlignment="Bottom" TextWrapping="Wrap"/>
     </Grid>
 </Window>
