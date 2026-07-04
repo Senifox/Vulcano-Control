@@ -8,6 +8,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Vulcano_Control.Services;
 using Vulcano_Control.ViewModels;
 
 namespace Vulcano_Control
@@ -17,11 +18,12 @@ namespace Vulcano_Control
   /// </summary>
   public partial class MainWindow : Window
   {
-    private readonly MainViewModel _viewModel = new();
+    private readonly MainViewModel _viewModel;
 
-    public MainWindow()
+    public MainWindow(ThemeService themeService)
     {
       InitializeComponent();
+      _viewModel = new MainViewModel(themeService);
       DataContext = _viewModel;
       Closed += async (_, _) => await _viewModel.DisposeAsync();
     }

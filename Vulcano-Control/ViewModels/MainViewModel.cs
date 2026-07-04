@@ -12,6 +12,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
 {
     private readonly VolcanoBluetoothService _service = new();
     private readonly RampSessionController _rampController;
+    private readonly ThemeService _themeService;
     private readonly Dispatcher _dispatcher = Application.Current.Dispatcher;
 
     [ObservableProperty]
@@ -62,12 +63,22 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     [ObservableProperty]
     private double rampFractionComplete;
 
+    [ObservableProperty]
+    private AppTheme currentTheme;
+
     public bool IsConnected => ConnectionState == ConnectionState.Connected;
+
+    public bool IsLightMode => CurrentTheme == AppTheme.Light;
+
+    public bool IsDarkMode => CurrentTheme == AppTheme.Dark;
 
     public IReadOnlyList<InterpolationMethod> InterpolationMethods { get; } = Enum.GetValues<InterpolationMethod>();
 
-    public MainViewModel()
+    public MainViewModel(ThemeService themeService)
     {
+        _themeService = themeService;
+        currentTheme = _themeService.CurrentTheme;
+
         _rampController = new RampSessionController(_service);
 
         _service.ConnectionStateChanged += OnServiceConnectionStateChanged;
@@ -149,6 +160,13 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         NotifyRampCommandsCanExecuteChanged();
     }
 
+    [RelayCommand]
+    private void SetTheme(AppTheme theme)
+    {
+        _themeService.SetTheme(theme);
+        CurrentTheme = theme;
+    }
+
     private bool CanConnect() =>
         ConnectionState is ConnectionState.Disconnected or ConnectionState.Error;
 
@@ -176,12 +194,26 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             IsRampWarmingUp = false;
         }
 
+        if (value != ConnectionState.Connected)
+        {
+            CurrentTemperature = 0;
+            TargetTemperature = 180;
+            IsHeaterOn = false;
+            IsPumpOn = false;
+        }
+
         ConnectCommand.NotifyCanExecuteChanged();
         DisconnectCommand.NotifyCanExecuteChanged();
         ToggleHeaterCommand.NotifyCanExecuteChanged();
         TogglePumpCommand.NotifyCanExecuteChanged();
         ApplyTargetTemperatureCommand.NotifyCanExecuteChanged();
         NotifyRampCommandsCanExecuteChanged();
+    }
+
+    partial void OnCurrentThemeChanged(AppTheme value)
+    {
+        OnPropertyChanged(nameof(IsLightMode));
+        OnPropertyChanged(nameof(IsDarkMode));
     }
 
     private void NotifyRampCommandsCanExecuteChanged()
