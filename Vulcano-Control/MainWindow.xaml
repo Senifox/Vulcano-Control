@@ -4,10 +4,16 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Vulcano_Control"
+        xmlns:converters="clr-namespace:Vulcano_Control.Converters"
         mc:Ignorable="d"
-        Title="Vulcano Control" Height="450" Width="500">
+        Title="Vulcano Control" Height="700" Width="520">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+    </Window.Resources>
     <Grid Margin="16">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -23,14 +29,15 @@
 
         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,16">
             <TextBlock Text="Aktuelle Temperatur: " VerticalAlignment="Center" FontSize="18"/>
-            <TextBlock Text="{Binding CurrentTemperature, StringFormat={}{0:0.0} °C}" FontSize="24" FontWeight="Bold"/>
+            <TextBlock Text="{Binding CurrentTemperature, StringFormat={}{0} °C}" FontSize="24" FontWeight="Bold"/>
         </StackPanel>
 
         <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,16">
             <TextBlock Text="Zieltemperatur: " VerticalAlignment="Center"/>
             <Slider Minimum="40" Maximum="230" Width="220" VerticalAlignment="Center"
+                    TickFrequency="1" IsSnapToTickEnabled="True"
                     Value="{Binding TargetTemperature, UpdateSourceTrigger=PropertyChanged}"/>
-            <TextBox Text="{Binding TargetTemperature, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0.0}}"
+            <TextBox Text="{Binding TargetTemperature, UpdateSourceTrigger=PropertyChanged}"
                      Width="60" VerticalAlignment="Center" Margin="8,0"/>
             <Button Content="Setzen" Command="{Binding ApplyTargetTemperatureCommand}" Padding="12,4"/>
         </StackPanel>
@@ -42,7 +49,43 @@
                           Command="{Binding TogglePumpCommand}" Padding="16,8"/>
         </StackPanel>
 
-        <TextBlock Grid.Row="4" Text="{Binding StatusMessage}" Foreground="Gray"
+        <GroupBox Grid.Row="4" Header="Temperatur-Rampe" Margin="0,0,0,16" Padding="8">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <TextBlock Text="Dauer (min): " VerticalAlignment="Center" Width="110"/>
+                    <TextBox Text="{Binding RampDurationMinutes, UpdateSourceTrigger=PropertyChanged}" Width="60"
+                             IsEnabled="{Binding IsRampRunning, Converter={StaticResource InverseBooleanConverter}}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <TextBlock Text="Start-Temp (°C): " VerticalAlignment="Center" Width="110"/>
+                    <TextBox Text="{Binding RampStartTemperature, UpdateSourceTrigger=PropertyChanged}" Width="60"
+                             IsEnabled="{Binding IsRampRunning, Converter={StaticResource InverseBooleanConverter}}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <TextBlock Text="Ziel-Temp (°C): " VerticalAlignment="Center" Width="110"/>
+                    <TextBox Text="{Binding RampEndTemperature, UpdateSourceTrigger=PropertyChanged}" Width="60"
+                             IsEnabled="{Binding IsRampRunning, Converter={StaticResource InverseBooleanConverter}}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <TextBlock Text="Verlauf: " VerticalAlignment="Center" Width="110"/>
+                    <ComboBox ItemsSource="{Binding InterpolationMethods}" SelectedItem="{Binding RampInterpolationMethod}" Width="140"
+                              IsEnabled="{Binding IsRampRunning, Converter={StaticResource InverseBooleanConverter}}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,8">
+                    <Button Content="Rampe starten" Command="{Binding StartRampCommand}" Padding="12,4" Margin="0,0,8,0"/>
+                    <Button Content="Rampe stoppen" Command="{Binding StopRampCommand}" Padding="12,4"/>
+                </StackPanel>
+                <StackPanel Visibility="{Binding IsRampRunning, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <TextBlock Text="Heize auf Start-Temperatur auf…" FontStyle="Italic" Margin="0,0,0,4"
+                               Visibility="{Binding IsRampWarmingUp, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                    <ProgressBar Minimum="0" Maximum="1" Value="{Binding RampFractionComplete, Mode=OneWay}" Height="16" Margin="0,0,0,4"/>
+                    <TextBlock Text="{Binding RampRemaining, StringFormat=Restzeit: {0:mm\\:ss}}" Margin="0,0,0,2"/>
+                    <TextBlock Text="{Binding RampCurrentTarget, StringFormat=Ziel gerade: {0} °C}"/>
+                </StackPanel>
+            </StackPanel>
+        </GroupBox>
+
+        <TextBlock Grid.Row="5" Text="{Binding StatusMessage}" Foreground="Gray"
                    VerticalAlignment="Bottom" TextWrapping="Wrap"/>
     </Grid>
 </Window>

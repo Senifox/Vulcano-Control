@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Vulcano_Control.Models;
 using Vulcano_Control.Services;
 using ConnectionState = Vulcano_Control.Models.ConnectionState;
 
@@ -10,16 +11,17 @@ namespace Vulcano_Control.ViewModels;
 public partial class MainViewModel : ObservableObject, IAsyncDisposable
 {
     private readonly VolcanoBluetoothService _service = new();
+    private readonly RampSessionController _rampController;
     private readonly Dispatcher _dispatcher = Application.Current.Dispatcher;
 
     [ObservableProperty]
     private ConnectionState connectionState = ConnectionState.Disconnected;
 
     [ObservableProperty]
-    private double currentTemperature;
+    private int currentTemperature;
 
     [ObservableProperty]
-    private double targetTemperature = 180.0;
+    private int targetTemperature = 180;
 
     [ObservableProperty]
     private bool isHeaterOn;
@@ -30,14 +32,52 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     [ObservableProperty]
     private string statusMessage = "Nicht verbunden";
 
+    [ObservableProperty]
+    private int rampDurationMinutes = 40;
+
+    [ObservableProperty]
+    private int rampStartTemperature = 185;
+
+    [ObservableProperty]
+    private int rampEndTemperature = 225;
+
+    [ObservableProperty]
+    private InterpolationMethod rampInterpolationMethod = InterpolationMethod.Linear;
+
+    [ObservableProperty]
+    private bool isRampRunning;
+
+    [ObservableProperty]
+    private bool isRampWarmingUp;
+
+    [ObservableProperty]
+    private TimeSpan rampElapsed;
+
+    [ObservableProperty]
+    private TimeSpan rampRemaining;
+
+    [ObservableProperty]
+    private int rampCurrentTarget;
+
+    [ObservableProperty]
+    private double rampFractionComplete;
+
     public bool IsConnected => ConnectionState == ConnectionState.Connected;
+
+    public IReadOnlyList<InterpolationMethod> InterpolationMethods { get; } = Enum.GetValues<InterpolationMethod>();
 
     public MainViewModel()
     {
+        _rampController = new RampSessionController(_service);
+
         _service.ConnectionStateChanged += OnServiceConnectionStateChanged;
         _service.ErrorOccurred += OnServiceErrorOccurred;
         _service.CurrentTemperatureChanged += OnServiceCurrentTemperatureChanged;
         _service.ActivityChanged += OnServiceActivityChanged;
+
+        _rampController.ProgressChanged += OnRampProgressChanged;
+        _rampController.Completed += OnRampCompleted;
+        _rampController.ErrorOccurred += OnRampErrorOccurred;
     }
 
     [RelayCommand(CanExecute = nameof(CanConnect))]
@@ -64,14 +104,57 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         await _service.SetPumpAsync(!IsPumpOn);
     }
 
-    [RelayCommand(CanExecute = nameof(IsConnected))]
+    [RelayCommand(CanExecute = nameof(CanApplyManualTarget))]
     private async Task ApplyTargetTemperatureAsync()
     {
         await _service.SetTargetTemperatureAsync(TargetTemperature);
     }
 
+    [RelayCommand(CanExecute = nameof(CanStartRamp))]
+    private async Task StartRampAsync()
+    {
+        if (RampDurationMinutes <= 0)
+        {
+            StatusMessage = "Dauer muss größer als 0 sein.";
+            return;
+        }
+        if (RampStartTemperature is < 40 or > 230 || RampEndTemperature is < 40 or > 230)
+        {
+            StatusMessage = "Temperaturen müssen zwischen 40°C und 230°C liegen.";
+            return;
+        }
+        if (Math.Abs(RampEndTemperature - RampStartTemperature) < 1)
+        {
+            StatusMessage = "Start- und Zieltemperatur müssen sich ausreichend unterscheiden.";
+            return;
+        }
+
+        await _rampController.StartAsync(
+            RampStartTemperature,
+            RampEndTemperature,
+            TimeSpan.FromMinutes(RampDurationMinutes),
+            RampInterpolationMethod,
+            heaterCurrentlyOn: IsHeaterOn);
+
+        IsRampRunning = true;
+        NotifyRampCommandsCanExecuteChanged();
+    }
+
+    [RelayCommand(CanExecute = nameof(IsRampRunning))]
+    private void StopRamp()
+    {
+        _rampController.Stop();
+        IsRampRunning = false;
+        IsRampWarmingUp = false;
+        NotifyRampCommandsCanExecuteChanged();
+    }
+
     private bool CanConnect() =>
         ConnectionState is ConnectionState.Disconnected or ConnectionState.Error;
+
+    private bool CanApplyManualTarget() => IsConnected && !IsRampRunning;
+
+    private bool CanStartRamp() => IsConnected && !IsRampRunning;
 
     partial void OnConnectionStateChanged(ConnectionState value)
     {
@@ -85,10 +168,26 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             ConnectionState.Error => StatusMessage,
             _ => StatusMessage
         };
+
+        if (value != ConnectionState.Connected && IsRampRunning)
+        {
+            _rampController.Stop();
+            IsRampRunning = false;
+            IsRampWarmingUp = false;
+        }
+
         ConnectCommand.NotifyCanExecuteChanged();
         DisconnectCommand.NotifyCanExecuteChanged();
         ToggleHeaterCommand.NotifyCanExecuteChanged();
         TogglePumpCommand.NotifyCanExecuteChanged();
+        ApplyTargetTemperatureCommand.NotifyCanExecuteChanged();
+        NotifyRampCommandsCanExecuteChanged();
+    }
+
+    private void NotifyRampCommandsCanExecuteChanged()
+    {
+        StartRampCommand.NotifyCanExecuteChanged();
+        StopRampCommand.NotifyCanExecuteChanged();
         ApplyTargetTemperatureCommand.NotifyCanExecuteChanged();
     }
 
@@ -99,7 +198,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         _dispatcher.Invoke(() => StatusMessage = message);
 
     private void OnServiceCurrentTemperatureChanged(object? sender, double celsius) =>
-        _dispatcher.BeginInvoke(() => CurrentTemperature = celsius);
+        _dispatcher.BeginInvoke(() => CurrentTemperature = (int)Math.Round(celsius));
 
     private void OnServiceActivityChanged(object? sender, ushort activity) =>
         _dispatcher.BeginInvoke(() =>
@@ -108,8 +207,49 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             IsPumpOn = (activity & VolcanoUuids.ActivityFlags.PumpEnabled) != 0;
         });
 
+    private void OnRampProgressChanged(object? sender, RampProgressEventArgs e) =>
+        _dispatcher.BeginInvoke(() =>
+        {
+            var roundedTarget = (int)Math.Round(e.CurrentComputedTarget);
+
+            RampElapsed = e.Elapsed;
+            RampRemaining = e.Remaining;
+            RampCurrentTarget = roundedTarget;
+            RampFractionComplete = e.FractionComplete;
+            IsRampWarmingUp = e.IsWarmingUp;
+            TargetTemperature = roundedTarget;
+        });
+
+    private void OnRampCompleted(object? sender, double resetTemperatureCelsius) =>
+        _dispatcher.Invoke(() =>
+        {
+            var resetValue = (int)Math.Round(resetTemperatureCelsius);
+
+            IsRampRunning = false;
+            IsRampWarmingUp = false;
+            RampFractionComplete = 0;
+            RampCurrentTarget = resetValue;
+            TargetTemperature = resetValue;
+            StatusMessage = "Ramp abgeschlossen.";
+            NotifyRampCommandsCanExecuteChanged();
+        });
+
+    private void OnRampErrorOccurred(object? sender, string message) =>
+        _dispatcher.Invoke(() =>
+        {
+            StatusMessage = message;
+            IsRampRunning = false;
+            IsRampWarmingUp = false;
+            NotifyRampCommandsCanExecuteChanged();
+        });
+
     public async ValueTask DisposeAsync()
     {
+        _rampController.ProgressChanged -= OnRampProgressChanged;
+        _rampController.Completed -= OnRampCompleted;
+        _rampController.ErrorOccurred -= OnRampErrorOccurred;
+        _rampController.Dispose();
+
         _service.ConnectionStateChanged -= OnServiceConnectionStateChanged;
         _service.ErrorOccurred -= OnServiceErrorOccurred;
         _service.CurrentTemperatureChanged -= OnServiceCurrentTemperatureChanged;

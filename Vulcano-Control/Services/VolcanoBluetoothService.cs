@@ -179,9 +179,19 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
         }
 
         if (!await SubscribeNotifyAsync(_currentTemperatureChar, OnCurrentTemperatureValueChanged)) return false;
+        await ReadInitialCurrentTemperatureAsync();
         if (!await SubscribeNotifyAsync(_activityChar, OnActivityValueChanged)) return false;
 
         return true;
+    }
+
+    private async Task ReadInitialCurrentTemperatureAsync()
+    {
+        if (_currentTemperatureChar is null) return;
+        var result = await _currentTemperatureChar.ReadValueAsync(BluetoothCacheMode.Uncached);
+        if (result.Status != GattCommunicationStatus.Success) return;
+        var raw = BleEncoding.FromUInt16LEBytes(result.Value.ToArray());
+        CurrentTemperatureChanged?.Invoke(this, BleEncoding.DecodeTemperature(raw));
     }
 
     private async Task<GattDeviceService?> GetServiceAsync(Guid serviceUuid)
