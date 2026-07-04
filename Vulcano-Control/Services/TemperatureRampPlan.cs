@@ -48,6 +48,7 @@ public sealed class TemperatureRampPlan
     {
         InterpolationMethod.Linear => t,
         InterpolationMethod.Exponential => Math.Pow(t, 3.0),
+        InterpolationMethod.SteepExponential => Math.Pow(t, 5.0),
         InterpolationMethod.EaseInOut => (3.0 * t * t) - (2.0 * t * t * t),
         _ => t
     };

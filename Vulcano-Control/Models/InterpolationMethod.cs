@@ -4,5 +4,6 @@ public enum InterpolationMethod
 {
     Linear,
     Exponential,
+    SteepExponential,
     EaseInOut
 }
