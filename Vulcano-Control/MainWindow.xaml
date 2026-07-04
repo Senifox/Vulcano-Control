@@ -126,7 +126,7 @@
                   VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
                   VerticalContentAlignment="Stretch" HorizontalContentAlignment="Stretch"
                   Visibility="{Binding IsChartVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
-            <oxy:PlotView Model="{Binding RampPlotModel}" MinHeight="200"
+            <oxy:PlotView Model="{Binding RampPlotModel}" MinHeight="200" Foreground="Black"
                           VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
         </GroupBox>
 

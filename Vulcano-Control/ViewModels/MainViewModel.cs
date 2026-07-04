@@ -16,6 +16,16 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     private static readonly OxyColor SollColor = OxyColor.FromRgb(0xFF, 0x98, 0x00); // matches AccentBrush
     private static readonly OxyColor IstColor = OxyColor.FromRgb(0x21, 0x96, 0xF3);  // contrasting blue
 
+    private const string TrackerFormat = "{0}\n{1}: {2:0.0}\n{3}: {4:0}";
+
+    private static readonly OxyColor LightPlotBackground = OxyColor.FromRgb(0xF5, 0xF5, 0xF5);
+    private static readonly OxyColor LightPlotText = OxyColor.FromRgb(0x1E, 0x1E, 0x1E);
+    private static readonly OxyColor LightPlotBorder = OxyColor.FromRgb(0xB0, 0xB0, 0xB0);
+
+    private static readonly OxyColor DarkPlotBackground = OxyColor.FromRgb(0x1E, 0x1E, 0x1E);
+    private static readonly OxyColor DarkPlotText = OxyColor.FromRgb(0xE8, 0xE8, 0xE8);
+    private static readonly OxyColor DarkPlotBorder = OxyColor.FromRgb(0x3F, 0x3F, 0x46);
+
     private readonly VolcanoBluetoothService _service = new();
     private readonly RampSessionController _rampController;
     private readonly ThemeService _themeService;
@@ -103,6 +113,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         _rampController.ErrorOccurred += OnRampErrorOccurred;
 
         RampPlotModel = BuildEmptyPlotModel();
+        ApplyChartTheme();
         RebuildPlotCurve();
     }
 
@@ -231,6 +242,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     {
         OnPropertyChanged(nameof(IsLightMode));
         OnPropertyChanged(nameof(IsDarkMode));
+        ApplyChartTheme();
     }
 
     partial void OnRampDurationMinutesChanged(int value) => RebuildPlotCurve();
@@ -255,12 +267,36 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         model.Axes.Add(new LinearAxis { Position = AxisPosition.Bottom, Title = "Zeit (min)", Minimum = 0 });
         model.Axes.Add(new LinearAxis { Position = AxisPosition.Left, Title = "Temperatur (°C)", Minimum = 30, Maximum = 235 });
 
-        model.Series.Add(new LineSeries { Title = "Soll (geplant)", Color = SollColor, StrokeThickness = 2 });
-        model.Series.Add(new ScatterSeries { Title = "Soll (aktuell)", MarkerType = MarkerType.Circle, MarkerFill = SollColor, MarkerSize = 6 });
-        model.Series.Add(new ScatterSeries { Title = "Ist (gemessen)", MarkerType = MarkerType.Circle, MarkerFill = IstColor, MarkerSize = 6 });
-        model.Series.Add(new LineSeries { Title = "Ist (Verlauf)", Color = IstColor, StrokeThickness = 2 });
+        model.Series.Add(new LineSeries { Title = "Soll (geplant)", Color = SollColor, StrokeThickness = 2, TrackerFormatString = TrackerFormat });
+        model.Series.Add(new ScatterSeries { Title = "Soll (aktuell)", MarkerType = MarkerType.Circle, MarkerFill = SollColor, MarkerSize = 6, TrackerFormatString = TrackerFormat });
+        model.Series.Add(new ScatterSeries { Title = "Ist (gemessen)", MarkerType = MarkerType.Circle, MarkerFill = IstColor, MarkerSize = 6, TrackerFormatString = TrackerFormat });
+        model.Series.Add(new LineSeries { Title = "Ist (Verlauf)", Color = IstColor, StrokeThickness = 2, TrackerFormatString = TrackerFormat });
 
         return model;
+    }
+
+    private void ApplyChartTheme()
+    {
+        var (background, text, border) = CurrentTheme == AppTheme.Dark
+            ? (DarkPlotBackground, DarkPlotText, DarkPlotBorder)
+            : (LightPlotBackground, LightPlotText, LightPlotBorder);
+
+        RampPlotModel.Background = background;
+        RampPlotModel.TextColor = text;
+        RampPlotModel.PlotAreaBorderColor = border;
+        RampPlotModel.TitleColor = text;
+
+        foreach (var axis in RampPlotModel.Axes)
+        {
+            axis.TextColor = text;
+            axis.TitleColor = text;
+            axis.AxislineColor = border;
+            axis.TicklineColor = border;
+            axis.MajorGridlineColor = border;
+            axis.MinorGridlineColor = border;
+        }
+
+        RampPlotModel.InvalidatePlot(false);
     }
 
     private void RebuildPlotCurve()
