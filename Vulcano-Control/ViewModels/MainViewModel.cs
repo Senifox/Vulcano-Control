@@ -2,6 +2,9 @@ using System.Windows;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using OxyPlot;
+using OxyPlot.Axes;
+using OxyPlot.Series;
 using Vulcano_Control.Models;
 using Vulcano_Control.Services;
 using ConnectionState = Vulcano_Control.Models.ConnectionState;
@@ -10,6 +13,9 @@ namespace Vulcano_Control.ViewModels;
 
 public partial class MainViewModel : ObservableObject, IAsyncDisposable
 {
+    private static readonly OxyColor SollColor = OxyColor.FromRgb(0xFF, 0x98, 0x00); // matches AccentBrush
+    private static readonly OxyColor IstColor = OxyColor.FromRgb(0x21, 0x96, 0xF3);  // contrasting blue
+
     private readonly VolcanoBluetoothService _service = new();
     private readonly RampSessionController _rampController;
     private readonly ThemeService _themeService;
@@ -66,6 +72,12 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     [ObservableProperty]
     private AppTheme currentTheme;
 
+    [ObservableProperty]
+    private bool isChartVisible = true;
+
+    [ObservableProperty]
+    private PlotModel rampPlotModel = null!;
+
     public bool IsConnected => ConnectionState == ConnectionState.Connected;
 
     public bool IsLightMode => CurrentTheme == AppTheme.Light;
@@ -89,6 +101,9 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         _rampController.ProgressChanged += OnRampProgressChanged;
         _rampController.Completed += OnRampCompleted;
         _rampController.ErrorOccurred += OnRampErrorOccurred;
+
+        RampPlotModel = BuildEmptyPlotModel();
+        RebuildPlotCurve();
     }
 
     [RelayCommand(CanExecute = nameof(CanConnect))]
@@ -139,6 +154,8 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             StatusMessage = "Start- und Zieltemperatur müssen sich ausreichend unterscheiden.";
             return;
         }
+
+        ClearIstHistory();
 
         await _rampController.StartAsync(
             RampStartTemperature,
@@ -214,6 +231,102 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     {
         OnPropertyChanged(nameof(IsLightMode));
         OnPropertyChanged(nameof(IsDarkMode));
+    }
+
+    partial void OnRampDurationMinutesChanged(int value) => RebuildPlotCurve();
+    partial void OnRampStartTemperatureChanged(int value) => RebuildPlotCurve();
+    partial void OnRampEndTemperatureChanged(int value) => RebuildPlotCurve();
+    partial void OnRampInterpolationMethodChanged(InterpolationMethod value) => RebuildPlotCurve();
+
+    partial void OnRampElapsedChanged(TimeSpan value)
+    {
+        UpdatePlotMarkers();
+        AppendIstHistoryPoint();
+    }
+
+    partial void OnRampCurrentTargetChanged(int value) => UpdatePlotMarkers();
+    partial void OnCurrentTemperatureChanged(int value) => UpdatePlotMarkers();
+    partial void OnIsRampRunningChanged(bool value) => UpdatePlotMarkers();
+
+    private static PlotModel BuildEmptyPlotModel()
+    {
+        var model = new PlotModel();
+
+        model.Axes.Add(new LinearAxis { Position = AxisPosition.Bottom, Title = "Zeit (min)", Minimum = 0 });
+        model.Axes.Add(new LinearAxis { Position = AxisPosition.Left, Title = "Temperatur (°C)", Minimum = 30, Maximum = 235 });
+
+        model.Series.Add(new LineSeries { Title = "Soll (geplant)", Color = SollColor, StrokeThickness = 2 });
+        model.Series.Add(new ScatterSeries { Title = "Soll (aktuell)", MarkerType = MarkerType.Circle, MarkerFill = SollColor, MarkerSize = 6 });
+        model.Series.Add(new ScatterSeries { Title = "Ist (gemessen)", MarkerType = MarkerType.Circle, MarkerFill = IstColor, MarkerSize = 6 });
+        model.Series.Add(new LineSeries { Title = "Ist (Verlauf)", Color = IstColor, StrokeThickness = 2 });
+
+        return model;
+    }
+
+    private void RebuildPlotCurve()
+    {
+        if (RampDurationMinutes <= 0) return;
+
+        TemperatureRampPlan plan;
+        try
+        {
+            plan = new TemperatureRampPlan(
+                RampStartTemperature,
+                RampEndTemperature,
+                TimeSpan.FromMinutes(RampDurationMinutes),
+                RampInterpolationMethod);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return;
+        }
+
+        var samples = RampCurveSampler.Sample(plan);
+
+        var curveSeries = (LineSeries)RampPlotModel.Series[0];
+        curveSeries.Points.Clear();
+        foreach (var (minutes, celsius) in samples)
+        {
+            curveSeries.Points.Add(new DataPoint(minutes, celsius));
+        }
+
+        RampPlotModel.InvalidatePlot(true);
+
+        UpdatePlotMarkers();
+    }
+
+    private void UpdatePlotMarkers()
+    {
+        var sollMarker = (ScatterSeries)RampPlotModel.Series[1];
+        var istMarker = (ScatterSeries)RampPlotModel.Series[2];
+
+        sollMarker.Points.Clear();
+        istMarker.Points.Clear();
+
+        if (IsRampRunning)
+        {
+            var elapsedMinutes = RampElapsed.TotalMinutes;
+            sollMarker.Points.Add(new ScatterPoint(elapsedMinutes, RampCurrentTarget));
+            istMarker.Points.Add(new ScatterPoint(elapsedMinutes, CurrentTemperature));
+        }
+
+        RampPlotModel.InvalidatePlot(false);
+    }
+
+    private void AppendIstHistoryPoint()
+    {
+        if (!IsRampRunning) return;
+
+        var istHistory = (LineSeries)RampPlotModel.Series[3];
+        istHistory.Points.Add(new DataPoint(RampElapsed.TotalMinutes, CurrentTemperature));
+
+        RampPlotModel.InvalidatePlot(false);
+    }
+
+    private void ClearIstHistory()
+    {
+        ((LineSeries)RampPlotModel.Series[3]).Points.Clear();
+        RampPlotModel.InvalidatePlot(false);
     }
 
     private void NotifyRampCommandsCanExecuteChanged()

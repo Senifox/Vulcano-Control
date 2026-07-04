@@ -6,8 +6,9 @@
         xmlns:local="clr-namespace:Vulcano_Control"
         xmlns:converters="clr-namespace:Vulcano_Control.Converters"
         xmlns:models="clr-namespace:Vulcano_Control.Models"
+        xmlns:oxy="http://oxyplot.org/wpf"
         mc:Ignorable="d"
-        Title="Vulcano Control" Height="700" Width="520">
+        Title="Vulcano Control" Height="900" Width="520">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
@@ -38,6 +39,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <Menu Grid.Row="0" Margin="-16,-16,-16,16">
@@ -50,6 +52,9 @@
                           IsChecked="{Binding IsDarkMode, Mode=OneWay}"
                           Command="{Binding SetThemeCommand}"
                           CommandParameter="{x:Static models:AppTheme.Dark}"/>
+                <Separator/>
+                <MenuItem Header="Diagramm anzeigen" IsCheckable="True"
+                          IsChecked="{Binding IsChartVisible}"/>
             </MenuItem>
         </Menu>
 
@@ -117,7 +122,15 @@
             </StackPanel>
         </GroupBox>
 
-        <TextBlock Grid.Row="6" Text="{Binding StatusMessage}" Foreground="{StaticResource SecondaryTextBrush}"
+        <GroupBox Grid.Row="6" Header="Rampen-Diagramm" Margin="0,0,0,16" Padding="8"
+                  VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+                  VerticalContentAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                  Visibility="{Binding IsChartVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <oxy:PlotView Model="{Binding RampPlotModel}" MinHeight="200"
+                          VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
+        </GroupBox>
+
+        <TextBlock Grid.Row="7" Text="{Binding StatusMessage}" Foreground="{StaticResource SecondaryTextBrush}"
                    VerticalAlignment="Bottom" TextWrapping="Wrap"/>
     </Grid>
 </Window>
