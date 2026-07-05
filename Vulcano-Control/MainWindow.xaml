@@ -9,6 +9,7 @@
         xmlns:oxy="http://oxyplot.org/wpf"
         mc:Ignorable="d"
         Title="Vulcano Control" Height="900" Width="520"
+        Icon="Icon.ico"
         Topmost="{Binding IsAlwaysOnTop}">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
