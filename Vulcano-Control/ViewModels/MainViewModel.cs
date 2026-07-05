@@ -79,10 +79,16 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     private InterpolationMethod rampInterpolationMethod = InterpolationMethod.Linear;
 
     [ObservableProperty]
+    private int rampHoldMinutes = 5;
+
+    [ObservableProperty]
     private bool isRampRunning;
 
     [ObservableProperty]
     private bool isRampWarmingUp;
+
+    [ObservableProperty]
+    private bool isRampHolding;
 
     [ObservableProperty]
     private TimeSpan rampElapsed;
@@ -217,6 +223,11 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             StatusMessage = "Start- und Zieltemperatur müssen sich ausreichend unterscheiden.";
             return;
         }
+        if (RampHoldMinutes < 0)
+        {
+            StatusMessage = "Nachlaufzeit darf nicht negativ sein.";
+            return;
+        }
 
         _manualTargetSoundArmed = false;
 
@@ -225,6 +236,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             RampEndTemperature,
             TimeSpan.FromMinutes(RampDurationMinutes),
             RampInterpolationMethod,
+            TimeSpan.FromMinutes(RampHoldMinutes),
             heaterCurrentlyOn: IsHeaterOn);
 
         IsRampRunning = true;
@@ -237,6 +249,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         _rampController.Stop();
         IsRampRunning = false;
         IsRampWarmingUp = false;
+        IsRampHolding = false;
         NotifyRampCommandsCanExecuteChanged();
     }
 
@@ -572,6 +585,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             RampCurrentTarget = roundedTarget;
             RampFractionComplete = e.FractionComplete;
             IsRampWarmingUp = e.IsWarmingUp;
+            IsRampHolding = e.IsHolding;
             TargetTemperature = roundedTarget;
         });
 
@@ -582,6 +596,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
 
             IsRampRunning = false;
             IsRampWarmingUp = false;
+            IsRampHolding = false;
             RampFractionComplete = 0;
             RampCurrentTarget = resetValue;
             TargetTemperature = resetValue;
@@ -595,6 +610,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             StatusMessage = message;
             IsRampRunning = false;
             IsRampWarmingUp = false;
+            IsRampHolding = false;
             NotifyRampCommandsCanExecuteChanged();
         });
 

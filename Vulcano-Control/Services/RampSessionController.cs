@@ -8,7 +8,8 @@ public readonly record struct RampProgressEventArgs(
     TimeSpan Remaining,
     double CurrentComputedTarget,
     double FractionComplete,
-    bool IsWarmingUp);
+    bool IsWarmingUp,
+    bool IsHolding = false);
 
 /// <summary>
 /// Drives a <see cref="TemperatureRampPlan"/> over time, pushing target-temperature
@@ -35,7 +36,7 @@ public sealed class RampSessionController : IDisposable
     /// <summary>Upper bound on how long to wait between updates even if the threshold isn't reached.</summary>
     public TimeSpan MaxPushInterval { get; set; } = TimeSpan.FromSeconds(30);
 
-    private enum Phase { Idle, WarmingUp, Ramping }
+    private enum Phase { Idle, WarmingUp, Ramping, Holding }
 
     private readonly VolcanoBluetoothService _service;
     private readonly LogService _logService;
@@ -47,6 +48,8 @@ public sealed class RampSessionController : IDisposable
     private DateTime _lastPushAtUtc;
     private double _lastPushedTemperature;
     private double _lastKnownCurrentTemperature = double.NaN;
+    private TimeSpan _holdDuration;
+    private DateTime _holdStartedAtUtc;
 
     public bool IsRunning => _phase != Phase.Idle;
 
@@ -70,11 +73,13 @@ public sealed class RampSessionController : IDisposable
         double endTemperatureCelsius,
         TimeSpan duration,
         InterpolationMethod method,
+        TimeSpan holdDuration,
         bool heaterCurrentlyOn)
     {
         if (IsRunning) return;
 
         _plan = new TemperatureRampPlan(startTemperatureCelsius, endTemperatureCelsius, duration, method);
+        _holdDuration = holdDuration;
         _phase = Phase.WarmingUp;
         _lastPushedTemperature = double.NaN;
 
@@ -128,14 +133,43 @@ public sealed class RampSessionController : IDisposable
                 WarmupCompleted?.Invoke(this, EventArgs.Empty);
             }
 
+            if (_phase == Phase.Holding)
+            {
+                var holdElapsed = DateTime.UtcNow - _holdStartedAtUtc;
+                if (holdElapsed >= _holdDuration)
+                {
+                    await FinishAsync();
+                    return;
+                }
+
+                RaiseHoldProgress(holdElapsed);
+                return;
+            }
+
             var elapsed = DateTime.UtcNow - _startedAtUtc;
 
             if (_plan.IsComplete(elapsed))
             {
-                // Go straight to the reset write - do not also push the curve's end
-                // temperature this tick, since a second write to the same characteristic
-                // immediately afterwards can collide with/override the reset write.
-                await FinishAsync();
+                if (_holdDuration <= TimeSpan.Zero)
+                {
+                    // No hold configured - go straight to the reset write rather than also
+                    // pushing the curve's end temperature this tick, since a second write to
+                    // the same characteristic immediately afterwards can collide with/override
+                    // the reset write.
+                    await FinishAsync();
+                    return;
+                }
+
+                // Hold the end temperature for a while before shutting down - push it once
+                // explicitly (the ramp loop above stops pushing once complete) and switch to
+                // the Holding phase; FinishAsync() only runs once the hold time elapses.
+                await _service.SetTargetTemperatureAsync(_plan.EndTemperatureCelsius);
+                _phase = Phase.Holding;
+                _holdStartedAtUtc = DateTime.UtcNow;
+                _logService.Log(
+                    $"Rampe abgeschlossen, halte Endtemperatur {_plan.EndTemperatureCelsius:0}°C " +
+                    $"für {_holdDuration.TotalMinutes:0} min (Nachlaufzeit).");
+                RaiseHoldProgress(TimeSpan.Zero);
                 return;
             }
 
@@ -214,6 +248,22 @@ public sealed class RampSessionController : IDisposable
             CurrentComputedTarget: _plan.GetTargetTemperature(elapsed),
             FractionComplete: Math.Clamp(elapsed.TotalSeconds / _plan.Duration.TotalSeconds, 0.0, 1.0),
             IsWarmingUp: false));
+    }
+
+    private void RaiseHoldProgress(TimeSpan holdElapsed)
+    {
+        if (_plan is null) return;
+
+        var remaining = _holdDuration - holdElapsed;
+        if (remaining < TimeSpan.Zero) remaining = TimeSpan.Zero;
+
+        ProgressChanged?.Invoke(this, new RampProgressEventArgs(
+            Elapsed: holdElapsed,
+            Remaining: remaining,
+            CurrentComputedTarget: _plan.EndTemperatureCelsius,
+            FractionComplete: 1.0,
+            IsWarmingUp: false,
+            IsHolding: true));
     }
 
     public void Dispose()
