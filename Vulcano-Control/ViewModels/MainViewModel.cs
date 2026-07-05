@@ -30,7 +30,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     private const double PastWindowMinutes = 15.0;
     private const double MinFutureWindowMinutes = 5.0;
-    private static readonly TimeSpan HistoryRetention = TimeSpan.FromMinutes(PastWindowMinutes + 2);
+    private static readonly TimeSpan HistoryRetention = TimeSpan.FromMinutes(120);
 
     private readonly VolcanoBluetoothService _service;
     private readonly RampSessionController _rampController;
