@@ -1,0 +1,26 @@
+<Window x:Class="Vulcano_Control.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        mc:Ignorable="d"
+        Title="Einstellungen" Width="360" SizeToContent="Height"
+        ResizeMode="NoResize" WindowStartupLocation="CenterOwner">
+    <StackPanel Margin="16">
+        <TextBlock Text="Verlaufsgröße (Minuten):"/>
+        <TextBox Text="{Binding HistoryRetentionMinutes, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,0,0"/>
+
+        <TextBlock Text="Update-Schwelle (°C):" Margin="0,16,0,0"/>
+        <TextBox Text="{Binding RampPushThresholdCelsius, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,0,0"/>
+
+        <TextBlock Text="Max. Update-Intervall (Sekunden):" Margin="0,16,0,0"/>
+        <TextBox Text="{Binding RampMaxPushIntervalSeconds, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,0,0"/>
+
+        <TextBlock Text="{Binding ErrorMessage}" Foreground="Red" TextWrapping="Wrap" Margin="0,12,0,0"/>
+
+        <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+            <Button Content="Speichern" Command="{Binding SaveCommand}" Padding="12,4" Margin="0,0,8,0"/>
+            <Button Content="Abbrechen" Command="{Binding CancelCommand}" Padding="12,4"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

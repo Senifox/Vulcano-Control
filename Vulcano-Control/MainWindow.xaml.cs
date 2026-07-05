@@ -20,7 +20,7 @@ namespace Vulcano_Control
   {
     private readonly MainViewModel _viewModel;
 
-    public MainWindow(ThemeService themeService, LogService logService)
+    public MainWindow(ThemeService themeService, LogService logService, SettingsService settingsService)
     {
       InitializeComponent();
 
@@ -33,9 +33,14 @@ namespace Vulcano_Control
       }
 
       var logWindow = new LogWindow(logService);
-      Loaded += (_, _) => logWindow.Owner = this;
+      var settingsWindow = new SettingsWindow(new SettingsViewModel(settingsService));
+      Loaded += (_, _) =>
+      {
+        logWindow.Owner = this;
+        settingsWindow.Owner = this;
+      };
 
-      _viewModel = new MainViewModel(themeService, logService, logWindow);
+      _viewModel = new MainViewModel(themeService, logService, logWindow, settingsService, settingsWindow);
       DataContext = _viewModel;
       Closed += async (_, _) => await _viewModel.DisposeAsync();
     }

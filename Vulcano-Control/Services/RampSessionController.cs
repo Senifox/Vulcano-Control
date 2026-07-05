@@ -25,11 +25,15 @@ public readonly record struct RampProgressEventArgs(
 /// </summary>
 public sealed class RampSessionController : IDisposable
 {
-    private const double PushThresholdCelsius = 0.3;
-    private static readonly TimeSpan MaxPushInterval = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan TickInterval = TimeSpan.FromSeconds(1);
     private const double ResetTemperatureCelsius = 185.0;
     private const double TemperatureToleranceCelsius = 0.5;
+
+    /// <summary>Minimum temperature drift (°C) from the last pushed value that triggers an update.</summary>
+    public double PushThresholdCelsius { get; set; } = 0.3;
+
+    /// <summary>Upper bound on how long to wait between updates even if the threshold isn't reached.</summary>
+    public TimeSpan MaxPushInterval { get; set; } = TimeSpan.FromSeconds(30);
 
     private enum Phase { Idle, WarmingUp, Ramping }
 

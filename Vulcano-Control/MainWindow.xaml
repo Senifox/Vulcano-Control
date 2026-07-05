@@ -63,6 +63,7 @@
                 <MenuItem Header="Immer im Vordergrund" IsCheckable="True"
                           IsChecked="{Binding IsAlwaysOnTop}"/>
             </MenuItem>
+            <MenuItem Header="_Einstellungen" Command="{Binding OpenSettingsCommand}"/>
         </Menu>
 
         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,16">

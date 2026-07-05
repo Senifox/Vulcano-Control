@@ -25,7 +25,7 @@ namespace Vulcano_Control
       var themeService = new ThemeService(settingsService);
       themeService.ApplyStartupTheme();
 
-      var mainWindow = new MainWindow(themeService, logService);
+      var mainWindow = new MainWindow(themeService, logService, settingsService);
       mainWindow.Show();
     }
   }

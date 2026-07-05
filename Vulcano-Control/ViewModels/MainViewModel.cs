@@ -30,17 +30,19 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     private const double PastWindowMinutes = 15.0;
     private const double MinFutureWindowMinutes = 5.0;
-    private static readonly TimeSpan HistoryRetention = TimeSpan.FromMinutes(120);
 
     private readonly VolcanoBluetoothService _service;
     private readonly RampSessionController _rampController;
     private readonly ThemeService _themeService;
     private readonly LogService _logService;
     private readonly LogWindow _logWindow;
+    private readonly SettingsService _settingsService;
+    private readonly SettingsWindow _settingsWindow;
     private readonly Dispatcher _dispatcher = Application.Current.Dispatcher;
     private readonly DispatcherTimer _chartTimer;
     private readonly List<(DateTime TimeUtc, double Celsius)> _istHistory = new();
     private IReadOnlyList<(double Minutes, double Celsius)> _currentPlanSamples = Array.Empty<(double, double)>();
+    private TimeSpan _historyRetention = TimeSpan.FromMinutes(120);
     private bool _suppressLogWindowVisibility;
 
     [ObservableProperty]
@@ -114,15 +116,23 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     public IReadOnlyList<InterpolationMethod> InterpolationMethods { get; } = Enum.GetValues<InterpolationMethod>();
 
-    public MainViewModel(ThemeService themeService, LogService logService, LogWindow logWindow)
+    public MainViewModel(
+        ThemeService themeService,
+        LogService logService,
+        LogWindow logWindow,
+        SettingsService settingsService,
+        SettingsWindow settingsWindow)
     {
         _themeService = themeService;
         _logService = logService;
         _logWindow = logWindow;
+        _settingsService = settingsService;
+        _settingsWindow = settingsWindow;
         currentTheme = _themeService.CurrentTheme;
 
         _service = new VolcanoBluetoothService(_logService);
         _rampController = new RampSessionController(_service, _logService);
+        ApplySettings(_settingsService.Load());
 
         _service.ConnectionStateChanged += OnServiceConnectionStateChanged;
         _service.ErrorOccurred += OnServiceErrorOccurred;
@@ -134,6 +144,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         _rampController.ErrorOccurred += OnRampErrorOccurred;
 
         _logWindow.IsVisibleChanged += OnLogWindowIsVisibleChanged;
+        _settingsWindow.ViewModel.SettingsSaved += OnSettingsSaved;
 
         RampPlotModel = BuildEmptyPlotModel();
         ApplyChartTheme();
@@ -218,6 +229,14 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     {
         _themeService.SetTheme(theme);
         CurrentTheme = theme;
+    }
+
+    [RelayCommand]
+    private void OpenSettings()
+    {
+        _settingsWindow.ViewModel.LoadFromDisk();
+        _settingsWindow.Show();
+        _settingsWindow.Activate();
     }
 
     private bool CanConnect() =>
@@ -435,7 +454,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             _istHistory.Add((nowUtc, CurrentTemperature));
         }
 
-        var cutoff = nowUtc - HistoryRetention;
+        var cutoff = nowUtc - _historyRetention;
         _istHistory.RemoveAll(p => p.TimeUtc < cutoff);
 
         var shiftMinutes = IsRampRunning ? RampElapsed.TotalMinutes : 0.0;
@@ -476,6 +495,15 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         StopRampCommand.NotifyCanExecuteChanged();
         ApplyTargetTemperatureCommand.NotifyCanExecuteChanged();
     }
+
+    private void ApplySettings(AppSettings settings)
+    {
+        _historyRetention = TimeSpan.FromMinutes(settings.HistoryRetentionMinutes);
+        _rampController.PushThresholdCelsius = settings.RampPushThresholdCelsius;
+        _rampController.MaxPushInterval = TimeSpan.FromSeconds(settings.RampMaxPushIntervalSeconds);
+    }
+
+    private void OnSettingsSaved(object? sender, AppSettings settings) => ApplySettings(settings);
 
     private void OnServiceConnectionStateChanged(object? sender, ConnectionState state) =>
         _dispatcher.Invoke(() => ConnectionState = state);
@@ -534,6 +562,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         _chartTimer.Stop();
 
         _logWindow.IsVisibleChanged -= OnLogWindowIsVisibleChanged;
+        _settingsWindow.ViewModel.SettingsSaved -= OnSettingsSaved;
 
         _rampController.ProgressChanged -= OnRampProgressChanged;
         _rampController.Completed -= OnRampCompleted;
