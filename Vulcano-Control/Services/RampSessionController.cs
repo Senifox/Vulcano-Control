@@ -30,7 +30,7 @@ public sealed class RampSessionController : IDisposable
     private const double TemperatureToleranceCelsius = 0.5;
 
     /// <summary>Minimum temperature drift (°C) from the last pushed value that triggers an update.</summary>
-    public double PushThresholdCelsius { get; set; } = 0.3;
+    public int PushThresholdCelsius { get; set; } = 1;
 
     /// <summary>Upper bound on how long to wait between updates even if the threshold isn't reached.</summary>
     public TimeSpan MaxPushInterval { get; set; } = TimeSpan.FromSeconds(30);

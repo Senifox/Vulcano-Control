@@ -16,7 +16,7 @@ public partial class SettingsViewModel : ObservableObject
     private int historyRetentionMinutes;
 
     [ObservableProperty]
-    private double rampPushThresholdCelsius;
+    private int rampPushThresholdCelsius;
 
     [ObservableProperty]
     private int rampMaxPushIntervalSeconds;
