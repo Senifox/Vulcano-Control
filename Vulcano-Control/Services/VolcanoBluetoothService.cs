@@ -29,12 +29,19 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
     private GattCharacteristic? _pumpOnChar;
     private GattCharacteristic? _pumpOffChar;
 
+    private readonly LogService _logService;
+
     public ConnectionState State { get; private set; } = ConnectionState.Disconnected;
 
     public event EventHandler<ConnectionState>? ConnectionStateChanged;
     public event EventHandler<string>? ErrorOccurred;
     public event EventHandler<double>? CurrentTemperatureChanged;
     public event EventHandler<ushort>? ActivityChanged;
+
+    public VolcanoBluetoothService(LogService logService)
+    {
+        _logService = logService;
+    }
 
     public async Task<bool> ScanAndConnectAsync(CancellationToken ct = default)
     {
@@ -191,7 +198,9 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
         var result = await _currentTemperatureChar.ReadValueAsync(BluetoothCacheMode.Uncached);
         if (result.Status != GattCommunicationStatus.Success) return;
         var raw = BleEncoding.FromUInt16LEBytes(result.Value.ToArray());
-        CurrentTemperatureChanged?.Invoke(this, BleEncoding.DecodeTemperature(raw));
+        var celsius = BleEncoding.DecodeTemperature(raw);
+        _logService.Log($"Anfangstemperatur gelesen: {celsius:0}°C.");
+        CurrentTemperatureChanged?.Invoke(this, celsius);
     }
 
     private async Task<GattDeviceService?> GetServiceAsync(Guid serviceUuid)
@@ -235,12 +244,16 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
     private void OnCurrentTemperatureValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args)
     {
         var raw = BleEncoding.FromUInt16LEBytes(args.CharacteristicValue.ToArray());
-        CurrentTemperatureChanged?.Invoke(this, BleEncoding.DecodeTemperature(raw));
+        var celsius = BleEncoding.DecodeTemperature(raw);
+        CurrentTemperatureChanged?.Invoke(this, celsius);
     }
 
     private void OnActivityValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args)
     {
         var raw = BleEncoding.FromUInt16LEBytes(args.CharacteristicValue.ToArray());
+        var heating = (raw & VolcanoUuids.ActivityFlags.HeatingEnabled) != 0;
+        var pumping = (raw & VolcanoUuids.ActivityFlags.PumpEnabled) != 0;
+        _logService.Log($"Status empfangen: Heizung {(heating ? "an" : "aus")}, Pumpe {(pumping ? "an" : "aus")}.");
         ActivityChanged?.Invoke(this, raw);
     }
 
@@ -265,7 +278,9 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
         if (status != GattCommunicationStatus.Success)
         {
             RaiseError($"{context} fehlgeschlagen (Status: {status}).");
+            return;
         }
+        _logService.Log($"{context}: {BleEncoding.DecodeTemperature(value):0}°C gesendet.");
     }
 
     private async Task WriteTriggerAsync(GattCharacteristic? characteristic, string context)
@@ -279,7 +294,9 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
         if (status != GattCommunicationStatus.Success)
         {
             RaiseError($"{context} fehlgeschlagen (Status: {status}).");
+            return;
         }
+        _logService.Log($"{context}.");
     }
 
     private void TearDown()
@@ -317,10 +334,15 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
     private void SetState(ConnectionState state)
     {
         State = state;
+        _logService.Log($"Status: {state}.");
         ConnectionStateChanged?.Invoke(this, state);
     }
 
-    private void RaiseError(string message) => ErrorOccurred?.Invoke(this, message);
+    private void RaiseError(string message)
+    {
+        _logService.Log(message);
+        ErrorOccurred?.Invoke(this, message);
+    }
 
     public ValueTask DisposeAsync()
     {

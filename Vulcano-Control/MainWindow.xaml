@@ -55,6 +55,8 @@
                 <Separator/>
                 <MenuItem Header="Diagramm anzeigen" IsCheckable="True"
                           IsChecked="{Binding IsChartVisible}"/>
+                <MenuItem Header="Protokoll anzeigen" IsCheckable="True"
+                          IsChecked="{Binding IsLogWindowVisible}"/>
             </MenuItem>
         </Menu>
 

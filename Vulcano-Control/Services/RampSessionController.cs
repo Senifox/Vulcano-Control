@@ -34,6 +34,7 @@ public sealed class RampSessionController : IDisposable
     private enum Phase { Idle, WarmingUp, Ramping }
 
     private readonly VolcanoBluetoothService _service;
+    private readonly LogService _logService;
     private readonly DispatcherTimer _timer;
 
     private TemperatureRampPlan? _plan;
@@ -49,9 +50,10 @@ public sealed class RampSessionController : IDisposable
     public event EventHandler<double>? Completed;
     public event EventHandler<string>? ErrorOccurred;
 
-    public RampSessionController(VolcanoBluetoothService service)
+    public RampSessionController(VolcanoBluetoothService service, LogService logService)
     {
         _service = service;
+        _logService = logService;
         _service.CurrentTemperatureChanged += OnCurrentTemperatureChanged;
 
         _timer = new DispatcherTimer { Interval = TickInterval };
@@ -71,6 +73,10 @@ public sealed class RampSessionController : IDisposable
         _phase = Phase.WarmingUp;
         _lastPushedTemperature = double.NaN;
 
+        _logService.Log(
+            $"Rampe gestartet: {startTemperatureCelsius:0}°C → {endTemperatureCelsius:0}°C " +
+            $"über {duration.TotalMinutes:0} min, Verlauf {method}.");
+
         if (!heaterCurrentlyOn)
         {
             await _service.SetHeaterAsync(true);
@@ -89,6 +95,7 @@ public sealed class RampSessionController : IDisposable
         if (_phase == Phase.Idle) return;
         _timer.Stop();
         _phase = Phase.Idle;
+        _logService.Log("Rampe manuell gestoppt.");
     }
 
     private void OnCurrentTemperatureChanged(object? sender, double celsius) =>
@@ -112,6 +119,7 @@ public sealed class RampSessionController : IDisposable
                 _startedAtUtc = DateTime.UtcNow;
                 _lastPushAtUtc = _startedAtUtc;
                 _lastPushedTemperature = _plan.StartTemperatureCelsius;
+                _logService.Log("Start-Temperatur erreicht, Rampe läuft.");
             }
 
             var elapsed = DateTime.UtcNow - _startedAtUtc;
@@ -132,7 +140,9 @@ public sealed class RampSessionController : IDisposable
         {
             _timer.Stop();
             _phase = Phase.Idle;
-            ErrorOccurred?.Invoke(this, $"Rampe abgebrochen: {ex.Message}");
+            var message = $"Rampe abgebrochen: {ex.Message}";
+            _logService.Log(message);
+            ErrorOccurred?.Invoke(this, message);
         }
     }
 
@@ -157,6 +167,7 @@ public sealed class RampSessionController : IDisposable
         await _service.SetTargetTemperatureAsync(idealTarget);
         _lastPushedTemperature = idealTarget;
         _lastPushAtUtc = DateTime.UtcNow;
+        _logService.Log($"Rampen-Ziel aktualisiert: {idealTarget:0}°C.");
     }
 
     private async Task FinishAsync()
@@ -166,6 +177,8 @@ public sealed class RampSessionController : IDisposable
 
         await _service.SetTargetTemperatureAsync(ResetTemperatureCelsius);
         await _service.SetHeaterAsync(false);
+
+        _logService.Log($"Rampe abgeschlossen: Ziel auf {ResetTemperatureCelsius:0}°C zurückgesetzt, Heizung ausgeschaltet.");
 
         Completed?.Invoke(this, ResetTemperatureCelsius);
     }

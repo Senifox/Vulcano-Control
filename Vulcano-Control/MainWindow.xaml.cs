@@ -20,7 +20,7 @@ namespace Vulcano_Control
   {
     private readonly MainViewModel _viewModel;
 
-    public MainWindow(ThemeService themeService)
+    public MainWindow(ThemeService themeService, LogService logService)
     {
       InitializeComponent();
 
@@ -32,7 +32,10 @@ namespace Vulcano_Control
         SetResourceReference(ForegroundProperty, "WindowForegroundBrush");
       }
 
-      _viewModel = new MainViewModel(themeService);
+      var logWindow = new LogWindow(logService);
+      Loaded += (_, _) => logWindow.Owner = this;
+
+      _viewModel = new MainViewModel(themeService, logService, logWindow);
       DataContext = _viewModel;
       Closed += async (_, _) => await _viewModel.DisposeAsync();
     }

@@ -12,11 +12,20 @@ namespace Vulcano_Control
     {
       base.OnStartup(e);
 
+      var logService = new LogService();
+
+      // The log window is the best place for the user to see what went wrong, even for
+      // errors that aren't already funneled through a service's own error handling.
+      DispatcherUnhandledException += (_, args) =>
+        logService.Log($"Unerwarteter Fehler: {args.Exception.Message}");
+      AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+        logService.Log($"Unerwarteter Fehler: {(args.ExceptionObject as Exception)?.Message ?? args.ExceptionObject}");
+
       var settingsService = new SettingsService();
       var themeService = new ThemeService(settingsService);
       themeService.ApplyStartupTheme();
 
-      var mainWindow = new MainWindow(themeService);
+      var mainWindow = new MainWindow(themeService, logService);
       mainWindow.Show();
     }
   }

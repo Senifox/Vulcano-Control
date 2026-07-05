@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Vulcano_Control;
 using OxyPlot;
 using OxyPlot.Axes;
 using OxyPlot.Series;
@@ -26,10 +27,13 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     private static readonly OxyColor DarkPlotText = OxyColor.FromRgb(0xE8, 0xE8, 0xE8);
     private static readonly OxyColor DarkPlotBorder = OxyColor.FromRgb(0x3F, 0x3F, 0x46);
 
-    private readonly VolcanoBluetoothService _service = new();
+    private readonly VolcanoBluetoothService _service;
     private readonly RampSessionController _rampController;
     private readonly ThemeService _themeService;
+    private readonly LogService _logService;
+    private readonly LogWindow _logWindow;
     private readonly Dispatcher _dispatcher = Application.Current.Dispatcher;
+    private bool _suppressLogWindowVisibility;
 
     [ObservableProperty]
     private ConnectionState connectionState = ConnectionState.Disconnected;
@@ -86,6 +90,9 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     private bool isChartVisible = true;
 
     [ObservableProperty]
+    private bool isLogWindowVisible;
+
+    [ObservableProperty]
     private PlotModel rampPlotModel = null!;
 
     public bool IsConnected => ConnectionState == ConnectionState.Connected;
@@ -96,12 +103,15 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     public IReadOnlyList<InterpolationMethod> InterpolationMethods { get; } = Enum.GetValues<InterpolationMethod>();
 
-    public MainViewModel(ThemeService themeService)
+    public MainViewModel(ThemeService themeService, LogService logService, LogWindow logWindow)
     {
         _themeService = themeService;
+        _logService = logService;
+        _logWindow = logWindow;
         currentTheme = _themeService.CurrentTheme;
 
-        _rampController = new RampSessionController(_service);
+        _service = new VolcanoBluetoothService(_logService);
+        _rampController = new RampSessionController(_service, _logService);
 
         _service.ConnectionStateChanged += OnServiceConnectionStateChanged;
         _service.ErrorOccurred += OnServiceErrorOccurred;
@@ -111,6 +121,8 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         _rampController.ProgressChanged += OnRampProgressChanged;
         _rampController.Completed += OnRampCompleted;
         _rampController.ErrorOccurred += OnRampErrorOccurred;
+
+        _logWindow.IsVisibleChanged += OnLogWindowIsVisibleChanged;
 
         RampPlotModel = BuildEmptyPlotModel();
         ApplyChartTheme();
@@ -243,6 +255,19 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         OnPropertyChanged(nameof(IsLightMode));
         OnPropertyChanged(nameof(IsDarkMode));
         ApplyChartTheme();
+    }
+
+    partial void OnIsLogWindowVisibleChanged(bool value)
+    {
+        _suppressLogWindowVisibility = true;
+        if (value) _logWindow.Show(); else _logWindow.Hide();
+        _suppressLogWindowVisibility = false;
+    }
+
+    private void OnLogWindowIsVisibleChanged(object? sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (_suppressLogWindowVisibility) return;
+        IsLogWindowVisible = _logWindow.IsVisible;
     }
 
     partial void OnRampDurationMinutesChanged(int value) => RebuildPlotCurve();
@@ -426,6 +451,8 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        _logWindow.IsVisibleChanged -= OnLogWindowIsVisibleChanged;
+
         _rampController.ProgressChanged -= OnRampProgressChanged;
         _rampController.Completed -= OnRampCompleted;
         _rampController.ErrorOccurred -= OnRampErrorOccurred;
