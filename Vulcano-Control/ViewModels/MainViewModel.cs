@@ -93,6 +93,9 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     private bool isLogWindowVisible;
 
     [ObservableProperty]
+    private bool isAlwaysOnTop;
+
+    [ObservableProperty]
     private PlotModel rampPlotModel = null!;
 
     public bool IsConnected => ConnectionState == ConnectionState.Connected;

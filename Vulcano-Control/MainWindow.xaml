@@ -8,7 +8,8 @@
         xmlns:models="clr-namespace:Vulcano_Control.Models"
         xmlns:oxy="http://oxyplot.org/wpf"
         mc:Ignorable="d"
-        Title="Vulcano Control" Height="900" Width="520">
+        Title="Vulcano Control" Height="900" Width="520"
+        Topmost="{Binding IsAlwaysOnTop}">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
@@ -57,6 +58,9 @@
                           IsChecked="{Binding IsChartVisible}"/>
                 <MenuItem Header="Protokoll anzeigen" IsCheckable="True"
                           IsChecked="{Binding IsLogWindowVisible}"/>
+                <Separator/>
+                <MenuItem Header="Immer im Vordergrund" IsCheckable="True"
+                          IsChecked="{Binding IsAlwaysOnTop}"/>
             </MenuItem>
         </Menu>
 
