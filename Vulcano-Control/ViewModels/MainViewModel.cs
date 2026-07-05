@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Vulcano_Control;
 using OxyPlot;
+using OxyPlot.Annotations;
 using OxyPlot.Axes;
 using OxyPlot.Series;
 using Vulcano_Control.Models;
@@ -27,12 +28,19 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     private static readonly OxyColor DarkPlotText = OxyColor.FromRgb(0xE8, 0xE8, 0xE8);
     private static readonly OxyColor DarkPlotBorder = OxyColor.FromRgb(0x3F, 0x3F, 0x46);
 
+    private const double PastWindowMinutes = 15.0;
+    private const double MinFutureWindowMinutes = 5.0;
+    private static readonly TimeSpan HistoryRetention = TimeSpan.FromMinutes(PastWindowMinutes + 2);
+
     private readonly VolcanoBluetoothService _service;
     private readonly RampSessionController _rampController;
     private readonly ThemeService _themeService;
     private readonly LogService _logService;
     private readonly LogWindow _logWindow;
     private readonly Dispatcher _dispatcher = Application.Current.Dispatcher;
+    private readonly DispatcherTimer _chartTimer;
+    private readonly List<(DateTime TimeUtc, double Celsius)> _istHistory = new();
+    private IReadOnlyList<(double Minutes, double Celsius)> _currentPlanSamples = Array.Empty<(double, double)>();
     private bool _suppressLogWindowVisibility;
 
     [ObservableProperty]
@@ -130,6 +138,10 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         RampPlotModel = BuildEmptyPlotModel();
         ApplyChartTheme();
         RebuildPlotCurve();
+
+        _chartTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        _chartTimer.Tick += (_, _) => RefreshChart();
+        _chartTimer.Start();
     }
 
     [RelayCommand(CanExecute = nameof(CanConnect))]
@@ -181,8 +193,6 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             return;
         }
 
-        ClearIstHistory();
-
         await _rampController.StartAsync(
             RampStartTemperature,
             RampEndTemperature,
@@ -220,6 +230,11 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     partial void OnConnectionStateChanged(ConnectionState value)
     {
         OnPropertyChanged(nameof(IsConnected));
+
+        if (value == ConnectionState.Connected)
+        {
+            _istHistory.Clear();
+        }
         StatusMessage = value switch
         {
             ConnectionState.Disconnected => "Nicht verbunden",
@@ -278,12 +293,6 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     partial void OnRampEndTemperatureChanged(int value) => RebuildPlotCurve();
     partial void OnRampInterpolationMethodChanged(InterpolationMethod value) => RebuildPlotCurve();
 
-    partial void OnRampElapsedChanged(TimeSpan value)
-    {
-        UpdatePlotMarkers();
-        AppendIstHistoryPoint();
-    }
-
     partial void OnRampCurrentTargetChanged(int value) => UpdatePlotMarkers();
     partial void OnCurrentTemperatureChanged(int value) => UpdatePlotMarkers();
     partial void OnIsRampRunningChanged(bool value) => UpdatePlotMarkers();
@@ -292,13 +301,46 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     {
         var model = new PlotModel();
 
-        model.Axes.Add(new LinearAxis { Position = AxisPosition.Bottom, Title = "Zeit (min)", Minimum = 0 });
-        model.Axes.Add(new LinearAxis { Position = AxisPosition.Left, Title = "Temperatur (°C)", Minimum = 30, Maximum = 235 });
+        // MinorGridlineStyle intentionally stays Solid (not Dot): WPF renders dashed strokes
+        // segment-by-segment, which gets noticeably expensive as more of the plot is visible
+        // (e.g. zoomed in) - a thin solid line reads as a sub-grid just as well and is cheap.
+        model.Axes.Add(new LinearAxis
+        {
+            Position = AxisPosition.Bottom,
+            Title = "Zeit (min, 0 = jetzt)",
+            Minimum = -PastWindowMinutes,
+            // Maximum is computed and assigned every tick in RefreshChart(), so the axis
+            // range never needs OxyPlot's own auto-scan of all series' points.
+            MajorGridlineStyle = LineStyle.Solid,
+            MinorGridlineStyle = LineStyle.Solid,
+            MinorGridlineThickness = 0.5,
+        });
+        model.Axes.Add(new LinearAxis
+        {
+            Position = AxisPosition.Left,
+            Title = "Temperatur (°C)",
+            Minimum = 30,
+            Maximum = 235,
+            MajorGridlineStyle = LineStyle.Solid,
+            MinorGridlineStyle = LineStyle.Solid,
+            MinorGridlineThickness = 0.5,
+        });
 
         model.Series.Add(new LineSeries { Title = "Soll (geplant)", Color = SollColor, StrokeThickness = 2, TrackerFormatString = TrackerFormat });
         model.Series.Add(new ScatterSeries { Title = "Soll (aktuell)", MarkerType = MarkerType.Circle, MarkerFill = SollColor, MarkerSize = 6, TrackerFormatString = TrackerFormat });
         model.Series.Add(new ScatterSeries { Title = "Ist (gemessen)", MarkerType = MarkerType.Circle, MarkerFill = IstColor, MarkerSize = 6, TrackerFormatString = TrackerFormat });
         model.Series.Add(new LineSeries { Title = "Ist (Verlauf)", Color = IstColor, StrokeThickness = 2, TrackerFormatString = TrackerFormat });
+
+        // Marks x=0 ("jetzt") clearly against the much thinner/lighter gridlines - lives in
+        // Annotations rather than a Series, so RefreshChart()'s per-tick Series.Points rebuilds
+        // never touch it.
+        model.Annotations.Add(new LineAnnotation
+        {
+            Type = LineAnnotationType.Vertical,
+            X = 0,
+            LineStyle = LineStyle.Solid,
+            StrokeThickness = 2,
+        });
 
         return model;
     }
@@ -321,15 +363,24 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             axis.AxislineColor = border;
             axis.TicklineColor = border;
             axis.MajorGridlineColor = border;
-            axis.MinorGridlineColor = border;
+            axis.MinorGridlineColor = OxyColor.FromAColor(96, border);
         }
+
+        // Full-strength text color (vs. the much lighter/thinner gridlines) makes the "jetzt"
+        // line clearly stand out as a reference marker rather than just another gridline.
+        ((LineAnnotation)RampPlotModel.Annotations[0]).Color = text;
 
         RampPlotModel.InvalidatePlot(false);
     }
 
     private void RebuildPlotCurve()
     {
-        if (RampDurationMinutes <= 0) return;
+        if (RampDurationMinutes <= 0)
+        {
+            _currentPlanSamples = Array.Empty<(double, double)>();
+            RefreshChart();
+            return;
+        }
 
         TemperatureRampPlan plan;
         try
@@ -345,18 +396,8 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             return;
         }
 
-        var samples = RampCurveSampler.Sample(plan);
-
-        var curveSeries = (LineSeries)RampPlotModel.Series[0];
-        curveSeries.Points.Clear();
-        foreach (var (minutes, celsius) in samples)
-        {
-            curveSeries.Points.Add(new DataPoint(minutes, celsius));
-        }
-
-        RampPlotModel.InvalidatePlot(true);
-
-        UpdatePlotMarkers();
+        _currentPlanSamples = RampCurveSampler.Sample(plan);
+        RefreshChart();
     }
 
     private void UpdatePlotMarkers()
@@ -369,27 +410,63 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
 
         if (IsRampRunning)
         {
-            var elapsedMinutes = RampElapsed.TotalMinutes;
-            sollMarker.Points.Add(new ScatterPoint(elapsedMinutes, RampCurrentTarget));
-            istMarker.Points.Add(new ScatterPoint(elapsedMinutes, CurrentTemperature));
+            sollMarker.Points.Add(new ScatterPoint(0, RampCurrentTarget));
+        }
+
+        if (IsConnected)
+        {
+            istMarker.Points.Add(new ScatterPoint(0, CurrentTemperature));
         }
 
         RampPlotModel.InvalidatePlot(false);
     }
 
-    private void AppendIstHistoryPoint()
+    /// <summary>
+    /// Redraws the Soll-curve and Ist-history series so that x=0 always represents "now" -
+    /// called every second by <see cref="_chartTimer"/>, and immediately after the plan
+    /// samples or connection state change for responsiveness between ticks.
+    /// </summary>
+    private void RefreshChart()
     {
-        if (!IsRampRunning) return;
+        var nowUtc = DateTime.UtcNow;
 
-        var istHistory = (LineSeries)RampPlotModel.Series[3];
-        istHistory.Points.Add(new DataPoint(RampElapsed.TotalMinutes, CurrentTemperature));
+        if (IsConnected)
+        {
+            _istHistory.Add((nowUtc, CurrentTemperature));
+        }
 
-        RampPlotModel.InvalidatePlot(false);
-    }
+        var cutoff = nowUtc - HistoryRetention;
+        _istHistory.RemoveAll(p => p.TimeUtc < cutoff);
 
-    private void ClearIstHistory()
-    {
-        ((LineSeries)RampPlotModel.Series[3]).Points.Clear();
+        var shiftMinutes = IsRampRunning ? RampElapsed.TotalMinutes : 0.0;
+
+        var curveSeries = (LineSeries)RampPlotModel.Series[0];
+        curveSeries.Points.Clear();
+        foreach (var (minutes, celsius) in _currentPlanSamples)
+        {
+            curveSeries.Points.Add(new DataPoint(minutes - shiftMinutes, celsius));
+        }
+
+        var istHistorySeries = (LineSeries)RampPlotModel.Series[3];
+        istHistorySeries.Points.Clear();
+        foreach (var (timeUtc, celsius) in _istHistory)
+        {
+            istHistorySeries.Points.Add(new DataPoint((timeUtc - nowUtc).TotalMinutes, celsius));
+        }
+
+        UpdatePlotMarkers();
+
+        // We already know the plot's data extent (the curve's rightmost sample; the Y axis is
+        // fixed), so the time axis's Maximum can be assigned directly instead of asking OxyPlot
+        // to rescan every series' points to auto-detect it. That lets us invalidate with
+        // updateData:false below, which skips that rescan entirely - the expensive part that
+        // made this redraw (every second) increasingly costly as the Ist-history grew, and
+        // that compounds badly with rendering more of the plot at higher zoom levels.
+        var timeAxis = RampPlotModel.Axes[0];
+        timeAxis.Maximum = _currentPlanSamples.Count > 0
+            ? Math.Max(_currentPlanSamples[^1].Minutes - shiftMinutes, MinFutureWindowMinutes)
+            : MinFutureWindowMinutes;
+
         RampPlotModel.InvalidatePlot(false);
     }
 
@@ -454,6 +531,8 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        _chartTimer.Stop();
+
         _logWindow.IsVisibleChanged -= OnLogWindowIsVisibleChanged;
 
         _rampController.ProgressChanged -= OnRampProgressChanged;
