@@ -23,6 +23,15 @@ namespace Vulcano_Control
     public MainWindow(ThemeService themeService)
     {
       InitializeComponent();
+
+      if (!ThemeService.UsesNativeFluentTheme)
+      {
+        // No Fluent theme available on Windows 10 - reference the hand-rolled theme
+        // brushes directly so the window itself picks up the swapped dictionary.
+        SetResourceReference(BackgroundProperty, "WindowBackgroundBrush");
+        SetResourceReference(ForegroundProperty, "WindowForegroundBrush");
+      }
+
       _viewModel = new MainViewModel(themeService);
       DataContext = _viewModel;
       Closed += async (_, _) => await _viewModel.DisposeAsync();
