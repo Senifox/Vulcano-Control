@@ -16,6 +16,8 @@
         <TextBlock Text="Max. Update-Intervall (Sekunden):" Margin="0,16,0,0"/>
         <TextBox Text="{Binding RampMaxPushIntervalSeconds, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,0,0"/>
 
+        <CheckBox Content="Sound-Effekte aktiviert" IsChecked="{Binding SoundEnabled}" Margin="0,16,0,0"/>
+
         <TextBlock Text="{Binding ErrorMessage}" Foreground="Red" TextWrapping="Wrap" Margin="0,12,0,0"/>
 
         <StackPanel Orientation="Horizontal" Margin="0,16,0,0">

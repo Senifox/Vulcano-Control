@@ -38,12 +38,15 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     private readonly LogWindow _logWindow;
     private readonly SettingsService _settingsService;
     private readonly SettingsWindow _settingsWindow;
+    private readonly SoundService _soundService;
     private readonly Dispatcher _dispatcher = Application.Current.Dispatcher;
     private readonly DispatcherTimer _chartTimer;
     private readonly List<(DateTime TimeUtc, double Celsius)> _istHistory = new();
     private IReadOnlyList<(double Minutes, double Celsius)> _currentPlanSamples = Array.Empty<(double, double)>();
     private TimeSpan _historyRetention = TimeSpan.FromMinutes(120);
     private bool _suppressLogWindowVisibility;
+    private bool _manualTargetSoundArmed;
+    private int _pendingManualTargetCelsius;
 
     [ObservableProperty]
     private ConnectionState connectionState = ConnectionState.Disconnected;
@@ -121,13 +124,15 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         LogService logService,
         LogWindow logWindow,
         SettingsService settingsService,
-        SettingsWindow settingsWindow)
+        SettingsWindow settingsWindow,
+        SoundService soundService)
     {
         _themeService = themeService;
         _logService = logService;
         _logWindow = logWindow;
         _settingsService = settingsService;
         _settingsWindow = settingsWindow;
+        _soundService = soundService;
         currentTheme = _themeService.CurrentTheme;
 
         _service = new VolcanoBluetoothService(_logService);
@@ -140,6 +145,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         _service.ActivityChanged += OnServiceActivityChanged;
 
         _rampController.ProgressChanged += OnRampProgressChanged;
+        _rampController.WarmupCompleted += OnRampWarmupCompleted;
         _rampController.Completed += OnRampCompleted;
         _rampController.ErrorOccurred += OnRampErrorOccurred;
 
@@ -183,6 +189,14 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     private async Task ApplyTargetTemperatureAsync()
     {
         await _service.SetTargetTemperatureAsync(TargetTemperature);
+        _pendingManualTargetCelsius = TargetTemperature;
+        _manualTargetSoundArmed = true;
+
+        // The device may already be at or above the target (e.g. re-applying a target close to
+        // the current reading) - CheckManualTargetReached must run right away too, since
+        // OnCurrentTemperatureChanged only fires on the *next* actual change and might never
+        // come if the temperature doesn't move again.
+        CheckManualTargetReached(CurrentTemperature);
     }
 
     [RelayCommand(CanExecute = nameof(CanStartRamp))]
@@ -203,6 +217,8 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             StatusMessage = "Start- und Zieltemperatur müssen sich ausreichend unterscheiden.";
             return;
         }
+
+        _manualTargetSoundArmed = false;
 
         await _rampController.StartAsync(
             RampStartTemperature,
@@ -277,6 +293,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             TargetTemperature = 180;
             IsHeaterOn = false;
             IsPumpOn = false;
+            _manualTargetSoundArmed = false;
         }
 
         ConnectCommand.NotifyCanExecuteChanged();
@@ -313,7 +330,21 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     partial void OnRampInterpolationMethodChanged(InterpolationMethod value) => RebuildPlotCurve();
 
     partial void OnRampCurrentTargetChanged(int value) => UpdatePlotMarkers();
-    partial void OnCurrentTemperatureChanged(int value) => UpdatePlotMarkers();
+    partial void OnCurrentTemperatureChanged(int value)
+    {
+        UpdatePlotMarkers();
+        CheckManualTargetReached(value);
+    }
+
+    private void CheckManualTargetReached(int currentValue)
+    {
+        if (_manualTargetSoundArmed && currentValue >= _pendingManualTargetCelsius)
+        {
+            _manualTargetSoundArmed = false;
+            _soundService.PlayHeatReached();
+        }
+    }
+
     partial void OnIsRampRunningChanged(bool value) => UpdatePlotMarkers();
 
     private static PlotModel BuildEmptyPlotModel()
@@ -501,6 +532,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         _historyRetention = TimeSpan.FromMinutes(settings.HistoryRetentionMinutes);
         _rampController.PushThresholdCelsius = settings.RampPushThresholdCelsius;
         _rampController.MaxPushInterval = TimeSpan.FromSeconds(settings.RampMaxPushIntervalSeconds);
+        _soundService.SoundEnabled = settings.SoundEnabled;
     }
 
     private void OnSettingsSaved(object? sender, AppSettings settings) => ApplySettings(settings);
@@ -517,9 +549,18 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     private void OnServiceActivityChanged(object? sender, ushort activity) =>
         _dispatcher.BeginInvoke(() =>
         {
+            var wasHeaterOn = IsHeaterOn;
             IsHeaterOn = (activity & VolcanoUuids.ActivityFlags.HeatingEnabled) != 0;
             IsPumpOn = (activity & VolcanoUuids.ActivityFlags.PumpEnabled) != 0;
+
+            if (wasHeaterOn && !IsHeaterOn)
+            {
+                _soundService.PlayShutdown();
+            }
         });
+
+    private void OnRampWarmupCompleted(object? sender, EventArgs e) =>
+        _dispatcher.BeginInvoke(() => _soundService.PlayHeatReached());
 
     private void OnRampProgressChanged(object? sender, RampProgressEventArgs e) =>
         _dispatcher.BeginInvoke(() =>
@@ -565,6 +606,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         _settingsWindow.ViewModel.SettingsSaved -= OnSettingsSaved;
 
         _rampController.ProgressChanged -= OnRampProgressChanged;
+        _rampController.WarmupCompleted -= OnRampWarmupCompleted;
         _rampController.Completed -= OnRampCompleted;
         _rampController.ErrorOccurred -= OnRampErrorOccurred;
         _rampController.Dispose();

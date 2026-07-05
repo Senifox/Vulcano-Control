@@ -51,6 +51,7 @@ public sealed class RampSessionController : IDisposable
     public bool IsRunning => _phase != Phase.Idle;
 
     public event EventHandler<RampProgressEventArgs>? ProgressChanged;
+    public event EventHandler? WarmupCompleted;
     public event EventHandler<double>? Completed;
     public event EventHandler<string>? ErrorOccurred;
 
@@ -124,6 +125,7 @@ public sealed class RampSessionController : IDisposable
                 _lastPushAtUtc = _startedAtUtc;
                 _lastPushedTemperature = _plan.StartTemperatureCelsius;
                 _logService.Log("Start-Temperatur erreicht, Rampe läuft.");
+                WarmupCompleted?.Invoke(this, EventArgs.Empty);
             }
 
             var elapsed = DateTime.UtcNow - _startedAtUtc;

@@ -6,4 +6,5 @@ public sealed class AppSettings
     public int HistoryRetentionMinutes { get; set; } = 120;
     public int RampPushThresholdCelsius { get; set; } = 1;
     public int RampMaxPushIntervalSeconds { get; set; } = 30;
+    public bool SoundEnabled { get; set; } = true;
 }

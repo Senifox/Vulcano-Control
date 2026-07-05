@@ -20,4 +20,16 @@
     <Resource Include="Icon.ico" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- MediaPlayer (unlike Image/Icon) can't load pack://application:,,, resources - it only
+         understands pack://siteoforigin:,,, URIs, which resolve to files next to the exe. So
+         these ship as plain Content copied to the output directory instead of embedded Resources. -->
+    <Content Include="Sounds\Heat-Reached.mp3">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Sounds\Shutdown.mp3">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

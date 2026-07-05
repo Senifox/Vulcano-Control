@@ -8,7 +8,7 @@
         xmlns:models="clr-namespace:Vulcano_Control.Models"
         xmlns:oxy="http://oxyplot.org/wpf"
         mc:Ignorable="d"
-        Title="Vulcano Control" Height="900" Width="520"
+        Title="Vulcano Control" Height="900" Width="700"
         Icon="Icon.ico"
         Topmost="{Binding IsAlwaysOnTop}">
     <Window.Resources>

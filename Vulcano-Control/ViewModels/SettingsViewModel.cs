@@ -22,6 +22,9 @@ public partial class SettingsViewModel : ObservableObject
     private int rampMaxPushIntervalSeconds;
 
     [ObservableProperty]
+    private bool soundEnabled;
+
+    [ObservableProperty]
     private string? errorMessage;
 
     public SettingsViewModel(SettingsService settingsService)
@@ -36,6 +39,7 @@ public partial class SettingsViewModel : ObservableObject
         HistoryRetentionMinutes = settings.HistoryRetentionMinutes;
         RampPushThresholdCelsius = settings.RampPushThresholdCelsius;
         RampMaxPushIntervalSeconds = settings.RampMaxPushIntervalSeconds;
+        SoundEnabled = settings.SoundEnabled;
         ErrorMessage = null;
     }
 
@@ -64,6 +68,7 @@ public partial class SettingsViewModel : ObservableObject
         settings.HistoryRetentionMinutes = HistoryRetentionMinutes;
         settings.RampPushThresholdCelsius = RampPushThresholdCelsius;
         settings.RampMaxPushIntervalSeconds = RampMaxPushIntervalSeconds;
+        settings.SoundEnabled = SoundEnabled;
         _settingsService.Save(settings);
 
         ErrorMessage = null;
