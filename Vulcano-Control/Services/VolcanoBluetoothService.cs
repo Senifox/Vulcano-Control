@@ -24,6 +24,12 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
 {
     private const int ScanTimeoutSeconds = 15;
 
+    // Some Windows 10 machines have been observed with markedly slower (but still working) BLE
+    // GATT round-trips than a typical Windows 11 machine (services/characteristics taking single-
+    // digit seconds each instead of well under one) - generous since there are now only a handful
+    // of these calls total (2 service + 2 unfiltered characteristic reads), not one per characteristic.
+    private const int GattOperationTimeoutSeconds = 30;
+
     private BluetoothLEAdvertisementWatcher? _watcher;
     private BluetoothLEDevice? _device;
     private GattDeviceService? _stateService;
@@ -50,6 +56,19 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
     private GattCharacteristic? _serialNumberChar;
     private GattCharacteristic? _displayChar;
     private GattCharacteristic? _vibrationChar;
+
+    // Cached full characteristic lists per service, fetched once via GetCharacteristicsAsync()
+    // (no UUID filter) - GetCharacteristicsForUuidAsync() was found to reliably time out on at
+    // least one Windows 10 machine while the unfiltered call and GetGattServicesForUuidAsync()
+    // both worked fine, so every individual characteristic is now looked up locally from these
+    // cached lists instead of querying the device again per characteristic.
+    private IReadOnlyList<GattCharacteristic>? _controlCharacteristics;
+    private IReadOnlyList<GattCharacteristic>? _stateCharacteristics;
+
+    // Resolving the optional characteristics happens in the background after the connection is
+    // already Connected (see ConnectToDeviceAsync) - awaited by the device-setting read/write
+    // methods so they wait for it without ever blocking the core connect flow on it.
+    private Task? _optionalCharacteristicsResolutionTask;
 
     private readonly LogService _logService;
 
@@ -125,6 +144,8 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
     /// <summary>Reads the one-time device info block (serial number, firmware versions, operating time).</summary>
     public async Task<VolcanoDeviceInfo?> ReadDeviceInfoAsync()
     {
+        await EnsureOptionalCharacteristicsResolvedAsync();
+
         var serialNumber = await ReadUtf8Async(_serialNumberChar);
         var firmwareVersion = await ReadUtf8Async(_firmwareVersionChar);
         var firmwareBleVersion = await ReadUtf8Async(_firmwareBleVersionChar);
@@ -140,10 +161,17 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
         return new VolcanoDeviceInfo(serialNumber, firmwareVersion, firmwareBleVersion, hours.Value, minutes.Value);
     }
 
-    public async Task<int?> ReadBrightnessAsync() => await ReadUInt16Async(_brightnessChar);
+    public async Task<int?> ReadBrightnessAsync()
+    {
+        await EnsureOptionalCharacteristicsResolvedAsync();
+        return await ReadUInt16Async(_brightnessChar);
+    }
 
-    public Task SetBrightnessAsync(int level) =>
-        WriteUInt16RawAsync(_brightnessChar, (ushort)level, "Helligkeit setzen");
+    public async Task SetBrightnessAsync(int level)
+    {
+        await EnsureOptionalCharacteristicsResolvedAsync();
+        await WriteUInt16RawAsync(_brightnessChar, (ushort)level, "Helligkeit setzen");
+    }
 
     /// <summary>
     /// Reads the currently configured auto-shutoff duration, in minutes. Read from
@@ -153,16 +181,21 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
     /// </summary>
     public async Task<int?> ReadAutoOffMinutesAsync()
     {
+        await EnsureOptionalCharacteristicsResolvedAsync();
         var raw = await ReadUInt16Async(_shutoffTimeChar);
         return raw is null ? null : raw.Value / 60;
     }
 
     /// <summary>Writes the auto-shutoff duration in minutes (converted to the raw seconds unit).</summary>
-    public Task SetAutoOffMinutesAsync(int minutes) =>
-        WriteUInt16RawAsync(_shutoffTimeChar, (ushort)(minutes * 60), "Abschalt-Timer setzen");
+    public async Task SetAutoOffMinutesAsync(int minutes)
+    {
+        await EnsureOptionalCharacteristicsResolvedAsync();
+        await WriteUInt16RawAsync(_shutoffTimeChar, (ushort)(minutes * 60), "Abschalt-Timer setzen");
+    }
 
     public async Task<(bool Fahrenheit, bool DisplayOnCooling)?> ReadDisplayFlagsAsync()
     {
+        await EnsureOptionalCharacteristicsResolvedAsync();
         var raw = await ReadUInt16Async(_displayChar);
         if (raw is null) return null;
 
@@ -172,21 +205,31 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
             (raw.Value & VolcanoUuids.DisplayFlags.DisplayOnCoolingEnabled) == 0);
     }
 
-    public Task SetFahrenheitAsync(bool enabled) =>
-        WriteFlagAsync(_displayChar, VolcanoUuids.DisplayFlags.FahrenheitEnabled, enabled, "Temperatureinheit setzen");
+    public async Task SetFahrenheitAsync(bool enabled)
+    {
+        await EnsureOptionalCharacteristicsResolvedAsync();
+        await WriteFlagAsync(_displayChar, VolcanoUuids.DisplayFlags.FahrenheitEnabled, enabled, "Temperatureinheit setzen");
+    }
 
-    public Task SetDisplayOnCoolingAsync(bool enabled) =>
-        WriteFlagAsync(_displayChar, VolcanoUuids.DisplayFlags.DisplayOnCoolingEnabled, !enabled, "Anzeige beim Abkühlen setzen");
+    public async Task SetDisplayOnCoolingAsync(bool enabled)
+    {
+        await EnsureOptionalCharacteristicsResolvedAsync();
+        await WriteFlagAsync(_displayChar, VolcanoUuids.DisplayFlags.DisplayOnCoolingEnabled, !enabled, "Anzeige beim Abkühlen setzen");
+    }
 
     /// <summary>Bit clear means vibration is ON (inverted polarity vs. a typical flag), confirmed live.</summary>
     public async Task<bool?> ReadVibrationAsync()
     {
+        await EnsureOptionalCharacteristicsResolvedAsync();
         var raw = await ReadUInt16Async(_vibrationChar);
         return raw is null ? null : (raw.Value & VolcanoUuids.VibrationFlags.VibrationEnabled) == 0;
     }
 
-    public Task SetVibrationAsync(bool enabled) =>
-        WriteFlagAsync(_vibrationChar, VolcanoUuids.VibrationFlags.VibrationEnabled, !enabled, "Vibrationsalarm setzen");
+    public async Task SetVibrationAsync(bool enabled)
+    {
+        await EnsureOptionalCharacteristicsResolvedAsync();
+        await WriteFlagAsync(_vibrationChar, VolcanoUuids.VibrationFlags.VibrationEnabled, !enabled, "Vibrationsalarm setzen");
+    }
 
     private async Task<ulong?> FindDeviceAddressAsync(CancellationToken ct)
     {
@@ -228,43 +271,63 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
 
     private async Task<bool> ConnectToDeviceAsync(ulong address)
     {
-        var device = await BluetoothLEDevice.FromBluetoothAddressAsync(address);
+        _logService.Log("Verbinde mit Geräteadresse...");
+        var deviceTask = BluetoothLEDevice.FromBluetoothAddressAsync(address).AsTask();
+        var completed = await Task.WhenAny(deviceTask, Task.Delay(TimeSpan.FromSeconds(GattOperationTimeoutSeconds)));
+        if (completed != deviceTask)
+        {
+            RaiseError($"Verbindung zur Geräteadresse: Timeout nach {GattOperationTimeoutSeconds}s.");
+            return false;
+        }
+
+        var device = await deviceTask;
         if (device is null)
         {
             RaiseError("Gerät konnte nach dem Scan nicht verbunden werden.");
             return false;
         }
+        _logService.Log("Geräteadresse verbunden, löse GATT-Services auf...");
 
         _device = device;
         device.ConnectionStatusChanged += OnDeviceConnectionStatusChanged;
 
-        if (!await TryResolveServicesAndCharacteristicsAsync())
+        if (!await TryResolveCoreCharacteristicsAsync())
         {
             TearDown();
             return false;
         }
 
         SetState(ConnectionState.Connected);
+
+        // The secondary device-info/device-settings characteristics (used only by the settings
+        // dialog) are resolved in the background from here on - a slow or hanging GATT lookup on
+        // any of them (seen on some Windows 10 machines) must never delay reaching Connected,
+        // since none of them are needed for core temperature/heater/pump control.
+        _optionalCharacteristicsResolutionTask = ResolveOptionalCharacteristicsAsync();
+
         return true;
     }
 
-    private async Task<bool> TryResolveServicesAndCharacteristicsAsync()
+    private async Task<bool> TryResolveCoreCharacteristicsAsync()
     {
         if (_device is null) return false;
 
-        _stateService = await GetServiceAsync(VolcanoUuids.Services.DeviceState);
+        _stateService = await GetServiceAsync(VolcanoUuids.Services.DeviceState, "DeviceState");
         if (_stateService is null) return false;
 
-        _controlService = await GetServiceAsync(VolcanoUuids.Services.DeviceControl);
+        _controlService = await GetServiceAsync(VolcanoUuids.Services.DeviceControl, "DeviceControl");
         if (_controlService is null) return false;
 
-        _currentTemperatureChar = await GetCharacteristicAsync(_controlService, VolcanoUuids.Characteristics.CurrentTemperature);
-        _targetTemperatureChar = await GetCharacteristicAsync(_controlService, VolcanoUuids.Characteristics.TargetTemperature);
-        _heaterOnChar = await GetCharacteristicAsync(_controlService, VolcanoUuids.Characteristics.HeaterOn);
-        _heaterOffChar = await GetCharacteristicAsync(_controlService, VolcanoUuids.Characteristics.HeaterOff);
-        _pumpOnChar = await GetCharacteristicAsync(_controlService, VolcanoUuids.Characteristics.PumpOn);
-        _pumpOffChar = await GetCharacteristicAsync(_controlService, VolcanoUuids.Characteristics.PumpOff);
-        _activityChar = await GetCharacteristicAsync(_stateService, VolcanoUuids.Characteristics.Activity);
+        _controlCharacteristics = await GetAllCharacteristicsAsync(_controlService, "DeviceControl");
+        _stateCharacteristics = await GetAllCharacteristicsAsync(_stateService, "DeviceState");
+
+        _currentTemperatureChar = FindCharacteristic(_controlCharacteristics, VolcanoUuids.Characteristics.CurrentTemperature, "CurrentTemperature");
+        _targetTemperatureChar = FindCharacteristic(_controlCharacteristics, VolcanoUuids.Characteristics.TargetTemperature, "TargetTemperature");
+        _heaterOnChar = FindCharacteristic(_controlCharacteristics, VolcanoUuids.Characteristics.HeaterOn, "HeaterOn");
+        _heaterOffChar = FindCharacteristic(_controlCharacteristics, VolcanoUuids.Characteristics.HeaterOff, "HeaterOff");
+        _pumpOnChar = FindCharacteristic(_controlCharacteristics, VolcanoUuids.Characteristics.PumpOn, "PumpOn");
+        _pumpOffChar = FindCharacteristic(_controlCharacteristics, VolcanoUuids.Characteristics.PumpOff, "PumpOff");
+        _activityChar = FindCharacteristic(_stateCharacteristics, VolcanoUuids.Characteristics.Activity, "Activity");
 
         if (_currentTemperatureChar is null || _targetTemperatureChar is null || _activityChar is null ||
             _heaterOnChar is null || _heaterOffChar is null || _pumpOnChar is null || _pumpOffChar is null)
@@ -277,18 +340,27 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
         await ReadInitialCurrentTemperatureAsync();
         if (!await SubscribeNotifyAsync(_activityChar, OnActivityValueChanged)) return false;
 
-        // Secondary device-info/device-settings characteristics are optional: missing ones just
-        // leave the corresponding setting unavailable in the UI rather than failing the connection.
-        _brightnessChar = await GetCharacteristicAsync(_controlService, VolcanoUuids.Characteristics.Brightness);
-        _currentAutoOffValueChar = await GetCharacteristicAsync(_controlService, VolcanoUuids.Characteristics.CurrentAutoOffValue);
-        _shutoffTimeChar = await GetCharacteristicAsync(_controlService, VolcanoUuids.Characteristics.ShutoffTime);
-        _hoursOfHeatingChar = await GetCharacteristicAsync(_controlService, VolcanoUuids.Characteristics.HoursOfHeating);
-        _minutesOfHeatingChar = await GetCharacteristicAsync(_controlService, VolcanoUuids.Characteristics.MinutesOfHeating);
-        _firmwareVersionChar = await GetCharacteristicAsync(_stateService, VolcanoUuids.Characteristics.FirmwareVersion);
-        _firmwareBleVersionChar = await GetCharacteristicAsync(_stateService, VolcanoUuids.Characteristics.FirmwareBleVersion);
-        _serialNumberChar = await GetCharacteristicAsync(_stateService, VolcanoUuids.Characteristics.SerialNumber);
-        _displayChar = await GetCharacteristicAsync(_stateService, VolcanoUuids.Characteristics.Display);
-        _vibrationChar = await GetCharacteristicAsync(_stateService, VolcanoUuids.Characteristics.Vibration);
+        return true;
+    }
+
+    /// <summary>
+    /// Resolves the ten secondary device-info/device-settings characteristics used by the
+    /// settings dialog, from the characteristic lists already cached during core resolution (no
+    /// further BLE round-trips). Runs in the background after Connected (see
+    /// ConnectToDeviceAsync). Missing ones just leave the corresponding setting unavailable.
+    /// </summary>
+    private Task ResolveOptionalCharacteristicsAsync()
+    {
+        _brightnessChar = FindCharacteristic(_controlCharacteristics, VolcanoUuids.Characteristics.Brightness, "Brightness");
+        _currentAutoOffValueChar = FindCharacteristic(_controlCharacteristics, VolcanoUuids.Characteristics.CurrentAutoOffValue, "CurrentAutoOffValue");
+        _shutoffTimeChar = FindCharacteristic(_controlCharacteristics, VolcanoUuids.Characteristics.ShutoffTime, "ShutoffTime");
+        _hoursOfHeatingChar = FindCharacteristic(_controlCharacteristics, VolcanoUuids.Characteristics.HoursOfHeating, "HoursOfHeating");
+        _minutesOfHeatingChar = FindCharacteristic(_controlCharacteristics, VolcanoUuids.Characteristics.MinutesOfHeating, "MinutesOfHeating");
+        _firmwareVersionChar = FindCharacteristic(_stateCharacteristics, VolcanoUuids.Characteristics.FirmwareVersion, "FirmwareVersion");
+        _firmwareBleVersionChar = FindCharacteristic(_stateCharacteristics, VolcanoUuids.Characteristics.FirmwareBleVersion, "FirmwareBleVersion");
+        _serialNumberChar = FindCharacteristic(_stateCharacteristics, VolcanoUuids.Characteristics.SerialNumber, "SerialNumber");
+        _displayChar = FindCharacteristic(_stateCharacteristics, VolcanoUuids.Characteristics.Display, "Display");
+        _vibrationChar = FindCharacteristic(_stateCharacteristics, VolcanoUuids.Characteristics.Vibration, "Vibration");
 
         if (_brightnessChar is null || _currentAutoOffValueChar is null || _shutoffTimeChar is null ||
             _hoursOfHeatingChar is null || _minutesOfHeatingChar is null || _firmwareVersionChar is null ||
@@ -296,8 +368,21 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
         {
             _logService.Log("Eine oder mehrere optionale Geräte-Charakteristiken wurden nicht gefunden - die zugehörigen Einstellungen bleiben deaktiviert.");
         }
+        else
+        {
+            _logService.Log("Optionale Geräte-Charakteristiken vollständig aufgelöst.");
+        }
 
-        return true;
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Awaits the background optional-characteristic resolution, if it's still running.</summary>
+    private async Task EnsureOptionalCharacteristicsResolvedAsync()
+    {
+        if (_optionalCharacteristicsResolutionTask is not null)
+        {
+            await _optionalCharacteristicsResolutionTask;
+        }
     }
 
     private async Task ReadInitialCurrentTemperatureAsync()
@@ -311,26 +396,82 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
         CurrentTemperatureChanged?.Invoke(this, celsius);
     }
 
-    private async Task<GattDeviceService?> GetServiceAsync(Guid serviceUuid)
+    private async Task<GattDeviceService?> GetServiceAsync(Guid serviceUuid, string name)
     {
         if (_device is null) return null;
-        var result = await _device.GetGattServicesForUuidAsync(serviceUuid, BluetoothCacheMode.Uncached);
-        if (result.Status != GattCommunicationStatus.Success || result.Services.Count == 0)
+
+        _logService.Log($"Suche Service '{name}'...");
+        var task = _device.GetGattServicesForUuidAsync(serviceUuid, BluetoothCacheMode.Uncached).AsTask();
+        var completed = await Task.WhenAny(task, Task.Delay(TimeSpan.FromSeconds(GattOperationTimeoutSeconds)));
+        if (completed != task)
         {
-            RaiseError($"Service {serviceUuid} nicht gefunden (Status: {result.Status}). Läuft evtl. noch die offizielle App?");
+            RaiseError($"Service '{name}' ({serviceUuid}): Timeout nach {GattOperationTimeoutSeconds}s beim Auflösen.");
             return null;
         }
+
+        GattDeviceServicesResult result;
+        try
+        {
+            result = await task;
+        }
+        catch (Exception ex)
+        {
+            RaiseError($"Service '{name}' ({serviceUuid}): Fehler beim Auflösen ({ex.Message}).");
+            return null;
+        }
+
+        if (result.Status != GattCommunicationStatus.Success || result.Services.Count == 0)
+        {
+            RaiseError($"Service '{name}' ({serviceUuid}) nicht gefunden (Status: {result.Status}). Läuft evtl. noch die offizielle App?");
+            return null;
+        }
+
+        _logService.Log($"Service '{name}' gefunden.");
         return result.Services[0];
     }
 
-    private static async Task<GattCharacteristic?> GetCharacteristicAsync(GattDeviceService service, Guid characteristicUuid)
+    /// <summary>
+    /// Fetches every characteristic of a service in one round-trip (no UUID filter). Preferred
+    /// over GetCharacteristicsForUuidAsync(), which was found to reliably time out on at least
+    /// one Windows 10 machine while this unfiltered call worked fine.
+    /// </summary>
+    private async Task<IReadOnlyList<GattCharacteristic>?> GetAllCharacteristicsAsync(GattDeviceService service, string serviceName)
     {
-        var result = await service.GetCharacteristicsForUuidAsync(characteristicUuid, BluetoothCacheMode.Uncached);
-        if (result.Status != GattCommunicationStatus.Success || result.Characteristics.Count == 0)
+        _logService.Log($"Lese alle Characteristics von '{serviceName}'...");
+        var task = service.GetCharacteristicsAsync(BluetoothCacheMode.Uncached).AsTask();
+        var completed = await Task.WhenAny(task, Task.Delay(TimeSpan.FromSeconds(GattOperationTimeoutSeconds)));
+        if (completed != task)
         {
+            RaiseError($"Characteristics von '{serviceName}': Timeout nach {GattOperationTimeoutSeconds}s beim Auflösen.");
             return null;
         }
-        return result.Characteristics[0];
+
+        GattCharacteristicsResult result;
+        try
+        {
+            result = await task;
+        }
+        catch (Exception ex)
+        {
+            RaiseError($"Characteristics von '{serviceName}': Fehler beim Auflösen ({ex.Message}).");
+            return null;
+        }
+
+        if (result.Status != GattCommunicationStatus.Success)
+        {
+            RaiseError($"Characteristics von '{serviceName}' nicht lesbar (Status: {result.Status}).");
+            return null;
+        }
+
+        _logService.Log($"{result.Characteristics.Count} Characteristic(s) von '{serviceName}' gelesen.");
+        return result.Characteristics;
+    }
+
+    private GattCharacteristic? FindCharacteristic(IReadOnlyList<GattCharacteristic>? characteristics, Guid characteristicUuid, string name)
+    {
+        var match = characteristics?.FirstOrDefault(c => c.Uuid == characteristicUuid);
+        _logService.Log(match is not null ? $"Characteristic '{name}' gefunden." : $"Characteristic '{name}' nicht gefunden.");
+        return match;
     }
 
     private async Task<bool> SubscribeNotifyAsync(
@@ -498,6 +639,9 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
         _serialNumberChar = null;
         _displayChar = null;
         _vibrationChar = null;
+        _controlCharacteristics = null;
+        _stateCharacteristics = null;
+        _optionalCharacteristicsResolutionTask = null;
         _controlService = null;
         _stateService = null;
         _device = null;
