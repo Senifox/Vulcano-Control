@@ -8,6 +8,14 @@ using Windows.Foundation;
 
 namespace Vulcano_Control.Services;
 
+/// <summary>One-time device information, read on demand (e.g. when opening the settings dialog).</summary>
+public readonly record struct VolcanoDeviceInfo(
+    string SerialNumber,
+    string FirmwareVersion,
+    string FirmwareBleVersion,
+    int HoursOfHeating,
+    int MinutesOfHeating);
+
 /// <summary>
 /// Encapsulates BLE discovery, GATT connection and read/write/notify access to a
 /// Storz &amp; Bickel Volcano. UI-agnostic: raises plain events, no Dispatcher usage here.
@@ -28,6 +36,20 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
     private GattCharacteristic? _heaterOffChar;
     private GattCharacteristic? _pumpOnChar;
     private GattCharacteristic? _pumpOffChar;
+
+    // Optional secondary characteristics (device info + device settings) - resolved best-effort,
+    // a missing one just leaves the corresponding setting unavailable rather than aborting the
+    // whole connection.
+    private GattCharacteristic? _brightnessChar;
+    private GattCharacteristic? _currentAutoOffValueChar;
+    private GattCharacteristic? _shutoffTimeChar;
+    private GattCharacteristic? _hoursOfHeatingChar;
+    private GattCharacteristic? _minutesOfHeatingChar;
+    private GattCharacteristic? _firmwareVersionChar;
+    private GattCharacteristic? _firmwareBleVersionChar;
+    private GattCharacteristic? _serialNumberChar;
+    private GattCharacteristic? _displayChar;
+    private GattCharacteristic? _vibrationChar;
 
     private readonly LogService _logService;
 
@@ -99,6 +121,72 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
 
     public Task SetPumpAsync(bool on) =>
         WriteTriggerAsync(on ? _pumpOnChar : _pumpOffChar, on ? "Pumpe einschalten" : "Pumpe ausschalten");
+
+    /// <summary>Reads the one-time device info block (serial number, firmware versions, operating time).</summary>
+    public async Task<VolcanoDeviceInfo?> ReadDeviceInfoAsync()
+    {
+        var serialNumber = await ReadUtf8Async(_serialNumberChar);
+        var firmwareVersion = await ReadUtf8Async(_firmwareVersionChar);
+        var firmwareBleVersion = await ReadUtf8Async(_firmwareBleVersionChar);
+        var hours = await ReadUInt16Async(_hoursOfHeatingChar);
+        var minutes = await ReadUInt16Async(_minutesOfHeatingChar);
+
+        if (serialNumber is null || firmwareVersion is null || firmwareBleVersion is null ||
+            hours is null || minutes is null)
+        {
+            return null;
+        }
+
+        return new VolcanoDeviceInfo(serialNumber, firmwareVersion, firmwareBleVersion, hours.Value, minutes.Value);
+    }
+
+    public async Task<int?> ReadBrightnessAsync() => await ReadUInt16Async(_brightnessChar);
+
+    public Task SetBrightnessAsync(int level) =>
+        WriteUInt16RawAsync(_brightnessChar, (ushort)level, "Helligkeit setzen");
+
+    /// <summary>
+    /// Reads the currently configured auto-shutoff duration, in minutes. Read from
+    /// <c>ShutoffTime</c> (the configured value) rather than <c>CurrentAutoOffValue</c> (a live
+    /// countdown that's only non-zero while actively counting down) - confirmed against a live
+    /// device showing 60 min.
+    /// </summary>
+    public async Task<int?> ReadAutoOffMinutesAsync()
+    {
+        var raw = await ReadUInt16Async(_shutoffTimeChar);
+        return raw is null ? null : raw.Value / 60;
+    }
+
+    /// <summary>Writes the auto-shutoff duration in minutes (converted to the raw seconds unit).</summary>
+    public Task SetAutoOffMinutesAsync(int minutes) =>
+        WriteUInt16RawAsync(_shutoffTimeChar, (ushort)(minutes * 60), "Abschalt-Timer setzen");
+
+    public async Task<(bool Fahrenheit, bool DisplayOnCooling)?> ReadDisplayFlagsAsync()
+    {
+        var raw = await ReadUInt16Async(_displayChar);
+        if (raw is null) return null;
+
+        return (
+            (raw.Value & VolcanoUuids.DisplayFlags.FahrenheitEnabled) != 0,
+            // Inverted vs. Fahrenheit: bit clear means the feature is ON, confirmed live.
+            (raw.Value & VolcanoUuids.DisplayFlags.DisplayOnCoolingEnabled) == 0);
+    }
+
+    public Task SetFahrenheitAsync(bool enabled) =>
+        WriteFlagAsync(_displayChar, VolcanoUuids.DisplayFlags.FahrenheitEnabled, enabled, "Temperatureinheit setzen");
+
+    public Task SetDisplayOnCoolingAsync(bool enabled) =>
+        WriteFlagAsync(_displayChar, VolcanoUuids.DisplayFlags.DisplayOnCoolingEnabled, !enabled, "Anzeige beim Abkühlen setzen");
+
+    /// <summary>Bit clear means vibration is ON (inverted polarity vs. a typical flag), confirmed live.</summary>
+    public async Task<bool?> ReadVibrationAsync()
+    {
+        var raw = await ReadUInt16Async(_vibrationChar);
+        return raw is null ? null : (raw.Value & VolcanoUuids.VibrationFlags.VibrationEnabled) == 0;
+    }
+
+    public Task SetVibrationAsync(bool enabled) =>
+        WriteFlagAsync(_vibrationChar, VolcanoUuids.VibrationFlags.VibrationEnabled, !enabled, "Vibrationsalarm setzen");
 
     private async Task<ulong?> FindDeviceAddressAsync(CancellationToken ct)
     {
@@ -188,6 +276,26 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
         if (!await SubscribeNotifyAsync(_currentTemperatureChar, OnCurrentTemperatureValueChanged)) return false;
         await ReadInitialCurrentTemperatureAsync();
         if (!await SubscribeNotifyAsync(_activityChar, OnActivityValueChanged)) return false;
+
+        // Secondary device-info/device-settings characteristics are optional: missing ones just
+        // leave the corresponding setting unavailable in the UI rather than failing the connection.
+        _brightnessChar = await GetCharacteristicAsync(_controlService, VolcanoUuids.Characteristics.Brightness);
+        _currentAutoOffValueChar = await GetCharacteristicAsync(_controlService, VolcanoUuids.Characteristics.CurrentAutoOffValue);
+        _shutoffTimeChar = await GetCharacteristicAsync(_controlService, VolcanoUuids.Characteristics.ShutoffTime);
+        _hoursOfHeatingChar = await GetCharacteristicAsync(_controlService, VolcanoUuids.Characteristics.HoursOfHeating);
+        _minutesOfHeatingChar = await GetCharacteristicAsync(_controlService, VolcanoUuids.Characteristics.MinutesOfHeating);
+        _firmwareVersionChar = await GetCharacteristicAsync(_stateService, VolcanoUuids.Characteristics.FirmwareVersion);
+        _firmwareBleVersionChar = await GetCharacteristicAsync(_stateService, VolcanoUuids.Characteristics.FirmwareBleVersion);
+        _serialNumberChar = await GetCharacteristicAsync(_stateService, VolcanoUuids.Characteristics.SerialNumber);
+        _displayChar = await GetCharacteristicAsync(_stateService, VolcanoUuids.Characteristics.Display);
+        _vibrationChar = await GetCharacteristicAsync(_stateService, VolcanoUuids.Characteristics.Vibration);
+
+        if (_brightnessChar is null || _currentAutoOffValueChar is null || _shutoffTimeChar is null ||
+            _hoursOfHeatingChar is null || _minutesOfHeatingChar is null || _firmwareVersionChar is null ||
+            _firmwareBleVersionChar is null || _serialNumberChar is null || _displayChar is null || _vibrationChar is null)
+        {
+            _logService.Log("Eine oder mehrere optionale Geräte-Charakteristiken wurden nicht gefunden - die zugehörigen Einstellungen bleiben deaktiviert.");
+        }
 
         return true;
     }
@@ -299,6 +407,60 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
         _logService.Log($"{context}.");
     }
 
+    private async Task WriteUInt16RawAsync(GattCharacteristic? characteristic, ushort value, string context)
+    {
+        if (characteristic is null)
+        {
+            RaiseError($"{context}: nicht verbunden.");
+            return;
+        }
+        var status = await characteristic.WriteValueAsync(BleEncoding.ToUInt16LEBytes(value).AsBuffer());
+        if (status != GattCommunicationStatus.Success)
+        {
+            RaiseError($"{context} fehlgeschlagen (Status: {status}).");
+            return;
+        }
+        _logService.Log($"{context}: {value} gesendet.");
+    }
+
+    /// <summary>
+    /// Writes a bit-flag "toggle command" as used by the Display/Vibration characteristics: the
+    /// raw flag value alone sets the bit, the flag value with bit 16 (0x10000) added clears it.
+    /// </summary>
+    private async Task WriteFlagAsync(GattCharacteristic? characteristic, ushort flag, bool enable, string context)
+    {
+        if (characteristic is null)
+        {
+            RaiseError($"{context}: nicht verbunden.");
+            return;
+        }
+        var command = enable ? flag : (uint)(0x10000 + flag);
+        var status = await characteristic.WriteValueAsync(BleEncoding.ToUInt32LEBytes(command).AsBuffer());
+        if (status != GattCommunicationStatus.Success)
+        {
+            RaiseError($"{context} fehlgeschlagen (Status: {status}).");
+            return;
+        }
+        _logService.Log($"{context}: {(enable ? "an" : "aus")}.");
+    }
+
+    private async Task<ushort?> ReadUInt16Async(GattCharacteristic? characteristic)
+    {
+        if (characteristic is null) return null;
+        var result = await characteristic.ReadValueAsync(BluetoothCacheMode.Uncached);
+        if (result.Status != GattCommunicationStatus.Success) return null;
+        var bytes = result.Value.ToArray();
+        return bytes.Length >= 2 ? BleEncoding.FromUInt16LEBytes(bytes) : bytes.Length == 1 ? bytes[0] : null;
+    }
+
+    private async Task<string?> ReadUtf8Async(GattCharacteristic? characteristic)
+    {
+        if (characteristic is null) return null;
+        var result = await characteristic.ReadValueAsync(BluetoothCacheMode.Uncached);
+        if (result.Status != GattCommunicationStatus.Success) return null;
+        return BleEncoding.DecodeUtf8(result.Value.ToArray());
+    }
+
     private void TearDown()
     {
         if (_currentTemperatureChar is not null)
@@ -326,6 +488,16 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
         _heaterOffChar = null;
         _pumpOnChar = null;
         _pumpOffChar = null;
+        _brightnessChar = null;
+        _currentAutoOffValueChar = null;
+        _shutoffTimeChar = null;
+        _hoursOfHeatingChar = null;
+        _minutesOfHeatingChar = null;
+        _firmwareVersionChar = null;
+        _firmwareBleVersionChar = null;
+        _serialNumberChar = null;
+        _displayChar = null;
+        _vibrationChar = null;
         _controlService = null;
         _stateService = null;
         _device = null;

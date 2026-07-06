@@ -44,6 +44,19 @@ public static class VolcanoUuids
         public const ushort PumpEnabled = 0x2000;
     }
 
+    /// <summary>Bit flags read from/written to the <see cref="Characteristics.Display"/> characteristic.</summary>
+    public static class DisplayFlags
+    {
+        public const ushort FahrenheitEnabled = 0x0200;
+        public const ushort DisplayOnCoolingEnabled = 0x1000;
+    }
+
+    /// <summary>Bit flag read from/written to the <see cref="Characteristics.Vibration"/> characteristic.</summary>
+    public static class VibrationFlags
+    {
+        public const ushort VibrationEnabled = 0x0400;
+    }
+
     /// <summary>BLE advertisement local-name prefixes used to identify a Volcano.</summary>
     public static readonly string[] NamePrefixes = ["STORZ&BICKEL", "S&B"];
 }

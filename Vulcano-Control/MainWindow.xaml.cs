@@ -33,15 +33,17 @@ namespace Vulcano_Control
       }
       ThemeService.ApplyTitleBarTheme(this, themeService.CurrentTheme);
 
+      var service = new VolcanoBluetoothService(logService);
+
       var logWindow = new LogWindow(logService, themeService);
-      var settingsWindow = new SettingsWindow(new SettingsViewModel(settingsService), themeService);
+      var settingsWindow = new SettingsWindow(new SettingsViewModel(settingsService, service), themeService);
       Loaded += (_, _) =>
       {
         logWindow.Owner = this;
         settingsWindow.Owner = this;
       };
 
-      _viewModel = new MainViewModel(themeService, logService, logWindow, settingsService, settingsWindow, soundService);
+      _viewModel = new MainViewModel(themeService, logService, logWindow, settingsService, settingsWindow, soundService, service);
       DataContext = _viewModel;
       Closed += async (_, _) => await _viewModel.DisposeAsync();
     }

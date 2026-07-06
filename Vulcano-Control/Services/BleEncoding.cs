@@ -7,6 +7,11 @@ public static class BleEncoding
 
     public static ushort FromUInt16LEBytes(byte[] bytes) => BitConverter.ToUInt16(bytes, 0);
 
+    public static byte[] ToUInt32LEBytes(uint value) => BitConverter.GetBytes(value);
+
+    /// <summary>Decodes a UTF-8 device string, trimming null-byte padding.</summary>
+    public static string DecodeUtf8(byte[] bytes) => System.Text.Encoding.UTF8.GetString(bytes).TrimEnd('\0').Trim();
+
     /// <summary>Encodes a Celsius value as the device's raw UInt16 (°C * 10).</summary>
     public static ushort EncodeTemperature(double celsius) => (ushort)Math.Round(celsius * 10.0);
 

@@ -131,7 +131,8 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         LogWindow logWindow,
         SettingsService settingsService,
         SettingsWindow settingsWindow,
-        SoundService soundService)
+        SoundService soundService,
+        VolcanoBluetoothService service)
     {
         _themeService = themeService;
         _logService = logService;
@@ -141,7 +142,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         _soundService = soundService;
         currentTheme = _themeService.CurrentTheme;
 
-        _service = new VolcanoBluetoothService(_logService);
+        _service = service;
         _rampController = new RampSessionController(_service, _logService);
         ApplySettings(_settingsService.Load());
 
