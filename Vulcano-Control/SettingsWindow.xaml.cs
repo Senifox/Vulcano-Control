@@ -12,7 +12,7 @@ namespace Vulcano_Control
   {
     public SettingsViewModel ViewModel { get; }
 
-    public SettingsWindow(SettingsViewModel viewModel)
+    public SettingsWindow(SettingsViewModel viewModel, ThemeService themeService)
     {
       InitializeComponent();
 
@@ -21,6 +21,7 @@ namespace Vulcano_Control
         SetResourceReference(BackgroundProperty, "WindowBackgroundBrush");
         SetResourceReference(ForegroundProperty, "WindowForegroundBrush");
       }
+      ThemeService.ApplyTitleBarTheme(this, themeService.CurrentTheme);
 
       ViewModel = viewModel;
       DataContext = viewModel;

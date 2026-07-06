@@ -1,5 +1,7 @@
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Interop;
 using Vulcano_Control.Models;
 
 namespace Vulcano_Control.Services;
@@ -22,6 +24,11 @@ public sealed class ThemeService
     public static bool UsesNativeFluentTheme { get; } =
         Environment.GetEnvironmentVariable("VULCANO_FORCE_WIN10_THEME") != "1"
         && Environment.OSVersion.Version.Build >= 22000;
+
+    private const int DwmwaUseImmersiveDarkMode = 20;
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
 
     private readonly SettingsService _settingsService;
     private AppTheme _currentTheme;
@@ -87,5 +94,41 @@ public sealed class ThemeService
         }
 
         dictionaries.Add(new ResourceDictionary { Source = themeUri });
+
+        foreach (Window window in Application.Current.Windows)
+        {
+            ApplyTitleBarTheme(window, theme);
+        }
+    }
+
+    /// <summary>
+    /// Colors a window's native title bar (non-client area, drawn by DWM rather than WPF) to
+    /// match dark/light mode. The custom fallback theme above only reaches the client area, so
+    /// without this the Windows 10 title bar stays the default light color even in dark mode.
+    /// Safe to call for every window on construction (handles the not-yet-shown case by waiting
+    /// for SourceInitialized) and again whenever the theme changes at runtime. No-op on Windows
+    /// 11's native Fluent path, which themes its own title bar already.
+    /// </summary>
+    public static void ApplyTitleBarTheme(Window window, AppTheme theme)
+    {
+        if (UsesNativeFluentTheme) return;
+
+        void Apply()
+        {
+            var hwnd = new WindowInteropHelper(window).Handle;
+            if (hwnd == IntPtr.Zero) return;
+
+            var useDarkMode = theme == AppTheme.Dark ? 1 : 0;
+            DwmSetWindowAttribute(hwnd, DwmwaUseImmersiveDarkMode, ref useDarkMode, sizeof(int));
+        }
+
+        if (new WindowInteropHelper(window).Handle != IntPtr.Zero)
+        {
+            Apply();
+        }
+        else
+        {
+            window.SourceInitialized += (_, _) => Apply();
+        }
     }
 }

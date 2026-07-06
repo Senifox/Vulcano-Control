@@ -31,9 +31,10 @@ namespace Vulcano_Control
         SetResourceReference(BackgroundProperty, "WindowBackgroundBrush");
         SetResourceReference(ForegroundProperty, "WindowForegroundBrush");
       }
+      ThemeService.ApplyTitleBarTheme(this, themeService.CurrentTheme);
 
-      var logWindow = new LogWindow(logService);
-      var settingsWindow = new SettingsWindow(new SettingsViewModel(settingsService));
+      var logWindow = new LogWindow(logService, themeService);
+      var settingsWindow = new SettingsWindow(new SettingsViewModel(settingsService), themeService);
       Loaded += (_, _) =>
       {
         logWindow.Owner = this;

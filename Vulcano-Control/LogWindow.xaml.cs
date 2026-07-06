@@ -9,7 +9,7 @@ namespace Vulcano_Control
   /// </summary>
   public partial class LogWindow : Window
   {
-    public LogWindow(LogService logService)
+    public LogWindow(LogService logService, ThemeService themeService)
     {
       InitializeComponent();
 
@@ -18,6 +18,7 @@ namespace Vulcano_Control
         SetResourceReference(BackgroundProperty, "WindowBackgroundBrush");
         SetResourceReference(ForegroundProperty, "WindowForegroundBrush");
       }
+      ThemeService.ApplyTitleBarTheme(this, themeService.CurrentTheme);
 
       DataContext = logService;
       // New entries are inserted at the top (see LogService), so the newest activity is
