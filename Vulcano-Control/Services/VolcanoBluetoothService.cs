@@ -366,7 +366,7 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
             _hoursOfHeatingChar is null || _minutesOfHeatingChar is null || _firmwareVersionChar is null ||
             _firmwareBleVersionChar is null || _serialNumberChar is null || _displayChar is null || _vibrationChar is null)
         {
-            _logService.Log("Eine oder mehrere optionale Geräte-Charakteristiken wurden nicht gefunden - die zugehörigen Einstellungen bleiben deaktiviert.");
+            _logService.Log("Eine oder mehrere optionale Geräte-Charakteristiken wurden nicht gefunden - die zugehörigen Einstellungen bleiben deaktiviert.", LogLevel.Warning);
         }
         else
         {
@@ -392,7 +392,7 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
         if (result.Status != GattCommunicationStatus.Success) return;
         var raw = BleEncoding.FromUInt16LEBytes(result.Value.ToArray());
         var celsius = BleEncoding.DecodeTemperature(raw);
-        _logService.Log($"Anfangstemperatur gelesen: {celsius:0}°C.");
+        _logService.Log($"Anfangstemperatur gelesen: {celsius:0}°C.", LogLevel.Debug);
         CurrentTemperatureChanged?.Invoke(this, celsius);
     }
 
@@ -400,7 +400,7 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
     {
         if (_device is null) return null;
 
-        _logService.Log($"Suche Service '{name}'...");
+        _logService.Log($"Suche Service '{name}'...", LogLevel.Debug);
         var task = _device.GetGattServicesForUuidAsync(serviceUuid, BluetoothCacheMode.Uncached).AsTask();
         var completed = await Task.WhenAny(task, Task.Delay(TimeSpan.FromSeconds(GattOperationTimeoutSeconds)));
         if (completed != task)
@@ -426,7 +426,7 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
             return null;
         }
 
-        _logService.Log($"Service '{name}' gefunden.");
+        _logService.Log($"Service '{name}' gefunden.", LogLevel.Debug);
         return result.Services[0];
     }
 
@@ -437,7 +437,7 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
     /// </summary>
     private async Task<IReadOnlyList<GattCharacteristic>?> GetAllCharacteristicsAsync(GattDeviceService service, string serviceName)
     {
-        _logService.Log($"Lese alle Characteristics von '{serviceName}'...");
+        _logService.Log($"Lese alle Characteristics von '{serviceName}'...", LogLevel.Debug);
         var task = service.GetCharacteristicsAsync(BluetoothCacheMode.Uncached).AsTask();
         var completed = await Task.WhenAny(task, Task.Delay(TimeSpan.FromSeconds(GattOperationTimeoutSeconds)));
         if (completed != task)
@@ -463,14 +463,14 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
             return null;
         }
 
-        _logService.Log($"{result.Characteristics.Count} Characteristic(s) von '{serviceName}' gelesen.");
+        _logService.Log($"{result.Characteristics.Count} Characteristic(s) von '{serviceName}' gelesen.", LogLevel.Debug);
         return result.Characteristics;
     }
 
     private GattCharacteristic? FindCharacteristic(IReadOnlyList<GattCharacteristic>? characteristics, Guid characteristicUuid, string name)
     {
         var match = characteristics?.FirstOrDefault(c => c.Uuid == characteristicUuid);
-        _logService.Log(match is not null ? $"Characteristic '{name}' gefunden." : $"Characteristic '{name}' nicht gefunden.");
+        _logService.Log(match is not null ? $"Characteristic '{name}' gefunden." : $"Characteristic '{name}' nicht gefunden.", LogLevel.Debug);
         return match;
     }
 
@@ -656,7 +656,7 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
 
     private void RaiseError(string message)
     {
-        _logService.Log(message);
+        _logService.Log(message, LogLevel.Error);
         ErrorOccurred?.Invoke(this, message);
     }
 

@@ -34,15 +34,15 @@ public sealed class LogService
         Log("Programm gestartet.");
     }
 
-    public void Log(string message)
+    public void Log(string message, LogLevel level = LogLevel.Info)
     {
-        var entry = new LogEntry(DateTime.Now, message);
+        var entry = new LogEntry(DateTime.Now, message, level);
 
         lock (_fileLock)
         {
             try
             {
-                File.AppendAllText(LogFilePath, $"[{entry.Timestamp:HH:mm:ss}] {entry.Message}" + Environment.NewLine);
+                File.AppendAllText(LogFilePath, $"[{entry.Timestamp:HH:mm:ss}] [{entry.Level}] {entry.Message}" + Environment.NewLine);
             }
             catch
             {

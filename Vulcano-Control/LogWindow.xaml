@@ -7,13 +7,32 @@
         Title="Protokoll" Height="500" Width="700"
         Icon="Icon.ico">
     <Grid Margin="8">
-        <ListView x:Name="LogListView" ItemsSource="{Binding Entries}"
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+            <TextBlock Text="Anzeigen:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+            <CheckBox x:Name="DebugFilterCheckBox" Content="Debug" IsChecked="True" Margin="0,0,12,0"
+                      Click="OnLevelFilterChanged"/>
+            <CheckBox x:Name="InfoFilterCheckBox" Content="Info" IsChecked="True" Margin="0,0,12,0"
+                      Click="OnLevelFilterChanged"/>
+            <CheckBox x:Name="WarningFilterCheckBox" Content="Warning" IsChecked="True" Margin="0,0,12,0"
+                      Click="OnLevelFilterChanged"/>
+            <CheckBox x:Name="ErrorFilterCheckBox" Content="Error" IsChecked="True"
+                      Click="OnLevelFilterChanged"/>
+        </StackPanel>
+
+        <ListView x:Name="LogListView" Grid.Row="1" ItemsSource="{Binding Entries}"
                   FontFamily="Consolas" FontSize="12">
             <ListView.View>
                 <GridView>
                     <GridViewColumn Header="Zeit" Width="90"
                                     DisplayMemberBinding="{Binding Timestamp, StringFormat=HH:mm:ss}"/>
-                    <GridViewColumn Header="Nachricht" Width="560"
+                    <GridViewColumn Header="Level" Width="70"
+                                    DisplayMemberBinding="{Binding Level}"/>
+                    <GridViewColumn Header="Nachricht" Width="490"
                                     DisplayMemberBinding="{Binding Message}"/>
                 </GridView>
             </ListView.View>
