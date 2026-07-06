@@ -48,6 +48,12 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     private bool _manualTargetSoundArmed;
     private int _pendingManualTargetCelsius;
 
+    // Continuous timeline used only for shifting the chart's Soll-curve, spanning both the
+    // Ramping and Holding (Nachlaufzeit) phases without resetting between them - unlike
+    // RampElapsed, which intentionally resets to hold-relative time during Holding for the
+    // "Restzeit" countdown display.
+    private DateTime? _rampTrackStartedAtUtc;
+
     [ObservableProperty]
     private ConnectionState connectionState = ConnectionState.Disconnected;
 
@@ -251,6 +257,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         IsRampRunning = false;
         IsRampWarmingUp = false;
         IsRampHolding = false;
+        _rampTrackStartedAtUtc = null;
         NotifyRampCommandsCanExecuteChanged();
     }
 
@@ -299,6 +306,8 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             _rampController.Stop();
             IsRampRunning = false;
             IsRampWarmingUp = false;
+            IsRampHolding = false;
+            _rampTrackStartedAtUtc = null;
         }
 
         if (value != ConnectionState.Connected)
@@ -342,6 +351,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     partial void OnRampStartTemperatureChanged(int value) => RebuildPlotCurve();
     partial void OnRampEndTemperatureChanged(int value) => RebuildPlotCurve();
     partial void OnRampInterpolationMethodChanged(InterpolationMethod value) => RebuildPlotCurve();
+    partial void OnRampHoldMinutesChanged(int value) => RebuildPlotCurve();
 
     partial void OnRampCurrentTargetChanged(int value) => UpdatePlotMarkers();
     partial void OnCurrentTemperatureChanged(int value)
@@ -460,7 +470,20 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             return;
         }
 
-        _currentPlanSamples = RampCurveSampler.Sample(plan);
+        var samples = RampCurveSampler.Sample(plan);
+
+        if (RampHoldMinutes > 0)
+        {
+            // Extend the preview with a flat plateau at the end temperature representing the
+            // Nachlaufzeit (hold) phase - two points at the same Y value render as a flat segment.
+            var extended = new List<(double Minutes, double Celsius)>(samples)
+            {
+                (plan.Duration.TotalMinutes + RampHoldMinutes, plan.EndTemperatureCelsius)
+            };
+            samples = extended;
+        }
+
+        _currentPlanSamples = samples;
         RefreshChart();
     }
 
@@ -502,7 +525,13 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         var cutoff = nowUtc - _historyRetention;
         _istHistory.RemoveAll(p => p.TimeUtc < cutoff);
 
-        var shiftMinutes = IsRampRunning ? RampElapsed.TotalMinutes : 0.0;
+        // Uses the continuous _rampTrackStartedAtUtc timeline rather than RampElapsed, since the
+        // latter intentionally resets to hold-relative time once the Nachlaufzeit (hold) phase
+        // begins (for the "Restzeit" countdown) - shifting the chart by that reset value would
+        // snap the curve back near "now" instead of continuing to scroll it into the past.
+        var shiftMinutes = (IsRampRunning && _rampTrackStartedAtUtc is { } startedAtUtc)
+            ? (nowUtc - startedAtUtc).TotalMinutes
+            : 0.0;
 
         var curveSeries = (LineSeries)RampPlotModel.Series[0];
         curveSeries.Points.Clear();
@@ -545,7 +574,6 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     {
         _historyRetention = TimeSpan.FromMinutes(settings.HistoryRetentionMinutes);
         _rampController.PushThresholdCelsius = settings.RampPushThresholdCelsius;
-        _rampController.MaxPushInterval = TimeSpan.FromSeconds(settings.RampMaxPushIntervalSeconds);
         _soundService.SoundEnabled = settings.SoundEnabled;
     }
 
@@ -574,7 +602,11 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         });
 
     private void OnRampWarmupCompleted(object? sender, EventArgs e) =>
-        _dispatcher.BeginInvoke(() => _soundService.PlayHeatReached());
+        _dispatcher.BeginInvoke(() =>
+        {
+            _rampTrackStartedAtUtc = DateTime.UtcNow;
+            _soundService.PlayHeatReached();
+        });
 
     private void OnRampProgressChanged(object? sender, RampProgressEventArgs e) =>
         _dispatcher.BeginInvoke(() =>
@@ -602,6 +634,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             RampCurrentTarget = resetValue;
             TargetTemperature = resetValue;
             StatusMessage = "Ramp abgeschlossen.";
+            _rampTrackStartedAtUtc = null;
             NotifyRampCommandsCanExecuteChanged();
         });
 
@@ -612,6 +645,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             IsRampRunning = false;
             IsRampWarmingUp = false;
             IsRampHolding = false;
+            _rampTrackStartedAtUtc = null;
             NotifyRampCommandsCanExecuteChanged();
         });
 

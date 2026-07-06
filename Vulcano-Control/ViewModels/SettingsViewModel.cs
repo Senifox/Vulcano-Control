@@ -20,9 +20,6 @@ public partial class SettingsViewModel : ObservableObject
     private int rampPushThresholdCelsius;
 
     [ObservableProperty]
-    private int rampMaxPushIntervalSeconds;
-
-    [ObservableProperty]
     private bool soundEnabled;
 
     [ObservableProperty]
@@ -72,7 +69,6 @@ public partial class SettingsViewModel : ObservableObject
         var settings = _settingsService.Load();
         HistoryRetentionMinutes = settings.HistoryRetentionMinutes;
         RampPushThresholdCelsius = settings.RampPushThresholdCelsius;
-        RampMaxPushIntervalSeconds = settings.RampMaxPushIntervalSeconds;
         SoundEnabled = settings.SoundEnabled;
         ErrorMessage = null;
 
@@ -168,18 +164,12 @@ public partial class SettingsViewModel : ObservableObject
             ErrorMessage = "Update-Schwelle muss größer als 0 sein.";
             return;
         }
-        if (RampMaxPushIntervalSeconds <= 0)
-        {
-            ErrorMessage = "Max. Update-Intervall muss größer als 0 sein.";
-            return;
-        }
 
         // Load fresh from disk first so an in-between change to another setting (e.g. Theme,
         // saved independently via the View menu) isn't clobbered by this save.
         var settings = _settingsService.Load();
         settings.HistoryRetentionMinutes = HistoryRetentionMinutes;
         settings.RampPushThresholdCelsius = RampPushThresholdCelsius;
-        settings.RampMaxPushIntervalSeconds = RampMaxPushIntervalSeconds;
         settings.SoundEnabled = SoundEnabled;
         _settingsService.Save(settings);
 

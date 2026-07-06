@@ -13,9 +13,8 @@ public readonly record struct RampProgressEventArgs(
 
 /// <summary>
 /// Drives a <see cref="TemperatureRampPlan"/> over time, pushing target-temperature
-/// writes to a <see cref="VolcanoBluetoothService"/> at a hybrid cadence: whenever the
-/// ideal target has drifted far enough from the last pushed value, or whenever too much
-/// time has passed since the last push - whichever comes first.
+/// writes to a <see cref="VolcanoBluetoothService"/> only once the ideal target has
+/// drifted far enough from the last pushed value.
 ///
 /// Before the timed ramp itself begins, the controller waits in a "warm-up" phase until
 /// the device's actual measured temperature has reached the configured start temperature -
@@ -33,9 +32,6 @@ public sealed class RampSessionController : IDisposable
     /// <summary>Minimum temperature drift (°C) from the last pushed value that triggers an update.</summary>
     public int PushThresholdCelsius { get; set; } = 1;
 
-    /// <summary>Upper bound on how long to wait between updates even if the threshold isn't reached.</summary>
-    public TimeSpan MaxPushInterval { get; set; } = TimeSpan.FromSeconds(30);
-
     private enum Phase { Idle, WarmingUp, Ramping, Holding }
 
     private readonly VolcanoBluetoothService _service;
@@ -45,7 +41,6 @@ public sealed class RampSessionController : IDisposable
     private TemperatureRampPlan? _plan;
     private Phase _phase = Phase.Idle;
     private DateTime _startedAtUtc;
-    private DateTime _lastPushAtUtc;
     private double _lastPushedTemperature;
     private double _lastKnownCurrentTemperature = double.NaN;
     private TimeSpan _holdDuration;
@@ -94,7 +89,6 @@ public sealed class RampSessionController : IDisposable
 
         await _service.SetTargetTemperatureAsync(startTemperatureCelsius);
         _lastPushedTemperature = startTemperatureCelsius;
-        _lastPushAtUtc = DateTime.UtcNow;
 
         RaiseWarmupProgress();
         _timer.Start();
@@ -127,7 +121,6 @@ public sealed class RampSessionController : IDisposable
 
                 _phase = Phase.Ramping;
                 _startedAtUtc = DateTime.UtcNow;
-                _lastPushAtUtc = _startedAtUtc;
                 _lastPushedTemperature = _plan.StartTemperatureCelsius;
                 _logService.Log("Start-Temperatur erreicht, Rampe läuft.");
                 WarmupCompleted?.Invoke(this, EventArgs.Empty);
@@ -199,14 +192,11 @@ public sealed class RampSessionController : IDisposable
         var delta = double.IsNaN(_lastPushedTemperature)
             ? double.MaxValue
             : Math.Abs(idealTarget - _lastPushedTemperature);
-        var timeSinceLastPush = DateTime.UtcNow - _lastPushAtUtc;
 
-        var due = delta >= PushThresholdCelsius || timeSinceLastPush >= MaxPushInterval;
-        if (!due) return;
+        if (delta < PushThresholdCelsius) return;
 
         await _service.SetTargetTemperatureAsync(idealTarget);
         _lastPushedTemperature = idealTarget;
-        _lastPushAtUtc = DateTime.UtcNow;
         _logService.Log($"Rampen-Ziel aktualisiert: {idealTarget:0}°C.");
     }
 
