@@ -1,4 +1,5 @@
 using System.Windows;
+using Velopack;
 using Vulcano_Control.Models;
 using Vulcano_Control.Services;
 
@@ -9,6 +10,21 @@ namespace Vulcano_Control
   /// </summary>
   public partial class App : Application
   {
+    // Explicit entry point (instead of the WPF-generated one - see the Page/StartupObject
+    // setup in the .csproj) so VelopackApp.Build().Run() can be the literal first line, as
+    // Velopack requires: this is how it hooks into first-run/update/uninstall events raised
+    // by the installer, and it exits the process immediately for those (no WPF overhead should
+    // run in that case).
+    [STAThread]
+    private static void Main(string[] args)
+    {
+      VelopackApp.Build().Run();
+
+      var app = new App();
+      app.InitializeComponent();
+      app.Run();
+    }
+
     protected override void OnStartup(StartupEventArgs e)
     {
       base.OnStartup(e);
@@ -27,8 +43,9 @@ namespace Vulcano_Control
       themeService.ApplyStartupTheme();
 
       var soundService = new SoundService(logService) { SoundEnabled = settingsService.Load().SoundEnabled };
+      var updateService = new UpdateService(logService);
 
-      var mainWindow = new MainWindow(themeService, logService, settingsService, soundService);
+      var mainWindow = new MainWindow(themeService, logService, settingsService, soundService, updateService);
       mainWindow.Show();
     }
   }

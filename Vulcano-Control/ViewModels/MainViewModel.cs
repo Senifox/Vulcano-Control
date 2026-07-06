@@ -39,6 +39,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     private readonly SettingsService _settingsService;
     private readonly SettingsWindow _settingsWindow;
     private readonly SoundService _soundService;
+    private readonly UpdateService _updateService;
     private readonly Dispatcher _dispatcher = Application.Current.Dispatcher;
     private readonly DispatcherTimer _chartTimer;
     private readonly List<(DateTime TimeUtc, double Celsius)> _istHistory = new();
@@ -138,7 +139,8 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         SettingsService settingsService,
         SettingsWindow settingsWindow,
         SoundService soundService,
-        VolcanoBluetoothService service)
+        VolcanoBluetoothService service,
+        UpdateService updateService)
     {
         _themeService = themeService;
         _logService = logService;
@@ -146,6 +148,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         _settingsService = settingsService;
         _settingsWindow = settingsWindow;
         _soundService = soundService;
+        _updateService = updateService;
         currentTheme = _themeService.CurrentTheme;
 
         _service = service;
@@ -172,6 +175,8 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         _chartTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _chartTimer.Tick += (_, _) => RefreshChart();
         _chartTimer.Start();
+
+        _ = RunUpdateCheckAsync(silentIfNoneFound: true);
     }
 
     [RelayCommand(CanExecute = nameof(CanConnect))]
@@ -274,6 +279,32 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         _settingsWindow.ViewModel.LoadFromDisk();
         _settingsWindow.Show();
         _settingsWindow.Activate();
+    }
+
+    [RelayCommand]
+    private Task CheckForUpdatesAsync() => RunUpdateCheckAsync(silentIfNoneFound: false);
+
+    private async Task RunUpdateCheckAsync(bool silentIfNoneFound)
+    {
+        var info = await _updateService.CheckForUpdatesAsync();
+        if (info is null)
+        {
+            if (!silentIfNoneFound)
+            {
+                MessageBox.Show("Kein Update verfügbar - du verwendest bereits die neueste Version.",
+                    "Vulcano Control", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            return;
+        }
+
+        var result = MessageBox.Show(
+            $"Version {info.TargetFullRelease.Version} ist verfügbar. Jetzt herunterladen und die Anwendung neu starten?",
+            "Update verfügbar", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+        if (result == MessageBoxResult.Yes)
+        {
+            await _updateService.DownloadAndApplyAsync(info);
+        }
     }
 
     private bool CanConnect() =>

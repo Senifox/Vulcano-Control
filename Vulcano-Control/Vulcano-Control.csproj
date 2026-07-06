@@ -9,11 +9,22 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>Icon.ico</ApplicationIcon>
+    <!-- Velopack needs VelopackApp.Build().Run() to run as the literal first line of Main(),
+         before any WPF overhead - so App.xaml.cs defines its own Main() instead of relying on
+         the WPF-generated one, which requires App.xaml to compile as a Page rather than the
+         ApplicationDefinition. -->
+    <StartupObject>Vulcano_Control.App</StartupObject>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ApplicationDefinition Remove="App.xaml" />
+    <Page Include="App.xaml" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="OxyPlot.Wpf" Version="2.2.0" />
+    <PackageReference Include="Velopack" Version="1.2.0" />
   </ItemGroup>
 
   <ItemGroup>
