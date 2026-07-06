@@ -124,11 +124,18 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     [ObservableProperty]
     private PlotModel rampPlotModel = null!;
 
+    [ObservableProperty]
+    private int remainingAutoOffSeconds;
+
     public bool IsConnected => ConnectionState == ConnectionState.Connected;
 
     public bool IsLightMode => CurrentTheme == AppTheme.Light;
 
     public bool IsDarkMode => CurrentTheme == AppTheme.Dark;
+
+    public bool IsAutoOffCountingDown => RemainingAutoOffSeconds > 0;
+
+    public TimeSpan RemainingAutoOffTimeSpan => TimeSpan.FromSeconds(RemainingAutoOffSeconds);
 
     public IReadOnlyList<InterpolationMethod> InterpolationMethods { get; } = Enum.GetValues<InterpolationMethod>();
 
@@ -159,6 +166,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         _service.ErrorOccurred += OnServiceErrorOccurred;
         _service.CurrentTemperatureChanged += OnServiceCurrentTemperatureChanged;
         _service.ActivityChanged += OnServiceActivityChanged;
+        _service.RemainingAutoOffSecondsChanged += OnServiceRemainingAutoOffSecondsChanged;
 
         _rampController.ProgressChanged += OnRampProgressChanged;
         _rampController.WarmupCompleted += OnRampWarmupCompleted;
@@ -347,6 +355,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             TargetTemperature = 180;
             IsHeaterOn = false;
             IsPumpOn = false;
+            RemainingAutoOffSeconds = 0;
             _manualTargetSoundArmed = false;
         }
 
@@ -356,6 +365,12 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         TogglePumpCommand.NotifyCanExecuteChanged();
         ApplyTargetTemperatureCommand.NotifyCanExecuteChanged();
         NotifyRampCommandsCanExecuteChanged();
+    }
+
+    partial void OnRemainingAutoOffSecondsChanged(int value)
+    {
+        OnPropertyChanged(nameof(IsAutoOffCountingDown));
+        OnPropertyChanged(nameof(RemainingAutoOffTimeSpan));
     }
 
     partial void OnCurrentThemeChanged(AppTheme value)
@@ -632,6 +647,9 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             }
         });
 
+    private void OnServiceRemainingAutoOffSecondsChanged(object? sender, int seconds) =>
+        _dispatcher.BeginInvoke(() => RemainingAutoOffSeconds = seconds);
+
     private void OnRampWarmupCompleted(object? sender, EventArgs e) =>
         _dispatcher.BeginInvoke(() =>
         {
@@ -697,6 +715,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         _service.ErrorOccurred -= OnServiceErrorOccurred;
         _service.CurrentTemperatureChanged -= OnServiceCurrentTemperatureChanged;
         _service.ActivityChanged -= OnServiceActivityChanged;
+        _service.RemainingAutoOffSecondsChanged -= OnServiceRemainingAutoOffSecondsChanged;
         await _service.DisposeAsync();
     }
 }

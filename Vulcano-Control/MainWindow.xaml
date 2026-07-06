@@ -8,7 +8,7 @@
         xmlns:models="clr-namespace:Vulcano_Control.Models"
         xmlns:oxy="http://oxyplot.org/wpf"
         mc:Ignorable="d"
-        Title="Vulcano Control" Height="900" Width="700"
+        Title="Vulcano Control" Height="1000" Width="700"
         Icon="Icon.ico"
         Topmost="{Binding IsAlwaysOnTop}">
     <Window.Resources>
@@ -95,6 +95,9 @@
                           Command="{Binding ToggleHeaterCommand}" Padding="16,8" Margin="0,0,8,0"/>
             <ToggleButton Content="Pumpe" IsChecked="{Binding IsPumpOn, Mode=OneWay}"
                           Command="{Binding TogglePumpCommand}" Padding="16,8"/>
+            <TextBlock Text="{Binding RemainingAutoOffTimeSpan, StringFormat=Automatische Abschaltung in: {0:mm\\:ss}}"
+                       VerticalAlignment="Center" Margin="16,0,0,0" Foreground="{StaticResource SecondaryTextBrush}"
+                       Visibility="{Binding IsAutoOffCountingDown, Converter={StaticResource BooleanToVisibilityConverter}}"/>
         </StackPanel>
 
         <GroupBox Grid.Row="5" Header="Temperatur-Rampe" Margin="0,0,0,16" Padding="8">

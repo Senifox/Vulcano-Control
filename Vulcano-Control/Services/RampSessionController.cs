@@ -43,6 +43,7 @@ public sealed class RampSessionController : IDisposable
     private DateTime _startedAtUtc;
     private double _lastPushedTemperature;
     private double _lastKnownCurrentTemperature = double.NaN;
+    private bool _lastKnownHeaterOn;
     private TimeSpan _holdDuration;
     private DateTime _holdStartedAtUtc;
 
@@ -58,6 +59,7 @@ public sealed class RampSessionController : IDisposable
         _service = service;
         _logService = logService;
         _service.CurrentTemperatureChanged += OnCurrentTemperatureChanged;
+        _service.ActivityChanged += OnActivityChanged;
 
         _timer = new DispatcherTimer { Interval = TickInterval };
         _timer.Tick += OnTick;
@@ -86,6 +88,7 @@ public sealed class RampSessionController : IDisposable
         {
             await _service.SetHeaterAsync(true);
         }
+        _lastKnownHeaterOn = true;
 
         await _service.SetTargetTemperatureAsync(startTemperatureCelsius);
         _lastPushedTemperature = startTemperatureCelsius;
@@ -105,12 +108,27 @@ public sealed class RampSessionController : IDisposable
     private void OnCurrentTemperatureChanged(object? sender, double celsius) =>
         _lastKnownCurrentTemperature = celsius;
 
+    private void OnActivityChanged(object? sender, ushort activity) =>
+        _lastKnownHeaterOn = (activity & VolcanoUuids.ActivityFlags.HeatingEnabled) != 0;
+
     private async void OnTick(object? sender, EventArgs e)
     {
         if (_phase == Phase.Idle || _plan is null) return;
 
         try
         {
+            if (!_lastKnownHeaterOn)
+            {
+                // The device can auto-shutoff on its own (see the auto-off timer) or otherwise
+                // turn the heater off mid-ramp - re-enable it so the ramp keeps running rather
+                // than silently stalling at a lower temperature.
+                _logService.Log(
+                    "Heizung während laufender Rampe unerwartet ausgeschaltet (z.B. automatische Abschaltung) - schalte wieder ein.",
+                    LogLevel.Warning);
+                await _service.SetHeaterAsync(true);
+                _lastKnownHeaterOn = true; // optimistic, avoids resending every tick until the notify confirms it
+            }
+
             if (_phase == Phase.WarmingUp)
             {
                 if (!HasReachedRising(_plan.StartTemperatureCelsius))
@@ -261,5 +279,6 @@ public sealed class RampSessionController : IDisposable
         _timer.Stop();
         _timer.Tick -= OnTick;
         _service.CurrentTemperatureChanged -= OnCurrentTemperatureChanged;
+        _service.ActivityChanged -= OnActivityChanged;
     }
 }

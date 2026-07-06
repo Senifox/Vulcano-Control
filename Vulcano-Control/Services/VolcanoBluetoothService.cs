@@ -70,6 +70,10 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
     // methods so they wait for it without ever blocking the core connect flow on it.
     private Task? _optionalCharacteristicsResolutionTask;
 
+    // Fallback for devices/characteristics that don't support Notify on CurrentAutoOffValue -
+    // only started if the notify subscription attempt fails.
+    private CancellationTokenSource? _autoOffPollCts;
+
     private readonly LogService _logService;
 
     public ConnectionState State { get; private set; } = ConnectionState.Disconnected;
@@ -78,6 +82,9 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
     public event EventHandler<string>? ErrorOccurred;
     public event EventHandler<double>? CurrentTemperatureChanged;
     public event EventHandler<ushort>? ActivityChanged;
+
+    /// <summary>Live countdown (seconds) until the device auto-shuts-off; 0 while not counting down.</summary>
+    public event EventHandler<int>? RemainingAutoOffSecondsChanged;
 
     public VolcanoBluetoothService(LogService logService)
     {
@@ -349,7 +356,7 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
     /// further BLE round-trips). Runs in the background after Connected (see
     /// ConnectToDeviceAsync). Missing ones just leave the corresponding setting unavailable.
     /// </summary>
-    private Task ResolveOptionalCharacteristicsAsync()
+    private async Task ResolveOptionalCharacteristicsAsync()
     {
         _brightnessChar = FindCharacteristic(_controlCharacteristics, VolcanoUuids.Characteristics.Brightness, "Brightness");
         _currentAutoOffValueChar = FindCharacteristic(_controlCharacteristics, VolcanoUuids.Characteristics.CurrentAutoOffValue, "CurrentAutoOffValue");
@@ -373,7 +380,103 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
             _logService.Log("Optionale Geräte-Charakteristiken vollständig aufgelöst.");
         }
 
-        return Task.CompletedTask;
+        await StartAutoOffTrackingAsync();
+    }
+
+    /// <summary>
+    /// Tracks the live auto-shutoff countdown via Notify where supported, falling back to
+    /// periodic polling otherwise (some optional characteristics have been observed not to
+    /// support Notify the way the core temperature/activity ones do).
+    /// </summary>
+    private async Task StartAutoOffTrackingAsync()
+    {
+        if (_currentAutoOffValueChar is null) return;
+
+        var subscribed = await TrySubscribeNotifyQuietAsync(_currentAutoOffValueChar, OnCurrentAutoOffValueChanged);
+        if (subscribed)
+        {
+            _logService.Log("Live-Abo für verbleibende Abschalt-Zeit eingerichtet.", LogLevel.Debug);
+        }
+        else
+        {
+            _logService.Log("Kein Notify für verbleibende Abschalt-Zeit verfügbar - falle auf Polling zurück.", LogLevel.Debug);
+            StartAutoOffPolling();
+        }
+
+        var initial = await ReadUInt16Async(_currentAutoOffValueChar);
+        if (initial is not null)
+        {
+            RemainingAutoOffSecondsChanged?.Invoke(this, initial.Value);
+        }
+    }
+
+    private void OnCurrentAutoOffValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args)
+    {
+        var raw = BleEncoding.FromUInt16LEBytes(args.CharacteristicValue.ToArray());
+        RemainingAutoOffSecondsChanged?.Invoke(this, raw);
+    }
+
+    private void StartAutoOffPolling()
+    {
+        _autoOffPollCts = new CancellationTokenSource();
+        var ct = _autoOffPollCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                try
+                {
+                    var raw = await ReadUInt16Async(_currentAutoOffValueChar);
+                    if (raw is not null)
+                    {
+                        RemainingAutoOffSecondsChanged?.Invoke(this, raw.Value);
+                    }
+                }
+                catch
+                {
+                    // Best-effort polling; a transient read failure shouldn't stop the loop.
+                }
+
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(5), ct);
+                }
+                catch (TaskCanceledException)
+                {
+                    break;
+                }
+            }
+        }, ct);
+    }
+
+    /// <summary>
+    /// Like SubscribeNotifyAsync, but treats a failed subscription as an expected, silent
+    /// fallback case (no RaiseError) rather than a connection-critical failure - used for
+    /// optional characteristics where Notify support isn't guaranteed.
+    /// </summary>
+    private async Task<bool> TrySubscribeNotifyQuietAsync(
+        GattCharacteristic characteristic,
+        TypedEventHandler<GattCharacteristic, GattValueChangedEventArgs> handler)
+    {
+        characteristic.ValueChanged += handler;
+        GattCommunicationStatus status;
+        try
+        {
+            status = await characteristic.WriteClientCharacteristicConfigurationDescriptorAsync(
+                GattClientCharacteristicConfigurationDescriptorValue.Notify);
+        }
+        catch (Exception)
+        {
+            status = GattCommunicationStatus.Unreachable;
+        }
+
+        if (status != GattCommunicationStatus.Success)
+        {
+            characteristic.ValueChanged -= handler;
+            return false;
+        }
+        return true;
     }
 
     /// <summary>Awaits the background optional-characteristic resolution, if it's still running.</summary>
@@ -612,6 +715,13 @@ public sealed class VolcanoBluetoothService : IAsyncDisposable
         {
             _activityChar.ValueChanged -= OnActivityValueChanged;
         }
+        if (_currentAutoOffValueChar is not null)
+        {
+            _currentAutoOffValueChar.ValueChanged -= OnCurrentAutoOffValueChanged;
+        }
+        _autoOffPollCts?.Cancel();
+        _autoOffPollCts?.Dispose();
+        _autoOffPollCts = null;
 
         _controlService?.Dispose();
         _stateService?.Dispose();
