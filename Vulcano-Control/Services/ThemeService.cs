@@ -12,8 +12,16 @@ namespace Vulcano_Control.Services;
 /// </summary>
 public sealed class ThemeService
 {
-    /// <summary>True on Windows 11+ (build 22000+), where the native Fluent ThemeMode API works correctly.</summary>
-    public static bool UsesNativeFluentTheme { get; } = Environment.OSVersion.Version.Build >= 22000;
+    /// <summary>
+    /// True on Windows 11+ (build 22000+), where the native Fluent ThemeMode API works correctly.
+    /// Can be forced off regardless of OS version by setting the VULCANO_FORCE_WIN10_THEME
+    /// environment variable to "1" - useful for previewing the Windows 10 fallback theme locally
+    /// without editing this file. In Visual Studio, pick the "Vulcano-Control (Win10-Theme-Test)"
+    /// launch profile from the Debug dropdown to set it automatically.
+    /// </summary>
+    public static bool UsesNativeFluentTheme { get; } =
+        Environment.GetEnvironmentVariable("VULCANO_FORCE_WIN10_THEME") != "1"
+        && Environment.OSVersion.Version.Build >= 22000;
 
     private readonly SettingsService _settingsService;
     private AppTheme _currentTheme;
