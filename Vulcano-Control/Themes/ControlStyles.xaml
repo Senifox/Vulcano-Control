@@ -232,9 +232,111 @@
         <Setter Property="Foreground" Value="{DynamicResource WindowForegroundBrush}"/>
     </Style>
 
+    <!-- Classic MenuItem chrome (menu-bar hover, submenu popup border, checkmark box) ignores
+         Background/Foreground the same way Button/ComboBox/CheckBox do - explicit templates per
+         Role fix it. Only the roles actually used in this app's menu are covered: a top-level
+         header with a submenu ("_Ansicht"), a top-level item with no submenu ("_Einstellungen"),
+         and checkable submenu items. -->
     <Style TargetType="MenuItem">
         <Setter Property="Background" Value="{DynamicResource WindowBackgroundBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource WindowForegroundBrush}"/>
+        <Setter Property="Padding" Value="8,4"/>
+        <Style.Triggers>
+            <Trigger Property="Role" Value="TopLevelHeader">
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="MenuItem">
+                            <Border x:Name="Bd" Background="{TemplateBinding Background}">
+                                <Grid>
+                                    <ContentPresenter ContentSource="Header" Margin="{TemplateBinding Padding}"
+                                                      VerticalAlignment="Center" RecognizesAccessKey="True"/>
+                                    <Popup x:Name="Popup" Placement="Bottom" IsOpen="{TemplateBinding IsSubmenuOpen}"
+                                           AllowsTransparency="True" Focusable="False" PopupAnimation="Fade">
+                                        <Border Background="{DynamicResource ControlBackgroundBrush}"
+                                                BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1">
+                                            <StackPanel IsItemsHost="True" Orientation="Vertical" Margin="1"/>
+                                        </Border>
+                                    </Popup>
+                                </Grid>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsHighlighted" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ControlBorderBrush}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Trigger>
+            <Trigger Property="Role" Value="TopLevelItem">
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="MenuItem">
+                            <Border x:Name="Bd" Background="{TemplateBinding Background}">
+                                <ContentPresenter ContentSource="Header" Margin="{TemplateBinding Padding}"
+                                                  VerticalAlignment="Center" RecognizesAccessKey="True"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsHighlighted" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ControlBorderBrush}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Trigger>
+            <Trigger Property="Role" Value="SubmenuItem">
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="MenuItem">
+                            <Border x:Name="Bd" Background="{TemplateBinding Background}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="28"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border x:Name="CheckBox" Grid.Column="0" Width="16" Height="16" Margin="6,0,0,0"
+                                            Background="{DynamicResource ControlBackgroundBrush}"
+                                            BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1"
+                                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                                            Visibility="Collapsed">
+                                        <Path x:Name="CheckMark" Data="M 1,4 L 4,7 L 9,1"
+                                              Stroke="{DynamicResource ControlForegroundBrush}"
+                                              StrokeThickness="2" Visibility="Collapsed"/>
+                                    </Border>
+                                    <ContentPresenter Grid.Column="1" ContentSource="Header"
+                                                      Margin="{TemplateBinding Padding}"
+                                                      VerticalAlignment="Center" RecognizesAccessKey="True"/>
+                                </Grid>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsHighlighted" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ControlBorderBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsCheckable" Value="True">
+                                    <Setter TargetName="CheckBox" Property="Visibility" Value="Visible"/>
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="CheckMark" Property="Visibility" Value="Visible"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style TargetType="Separator">
+        <Setter Property="Background" Value="{DynamicResource ControlBorderBrush}"/>
+        <Setter Property="Margin" Value="4,4"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Separator">
+                    <Border BorderBrush="{TemplateBinding Background}" BorderThickness="0,1,0,0"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <!-- Classic GridViewColumnHeader chrome (used by the log window's ListView) has the same
