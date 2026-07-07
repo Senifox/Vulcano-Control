@@ -12,8 +12,15 @@ public static class BleEncoding
     /// <summary>Decodes a UTF-8 device string, trimming null-byte padding.</summary>
     public static string DecodeUtf8(byte[] bytes) => System.Text.Encoding.UTF8.GetString(bytes).TrimEnd('\0').Trim();
 
-    /// <summary>Encodes a Celsius value as the device's raw UInt16 (°C * 10).</summary>
-    public static ushort EncodeTemperature(double celsius) => (ushort)Math.Round(celsius * 10.0);
+    /// <summary>
+    /// Encodes a Celsius value as the device's raw UInt16 (°C * 10). Clamped to the UInt16 range
+    /// before casting - callers are expected to validate against the device's actual temperature
+    /// range beforehand, but an unclamped negative or huge value would otherwise silently wrap
+    /// around into a wildly wrong (but still "valid-looking") raw value via the unchecked cast,
+    /// which would then actually be written to the device.
+    /// </summary>
+    public static ushort EncodeTemperature(double celsius) =>
+        (ushort)Math.Clamp(Math.Round(celsius * 10.0), ushort.MinValue, ushort.MaxValue);
 
     /// <summary>Decodes the device's raw UInt16 (°C * 10) back to Celsius.</summary>
     public static double DecodeTemperature(ushort raw) => raw / 10.0;

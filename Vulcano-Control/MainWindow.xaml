@@ -14,6 +14,7 @@
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+        <converters:NoValidationErrorsConverter x:Key="NoValidationErrorsConverter"/>
 
         <SolidColorBrush x:Key="AccentBrush" Color="#FFFF9800"/>
         <SolidColorBrush x:Key="AccentForegroundBrush" Color="#FF1E1E1E"/>
@@ -30,6 +31,17 @@
 
         <Style TargetType="ProgressBar" BasedOn="{StaticResource {x:Type ProgressBar}}">
             <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+        </Style>
+
+        <!-- Shows a tooltip with the validation error (e.g. the valid temperature range) instead
+             of silently correcting the textbox's content - relies on ObservableValidator's
+             [Range] attributes on the bound properties for the actual validation. -->
+        <Style x:Key="ValidatedTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+            <Style.Triggers>
+                <Trigger Property="Validation.HasError" Value="True">
+                    <Setter Property="ToolTip" Value="{Binding RelativeSource={RelativeSource Self}, Path=(Validation.Errors)[0].ErrorContent}"/>
+                </Trigger>
+            </Style.Triggers>
         </Style>
     </Window.Resources>
     <Grid Margin="16">
@@ -77,17 +89,30 @@
 
         <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,16">
             <TextBlock Text="Aktuelle Temperatur: " VerticalAlignment="Center" FontSize="18"/>
-            <TextBlock Text="{Binding CurrentTemperature, StringFormat={}{0} °C}" FontSize="24" FontWeight="Bold"/>
+            <TextBlock Text="{Binding CurrentTemperatureDisplay}" FontSize="24" FontWeight="Bold"/>
         </StackPanel>
 
         <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,0,0,16">
             <TextBlock Text="Zieltemperatur: " VerticalAlignment="Center"/>
+            <!-- Validation.ErrorTemplate is suppressed here on purpose: the slider's own Minimum/
+                 Maximum already make it impossible for the user to drag it into an invalid value,
+                 so showing the red error adorner on it too (it shares the same bound property as
+                 the textbox below) would be misleading rather than helpful. -->
             <Slider Minimum="40" Maximum="230" Width="220" VerticalAlignment="Center"
                     TickFrequency="1" IsSnapToTickEnabled="True"
+                    Validation.ErrorTemplate="{x:Null}"
                     Value="{Binding TargetTemperature, UpdateSourceTrigger=PropertyChanged}"/>
-            <TextBox Text="{Binding TargetTemperature, UpdateSourceTrigger=PropertyChanged}"
+            <TextBox x:Name="TargetTemperatureTextBox"
+                     Text="{Binding TargetTemperature, UpdateSourceTrigger=LostFocus}"
+                     Style="{StaticResource ValidatedTextBoxStyle}"
                      Width="90" VerticalAlignment="Center" Margin="8,0"/>
-            <Button Content="Setzen" Command="{Binding ApplyTargetTemperatureCommand}" Padding="12,4"/>
+            <Button Content="Setzen" Command="{Binding ApplyTargetTemperatureCommand}" Padding="12,4">
+                <Button.IsEnabled>
+                    <MultiBinding Converter="{StaticResource NoValidationErrorsConverter}">
+                        <Binding ElementName="TargetTemperatureTextBox" Path="(Validation.HasError)"/>
+                    </MultiBinding>
+                </Button.IsEnabled>
+            </Button>
         </StackPanel>
 
         <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,0,0,16">
@@ -104,17 +129,23 @@
             <StackPanel>
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                     <TextBlock Text="Dauer (min): " VerticalAlignment="Center" Width="130"/>
-                    <TextBox Text="{Binding RampDurationMinutes, UpdateSourceTrigger=PropertyChanged}" Width="90"
+                    <TextBox x:Name="RampDurationTextBox"
+                             Text="{Binding RampDurationMinutes, UpdateSourceTrigger=LostFocus}" Width="90"
+                             Style="{StaticResource ValidatedTextBoxStyle}"
                              IsEnabled="{Binding IsRampRunning, Converter={StaticResource InverseBooleanConverter}}"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                     <TextBlock Text="Start-Temp (°C): " VerticalAlignment="Center" Width="130"/>
-                    <TextBox Text="{Binding RampStartTemperature, UpdateSourceTrigger=PropertyChanged}" Width="90"
+                    <TextBox x:Name="RampStartTemperatureTextBox"
+                             Text="{Binding RampStartTemperature, UpdateSourceTrigger=LostFocus}" Width="90"
+                             Style="{StaticResource ValidatedTextBoxStyle}"
                              IsEnabled="{Binding IsRampRunning, Converter={StaticResource InverseBooleanConverter}}"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                     <TextBlock Text="Ziel-Temp (°C): " VerticalAlignment="Center" Width="130"/>
-                    <TextBox Text="{Binding RampEndTemperature, UpdateSourceTrigger=PropertyChanged}" Width="90"
+                    <TextBox x:Name="RampEndTemperatureTextBox"
+                             Text="{Binding RampEndTemperature, UpdateSourceTrigger=LostFocus}" Width="90"
+                             Style="{StaticResource ValidatedTextBoxStyle}"
                              IsEnabled="{Binding IsRampRunning, Converter={StaticResource InverseBooleanConverter}}"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
@@ -124,11 +155,22 @@
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                     <TextBlock Text="Nachlaufzeit (min): " VerticalAlignment="Center" Width="130"/>
-                    <TextBox Text="{Binding RampHoldMinutes, UpdateSourceTrigger=PropertyChanged}" Width="90"
+                    <TextBox x:Name="RampHoldMinutesTextBox"
+                             Text="{Binding RampHoldMinutes, UpdateSourceTrigger=LostFocus}" Width="90"
+                             Style="{StaticResource ValidatedTextBoxStyle}"
                              IsEnabled="{Binding IsRampRunning, Converter={StaticResource InverseBooleanConverter}}"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Margin="0,4,0,8">
-                    <Button Content="Rampe starten" Command="{Binding StartRampCommand}" Padding="12,4" Margin="0,0,8,0"/>
+                    <Button Content="Rampe starten" Command="{Binding StartRampCommand}" Padding="12,4" Margin="0,0,8,0">
+                        <Button.IsEnabled>
+                            <MultiBinding Converter="{StaticResource NoValidationErrorsConverter}">
+                                <Binding ElementName="RampDurationTextBox" Path="(Validation.HasError)"/>
+                                <Binding ElementName="RampStartTemperatureTextBox" Path="(Validation.HasError)"/>
+                                <Binding ElementName="RampEndTemperatureTextBox" Path="(Validation.HasError)"/>
+                                <Binding ElementName="RampHoldMinutesTextBox" Path="(Validation.HasError)"/>
+                            </MultiBinding>
+                        </Button.IsEnabled>
+                    </Button>
                     <Button Content="Rampe stoppen" Command="{Binding StopRampCommand}" Padding="12,4"/>
                 </StackPanel>
                 <StackPanel Visibility="{Binding IsRampRunning, Converter={StaticResource BooleanToVisibilityConverter}}">

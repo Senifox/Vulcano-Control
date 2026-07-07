@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Windows;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -13,7 +14,7 @@ using ConnectionState = Vulcano_Control.Models.ConnectionState;
 
 namespace Vulcano_Control.ViewModels;
 
-public partial class MainViewModel : ObservableObject, IAsyncDisposable
+public partial class MainViewModel : ObservableValidator, IAsyncDisposable
 {
     private static readonly OxyColor SollColor = OxyColor.FromRgb(0xFF, 0x98, 0x00); // matches AccentBrush
     private static readonly OxyColor IstColor = OxyColor.FromRgb(0x21, 0x96, 0xF3);  // contrasting blue
@@ -30,6 +31,12 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     private const double PastWindowMinutes = 15.0;
     private const double MinFutureWindowMinutes = 5.0;
+
+    // The Volcano's actual temperature range (matches the manual Zieltemperatur slider bounds
+    // in MainWindow.xaml) - used to keep the ramp chart preview from drawing physically
+    // impossible curves when a Start-/Ziel-Temp textbox briefly holds an out-of-range value.
+    private const int MinDeviceTemperatureCelsius = 40;
+    private const int MaxDeviceTemperatureCelsius = 230;
 
     private readonly VolcanoBluetoothService _service;
     private readonly RampSessionController _rampController;
@@ -62,6 +69,8 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     private int currentTemperature;
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ApplyTargetTemperatureCommand))]
+    [Range(MinDeviceTemperatureCelsius, MaxDeviceTemperatureCelsius, ErrorMessage = "Wert muss zwischen 40°C und 230°C liegen.")]
     private int targetTemperature = 180;
 
     [ObservableProperty]
@@ -74,18 +83,26 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     private string statusMessage = "Nicht verbunden";
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(StartRampCommand))]
+    [Range(1, int.MaxValue, ErrorMessage = "Dauer muss größer als 0 sein.")]
     private int rampDurationMinutes = 40;
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(StartRampCommand))]
+    [Range(MinDeviceTemperatureCelsius, MaxDeviceTemperatureCelsius, ErrorMessage = "Wert muss zwischen 40°C und 230°C liegen.")]
     private int rampStartTemperature = 185;
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(StartRampCommand))]
+    [Range(MinDeviceTemperatureCelsius, MaxDeviceTemperatureCelsius, ErrorMessage = "Wert muss zwischen 40°C und 230°C liegen.")]
     private int rampEndTemperature = 225;
 
     [ObservableProperty]
     private InterpolationMethod rampInterpolationMethod = InterpolationMethod.Linear;
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(StartRampCommand))]
+    [Range(0, int.MaxValue, ErrorMessage = "Nachlaufzeit darf nicht negativ sein.")]
     private int rampHoldMinutes = 5;
 
     [ObservableProperty]
@@ -128,6 +145,12 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     private int remainingAutoOffSeconds;
 
     public bool IsConnected => ConnectionState == ConnectionState.Connected;
+
+    // The Volcano reports exactly 0°C when its own display is blank (e.g. cooled down far
+    // enough that it stops showing a reading) rather than continuing to report the real,
+    // still-decreasing measurement - 0 is otherwise physically impossible here (the device's
+    // actual minimum is 40°C), so it's an unambiguous "no reading" sentinel, not a real value.
+    public string CurrentTemperatureDisplay => CurrentTemperature > 0 ? $"{CurrentTemperature} °C" : "--";
 
     public bool IsLightMode => CurrentTheme == AppTheme.Light;
 
@@ -228,24 +251,9 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     [RelayCommand(CanExecute = nameof(CanStartRamp))]
     private async Task StartRampAsync()
     {
-        if (RampDurationMinutes <= 0)
-        {
-            StatusMessage = "Dauer muss größer als 0 sein.";
-            return;
-        }
-        if (RampStartTemperature is < 40 or > 230 || RampEndTemperature is < 40 or > 230)
-        {
-            StatusMessage = "Temperaturen müssen zwischen 40°C und 230°C liegen.";
-            return;
-        }
         if (Math.Abs(RampEndTemperature - RampStartTemperature) < 1)
         {
             StatusMessage = "Start- und Zieltemperatur müssen sich ausreichend unterscheiden.";
-            return;
-        }
-        if (RampHoldMinutes < 0)
-        {
-            StatusMessage = "Nachlaufzeit darf nicht negativ sein.";
             return;
         }
 
@@ -318,9 +326,13 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     private bool CanConnect() =>
         ConnectionState is ConnectionState.Disconnected or ConnectionState.Error;
 
-    private bool CanApplyManualTarget() => IsConnected && !IsRampRunning;
+    private bool CanApplyManualTarget() =>
+        IsConnected && !IsRampRunning && !GetErrors(nameof(TargetTemperature)).Any();
 
-    private bool CanStartRamp() => IsConnected && !IsRampRunning;
+    private bool CanStartRamp() =>
+        IsConnected && !IsRampRunning &&
+        !GetErrors(nameof(RampStartTemperature)).Any() && !GetErrors(nameof(RampEndTemperature)).Any() &&
+        !GetErrors(nameof(RampDurationMinutes)).Any() && !GetErrors(nameof(RampHoldMinutes)).Any();
 
     partial void OnConnectionStateChanged(ConnectionState value)
     {
@@ -393,15 +405,41 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         IsLogWindowVisible = _logWindow.IsVisible;
     }
 
-    partial void OnRampDurationMinutesChanged(int value) => RebuildPlotCurve();
-    partial void OnRampStartTemperatureChanged(int value) => RebuildPlotCurve();
-    partial void OnRampEndTemperatureChanged(int value) => RebuildPlotCurve();
+    // ObservableValidator does not run [Range] validation automatically on property change - it
+    // must be triggered explicitly, which is what makes GetErrors(...) (used by CanApplyManualTarget
+    // and CanStartRamp below) actually reflect the current value instead of always being empty.
+    partial void OnRampDurationMinutesChanged(int value)
+    {
+        ValidateProperty(value, nameof(RampDurationMinutes));
+        RebuildPlotCurve();
+    }
+
+    partial void OnRampStartTemperatureChanged(int value)
+    {
+        ValidateProperty(value, nameof(RampStartTemperature));
+        RebuildPlotCurve();
+    }
+
+    partial void OnRampEndTemperatureChanged(int value)
+    {
+        ValidateProperty(value, nameof(RampEndTemperature));
+        RebuildPlotCurve();
+    }
+
     partial void OnRampInterpolationMethodChanged(InterpolationMethod value) => RebuildPlotCurve();
-    partial void OnRampHoldMinutesChanged(int value) => RebuildPlotCurve();
+
+    partial void OnRampHoldMinutesChanged(int value)
+    {
+        ValidateProperty(value, nameof(RampHoldMinutes));
+        RebuildPlotCurve();
+    }
+
+    partial void OnTargetTemperatureChanged(int value) => ValidateProperty(value, nameof(TargetTemperature));
 
     partial void OnRampCurrentTargetChanged(int value) => UpdatePlotMarkers();
     partial void OnCurrentTemperatureChanged(int value)
     {
+        OnPropertyChanged(nameof(CurrentTemperatureDisplay));
         UpdatePlotMarkers();
         CheckManualTargetReached(value);
     }
@@ -441,6 +479,11 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             Title = "Temperatur (°C)",
             Minimum = 30,
             Maximum = 235,
+            // Locks panning/zooming to this range too - without these, the Minimum/Maximum above
+            // only set the initial view, and the axis could still be scrolled/zoomed into
+            // temperatures the Volcano can never actually reach.
+            AbsoluteMinimum = 30,
+            AbsoluteMaximum = 235,
             MajorGridlineStyle = LineStyle.Solid,
             MinorGridlineStyle = LineStyle.Solid,
             MinorGridlineThickness = 0.5,
@@ -505,9 +548,13 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         TemperatureRampPlan plan;
         try
         {
+            // Clamped for the preview curve only - RampStartTemperature/RampEndTemperature keep
+            // whatever the user actually typed (even if out of range) so the textbox doesn't
+            // silently overwrite their input; StartRampCommand is disabled via validation until
+            // it's corrected, but the chart should never draw a physically impossible curve.
             plan = new TemperatureRampPlan(
-                RampStartTemperature,
-                RampEndTemperature,
+                Math.Clamp(RampStartTemperature, MinDeviceTemperatureCelsius, MaxDeviceTemperatureCelsius),
+                Math.Clamp(RampEndTemperature, MinDeviceTemperatureCelsius, MaxDeviceTemperatureCelsius),
                 TimeSpan.FromMinutes(RampDurationMinutes),
                 RampInterpolationMethod);
         }
@@ -546,7 +593,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             sollMarker.Points.Add(new ScatterPoint(0, RampCurrentTarget));
         }
 
-        if (IsConnected)
+        if (IsConnected && CurrentTemperature > 0)
         {
             istMarker.Points.Add(new ScatterPoint(0, CurrentTemperature));
         }
@@ -563,8 +610,10 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     {
         var nowUtc = DateTime.UtcNow;
 
-        if (IsConnected)
+        if (IsConnected && CurrentTemperature > 0)
         {
+            // Skips recording the device's "display is blank" sentinel (see CurrentTemperatureDisplay)
+            // as a data point, rather than plotting a fake plunge to 0°C.
             _istHistory.Add((nowUtc, CurrentTemperature));
         }
 
