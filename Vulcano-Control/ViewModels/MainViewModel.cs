@@ -31,6 +31,7 @@ public partial class MainViewModel : ObservableValidator, IAsyncDisposable
 
     private const double PastWindowMinutes = 15.0;
     private const double MinFutureWindowMinutes = 5.0;
+    private const double MaxChartWindowMinutes = 24.0 * 60.0;
 
     // The Volcano's actual temperature range (matches the manual Zieltemperatur slider bounds
     // in MainWindow.xaml) - used to keep the ramp chart preview from drawing physically
@@ -298,6 +299,13 @@ public partial class MainViewModel : ObservableValidator, IAsyncDisposable
     }
 
     [RelayCommand]
+    private void ResetChartView()
+    {
+        RampPlotModel.ResetAllAxes();
+        RampPlotModel.InvalidatePlot(false);
+    }
+
+    [RelayCommand]
     private Task CheckForUpdatesAsync() => RunUpdateCheckAsync(silentIfNoneFound: false);
 
     private async Task RunUpdateCheckAsync(bool silentIfNoneFound)
@@ -469,6 +477,11 @@ public partial class MainViewModel : ObservableValidator, IAsyncDisposable
             Minimum = -PastWindowMinutes,
             // Maximum is computed and assigned every tick in RefreshChart(), so the axis
             // range never needs OxyPlot's own auto-scan of all series' points.
+            // Caps how far the view can be panned/zoomed out in either direction - without this,
+            // scrolling could reach arbitrarily far into the past/future, well beyond anything
+            // the retained history or a planned ramp could ever actually show.
+            AbsoluteMinimum = -MaxChartWindowMinutes,
+            AbsoluteMaximum = MaxChartWindowMinutes,
             MajorGridlineStyle = LineStyle.Solid,
             MinorGridlineStyle = LineStyle.Solid,
             MinorGridlineThickness = 0.5,
