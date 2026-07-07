@@ -492,11 +492,15 @@ public partial class MainViewModel : ObservableValidator, IAsyncDisposable
             Title = "Temperatur (°C)",
             Minimum = 30,
             Maximum = 235,
-            // Locks panning/zooming to this range too - without these, the Minimum/Maximum above
-            // only set the initial view, and the axis could still be scrolled/zoomed into
-            // temperatures the Volcano can never actually reach.
+            // Fully static - not just clamped via Absolute bounds, but with zoom/pan disabled
+            // outright. It has zero zoom headroom by design (Minimum/Maximum already equal the
+            // Absolute bounds), so a zoom-out gesture would otherwise stop dead on this axis while
+            // the time axis (which still has plenty of headroom) kept stretching, visibly
+            // distorting the whole plot into a squashed sliver.
             AbsoluteMinimum = 30,
             AbsoluteMaximum = 235,
+            IsZoomEnabled = false,
+            IsPanEnabled = false,
             MajorGridlineStyle = LineStyle.Solid,
             MinorGridlineStyle = LineStyle.Solid,
             MinorGridlineThickness = 0.5,
