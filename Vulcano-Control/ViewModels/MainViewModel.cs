@@ -184,7 +184,9 @@ public partial class MainViewModel : ObservableValidator, IAsyncDisposable
 
         _service = service;
         _rampController = new RampSessionController(_service, _logService);
-        ApplySettings(_settingsService.Load());
+
+        var settings = _settingsService.Load();
+        ApplySettings(settings);
 
         _service.ConnectionStateChanged += OnServiceConnectionStateChanged;
         _service.ErrorOccurred += OnServiceErrorOccurred;
@@ -202,6 +204,19 @@ public partial class MainViewModel : ObservableValidator, IAsyncDisposable
 
         RampPlotModel = BuildEmptyPlotModel();
         ApplyChartTheme();
+
+        // Loaded once here (after RampPlotModel exists, since assigning these triggers their
+        // OnChanged hooks -> RebuildPlotCurve() -> RefreshChart(), which would NullReferenceException
+        // against a not-yet-built plot model otherwise) rather than through ApplySettings, since
+        // that method also re-runs on every Einstellungen-dialog save (OnSettingsSaved) -
+        // re-applying these from a stale disk read there would clobber whatever the user has since
+        // typed into the ramp fields but not yet saved.
+        RampDurationMinutes = settings.RampDurationMinutes;
+        RampStartTemperature = settings.RampStartTemperatureCelsius;
+        RampEndTemperature = settings.RampEndTemperatureCelsius;
+        RampInterpolationMethod = settings.RampInterpolationMethod;
+        RampHoldMinutes = settings.RampHoldMinutes;
+
         RebuildPlotCurve();
 
         _chartTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
@@ -420,26 +435,52 @@ public partial class MainViewModel : ObservableValidator, IAsyncDisposable
     {
         ValidateProperty(value, nameof(RampDurationMinutes));
         RebuildPlotCurve();
+        SaveRampFieldsToSettings();
     }
 
     partial void OnRampStartTemperatureChanged(int value)
     {
         ValidateProperty(value, nameof(RampStartTemperature));
         RebuildPlotCurve();
+        SaveRampFieldsToSettings();
     }
 
     partial void OnRampEndTemperatureChanged(int value)
     {
         ValidateProperty(value, nameof(RampEndTemperature));
         RebuildPlotCurve();
+        SaveRampFieldsToSettings();
     }
 
-    partial void OnRampInterpolationMethodChanged(InterpolationMethod value) => RebuildPlotCurve();
+    partial void OnRampInterpolationMethodChanged(InterpolationMethod value)
+    {
+        RebuildPlotCurve();
+        SaveRampFieldsToSettings();
+    }
 
     partial void OnRampHoldMinutesChanged(int value)
     {
         ValidateProperty(value, nameof(RampHoldMinutes));
         RebuildPlotCurve();
+        SaveRampFieldsToSettings();
+    }
+
+    /// <summary>
+    /// Persists the current ramp shape (Dauer/Start-/Ziel-Temp/Verlauf/Nachlaufzeit) so it's
+    /// restored on the next launch - saved on every change regardless of validity, so "last
+    /// entered" reflects what's actually in the fields rather than silently dropping an
+    /// in-progress edit. Loads fresh from disk first so an unrelated setting saved independently
+    /// in the meantime (e.g. Theme) isn't clobbered.
+    /// </summary>
+    private void SaveRampFieldsToSettings()
+    {
+        var settings = _settingsService.Load();
+        settings.RampDurationMinutes = RampDurationMinutes;
+        settings.RampStartTemperatureCelsius = RampStartTemperature;
+        settings.RampEndTemperatureCelsius = RampEndTemperature;
+        settings.RampInterpolationMethod = RampInterpolationMethod;
+        settings.RampHoldMinutes = RampHoldMinutes;
+        _settingsService.Save(settings);
     }
 
     partial void OnTargetTemperatureChanged(int value) => ValidateProperty(value, nameof(TargetTemperature));

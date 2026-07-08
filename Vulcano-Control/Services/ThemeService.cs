@@ -51,7 +51,13 @@ public sealed class ThemeService
 
         _currentTheme = theme;
         ApplyTheme(theme);
-        _settingsService.Save(new AppSettings { Theme = theme });
+
+        // Load fresh from disk first so any other setting saved independently in the meantime
+        // (e.g. the ramp shape fields, saved directly from MainViewModel) isn't clobbered by
+        // constructing a brand-new AppSettings with only Theme set.
+        var settings = _settingsService.Load();
+        settings.Theme = theme;
+        _settingsService.Save(settings);
     }
 
     private static void ApplyTheme(AppTheme theme)
