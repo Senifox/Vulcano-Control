@@ -87,12 +87,14 @@
             <TextBlock Text="{Binding ConnectionState}" VerticalAlignment="Center" FontWeight="Bold"/>
         </StackPanel>
 
-        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,16">
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,16"
+                    IsEnabled="{Binding IsConnected}">
             <TextBlock Text="Aktuelle Temperatur: " VerticalAlignment="Center" FontSize="18"/>
             <TextBlock Text="{Binding CurrentTemperatureDisplay}" FontSize="24" FontWeight="Bold"/>
         </StackPanel>
 
-        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,0,0,16">
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,0,0,16"
+                    IsEnabled="{Binding IsConnected}">
             <TextBlock Text="Zieltemperatur: " VerticalAlignment="Center"/>
             <!-- Validation.ErrorTemplate is suppressed here on purpose: the slider's own Minimum/
                  Maximum already make it impossible for the user to drag it into an invalid value,
@@ -115,7 +117,8 @@
             </Button>
         </StackPanel>
 
-        <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,0,0,16">
+        <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,0,0,16"
+                    IsEnabled="{Binding IsConnected}">
             <ToggleButton Content="Heizung" IsChecked="{Binding IsHeaterOn, Mode=OneWay}"
                           Command="{Binding ToggleHeaterCommand}" Padding="16,8" Margin="0,0,8,0"/>
             <ToggleButton Content="Pumpe" IsChecked="{Binding IsPumpOn, Mode=OneWay}"
@@ -125,7 +128,8 @@
                        Visibility="{Binding IsAutoOffCountingDown, Converter={StaticResource BooleanToVisibilityConverter}}"/>
         </StackPanel>
 
-        <GroupBox Grid.Row="5" Header="Temperatur-Rampe" Margin="0,0,0,16" Padding="8">
+        <GroupBox Grid.Row="5" Header="Temperatur-Rampe" Margin="0,0,0,16" Padding="8"
+                  IsEnabled="{Binding IsConnected}">
             <StackPanel>
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                     <TextBlock Text="Dauer (min): " VerticalAlignment="Center" Width="130"/>
@@ -188,7 +192,8 @@
         <GroupBox Grid.Row="6" Margin="0,0,0,16" Padding="8"
                   VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
                   VerticalContentAlignment="Stretch" HorizontalContentAlignment="Stretch"
-                  Visibility="{Binding IsChartVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                  Visibility="{Binding IsChartVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
+                  IsEnabled="{Binding IsConnected}">
             <GroupBox.Header>
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="Rampen-Diagramm" VerticalAlignment="Center"/>
