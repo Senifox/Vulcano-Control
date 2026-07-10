@@ -22,6 +22,13 @@ public sealed class UpdateService
         _manager = new UpdateManager(new GithubSource(RepoUrl, string.Empty, false));
     }
 
+    /// <summary>
+    /// The currently installed Velopack release version (e.g. "v 1.0.5"), or an empty string
+    /// outside of a Velopack-installed deployment (e.g. when running via the debugger).
+    /// </summary>
+    public string CurrentVersionDisplay =>
+        _manager.IsInstalled && _manager.CurrentVersion is not null ? $"v {_manager.CurrentVersion}" : string.Empty;
+
     public async Task<UpdateInfo?> CheckForUpdatesAsync()
     {
         if (!_manager.IsInstalled)

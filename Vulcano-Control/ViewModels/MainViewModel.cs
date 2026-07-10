@@ -147,6 +147,9 @@ public partial class MainViewModel : ObservableValidator, IAsyncDisposable
 
     public bool IsConnected => ConnectionState == ConnectionState.Connected;
 
+    /// <summary>Static for the process lifetime - Velopack only changes this via a full restart.</summary>
+    public string AppVersionDisplay => _updateService.CurrentVersionDisplay;
+
     // The Volcano reports exactly 0°C when its own display is blank (e.g. cooled down far
     // enough that it stops showing a reading) rather than continuing to report the real,
     // still-decreasing measurement - 0 is otherwise physically impossible here (the device's

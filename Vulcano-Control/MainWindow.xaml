@@ -217,5 +217,7 @@
 
         <TextBlock Grid.Row="7" Text="{Binding StatusMessage}" Foreground="{StaticResource SecondaryTextBrush}"
                    VerticalAlignment="Bottom" TextWrapping="Wrap"/>
+        <TextBlock Grid.Row="7" Text="{Binding AppVersionDisplay}" Foreground="{StaticResource SecondaryTextBrush}"
+                   HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="8,0,0,0"/>
     </Grid>
 </Window>
