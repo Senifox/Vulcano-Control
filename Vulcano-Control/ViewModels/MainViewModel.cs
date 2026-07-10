@@ -134,6 +134,11 @@ public partial class MainViewModel : ObservableValidator, IAsyncDisposable
     [ObservableProperty]
     private bool isChartVisible = true;
 
+    // Lets the chart be used purely for Ist-temperature monitoring, without the Soll-curve/marker
+    // cluttering it when no ramp is in use.
+    [ObservableProperty]
+    private bool isRampPreviewVisible = true;
+
     [ObservableProperty]
     private bool isLogWindowVisible;
 
@@ -519,6 +524,8 @@ public partial class MainViewModel : ObservableValidator, IAsyncDisposable
 
     partial void OnIsRampRunningChanged(bool value) => UpdatePlotMarkers();
 
+    partial void OnIsRampPreviewVisibleChanged(bool value) => RefreshChart();
+
     private static PlotModel BuildEmptyPlotModel()
     {
         var model = new PlotModel();
@@ -658,6 +665,7 @@ public partial class MainViewModel : ObservableValidator, IAsyncDisposable
         var sollMarker = (ScatterSeries)RampPlotModel.Series[1];
         var istMarker = (ScatterSeries)RampPlotModel.Series[2];
 
+        sollMarker.IsVisible = IsRampPreviewVisible;
         sollMarker.Points.Clear();
         istMarker.Points.Clear();
 
@@ -702,6 +710,7 @@ public partial class MainViewModel : ObservableValidator, IAsyncDisposable
             : 0.0;
 
         var curveSeries = (LineSeries)RampPlotModel.Series[0];
+        curveSeries.IsVisible = IsRampPreviewVisible;
         curveSeries.Points.Clear();
         foreach (var (minutes, celsius) in _currentPlanSamples)
         {
