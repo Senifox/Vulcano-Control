@@ -78,7 +78,10 @@
                 <MenuItem Header="Immer im Vordergrund" IsCheckable="True"
                           IsChecked="{Binding IsAlwaysOnTop}"/>
             </MenuItem>
-            <MenuItem Header="_Einstellungen" Command="{Binding OpenSettingsCommand}"/>
+            <MenuItem Header="_Optionen">
+                <MenuItem Header="Programmeinstellungen..." Command="{Binding OpenProgramSettingsCommand}"/>
+                <MenuItem Header="Vulcano-Einstellungen..." Command="{Binding OpenDeviceSettingsCommand}"/>
+            </MenuItem>
             <MenuItem Header="_Hilfe">
                 <MenuItem Header="Nach Updates suchen" Command="{Binding CheckForUpdatesCommand}"/>
             </MenuItem>

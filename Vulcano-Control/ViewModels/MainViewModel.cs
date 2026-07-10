@@ -46,6 +46,7 @@ public partial class MainViewModel : ObservableValidator, IAsyncDisposable
     private readonly LogWindow _logWindow;
     private readonly SettingsService _settingsService;
     private readonly SettingsWindow _settingsWindow;
+    private readonly DeviceSettingsWindow _deviceSettingsWindow;
     private readonly SoundService _soundService;
     private readonly UpdateService _updateService;
     private readonly Dispatcher _dispatcher = Application.Current.Dispatcher;
@@ -172,6 +173,7 @@ public partial class MainViewModel : ObservableValidator, IAsyncDisposable
         LogWindow logWindow,
         SettingsService settingsService,
         SettingsWindow settingsWindow,
+        DeviceSettingsWindow deviceSettingsWindow,
         SoundService soundService,
         VolcanoBluetoothService service,
         UpdateService updateService)
@@ -181,6 +183,7 @@ public partial class MainViewModel : ObservableValidator, IAsyncDisposable
         _logWindow = logWindow;
         _settingsService = settingsService;
         _settingsWindow = settingsWindow;
+        _deviceSettingsWindow = deviceSettingsWindow;
         _soundService = soundService;
         _updateService = updateService;
         currentTheme = _themeService.CurrentTheme;
@@ -309,11 +312,19 @@ public partial class MainViewModel : ObservableValidator, IAsyncDisposable
     }
 
     [RelayCommand]
-    private void OpenSettings()
+    private void OpenProgramSettings()
     {
         _settingsWindow.ViewModel.LoadFromDisk();
         _settingsWindow.Show();
         _settingsWindow.Activate();
+    }
+
+    [RelayCommand(CanExecute = nameof(IsConnected))]
+    private void OpenDeviceSettings()
+    {
+        _deviceSettingsWindow.ViewModel.Refresh();
+        _deviceSettingsWindow.Show();
+        _deviceSettingsWindow.Activate();
     }
 
     [RelayCommand]
@@ -402,6 +413,7 @@ public partial class MainViewModel : ObservableValidator, IAsyncDisposable
         ToggleHeaterCommand.NotifyCanExecuteChanged();
         TogglePumpCommand.NotifyCanExecuteChanged();
         ApplyTargetTemperatureCommand.NotifyCanExecuteChanged();
+        OpenDeviceSettingsCommand.NotifyCanExecuteChanged();
         NotifyRampCommandsCanExecuteChanged();
     }
 

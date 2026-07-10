@@ -4,7 +4,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         mc:Ignorable="d"
-        Title="Einstellungen" Width="420" SizeToContent="Height"
+        Title="Programmeinstellungen" Width="420" SizeToContent="Height"
         ResizeMode="NoResize" WindowStartupLocation="CenterOwner">
     <StackPanel Margin="16">
         <TextBlock Text="Verlaufsgröße (Minuten):"/>
@@ -21,68 +21,5 @@
             <Button Content="Speichern" Command="{Binding SaveCommand}" Padding="12,4" Margin="0,0,8,0"/>
             <Button Content="Abbrechen" Command="{Binding CancelCommand}" Padding="12,4"/>
         </StackPanel>
-
-        <GroupBox Header="Geräteinformationen" Margin="0,20,0,0" Padding="8"
-                  IsEnabled="{Binding IsDeviceConnected}">
-            <StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                    <TextBlock Text="Seriennummer: " Width="130"/>
-                    <TextBlock Text="{Binding DeviceSerialNumber}" FontWeight="Bold"/>
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                    <TextBlock Text="Betriebsstunden: " Width="130"/>
-                    <TextBlock Text="{Binding DeviceOperatingHours}" FontWeight="Bold"/>
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                    <TextBlock Text="Volcano-Firmware: " Width="130"/>
-                    <TextBlock Text="{Binding DeviceFirmwareVersion}" FontWeight="Bold"/>
-                </StackPanel>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Bluetooth-Firmware: " Width="130"/>
-                    <TextBlock Text="{Binding DeviceBleFirmwareVersion}" FontWeight="Bold"/>
-                </StackPanel>
-            </StackPanel>
-        </GroupBox>
-
-        <GroupBox Header="Volcano-Steuerung" Margin="0,12,0,0" Padding="8"
-                  IsEnabled="{Binding IsDeviceConnected}">
-            <StackPanel>
-                <TextBlock Text="{Binding DeviceBrightness, StringFormat=LED-Display-Helligkeit: {0}}"/>
-                <StackPanel Orientation="Horizontal" Margin="0,4,0,12">
-                    <Slider Minimum="0" Maximum="100" TickFrequency="10" IsSnapToTickEnabled="True"
-                            Width="220" VerticalAlignment="Center"
-                            Value="{Binding DeviceBrightness, UpdateSourceTrigger=PropertyChanged}"/>
-                    <Button Content="Setzen" Command="{Binding SetDeviceBrightnessCommand}" Padding="12,4" Margin="8,0,0,0"/>
-                </StackPanel>
-
-                <TextBlock Text="{Binding DeviceAutoOffMinutes, StringFormat=Automatischer Abschalt-Timer: {0} min}"/>
-                <StackPanel Orientation="Horizontal" Margin="0,4,0,12">
-                    <Slider Minimum="5" Maximum="360" TickFrequency="5" IsSnapToTickEnabled="True"
-                            Width="220" VerticalAlignment="Center"
-                            Value="{Binding DeviceAutoOffMinutes, UpdateSourceTrigger=PropertyChanged}"/>
-                    <Button Content="Setzen" Command="{Binding SetDeviceAutoOffCommand}" Padding="12,4" Margin="8,0,0,0"/>
-                </StackPanel>
-
-                <CheckBox Content="Lüfter-Vibrationsalarm" IsChecked="{Binding DeviceVibrationEnabled, Mode=OneWay}"
-                          Command="{Binding ToggleDeviceVibrationCommand}" Margin="0,0,0,8"/>
-                <CheckBox Content="Temperatur beim Abkühlen anzeigen" IsChecked="{Binding DeviceDisplayOnCoolingEnabled, Mode=OneWay}"
-                          Command="{Binding ToggleDeviceDisplayOnCoolingCommand}" Margin="0,0,0,8"/>
-
-                <TextBlock Text="Temperaturskala:"/>
-                <Button Command="{Binding ToggleDeviceTemperatureUnitCommand}" Padding="12,4"
-                        HorizontalAlignment="Left" Margin="0,4,0,0">
-                    <Button.Style>
-                        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                            <Setter Property="Content" Value="Wechsel zu °F"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding DeviceFahrenheitEnabled}" Value="True">
-                                    <Setter Property="Content" Value="Wechsel zu °C"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Button.Style>
-                </Button>
-            </StackPanel>
-        </GroupBox>
     </StackPanel>
 </Window>
