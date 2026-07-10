@@ -7,13 +7,32 @@
         Title="Programmeinstellungen" Width="420" SizeToContent="Height"
         ResizeMode="NoResize" WindowStartupLocation="CenterOwner">
     <StackPanel Margin="16">
-        <TextBlock Text="Verlaufsgröße (Minuten):"/>
-        <TextBox Text="{Binding HistoryRetentionMinutes, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,0,0"/>
+        <TabControl>
+            <TabItem Header="Allgemein">
+                <StackPanel Margin="8">
+                    <TextBlock Text="Verlaufsgröße (Minuten):"/>
+                    <TextBox Text="{Binding HistoryRetentionMinutes, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,0,0"/>
 
-        <TextBlock Text="Update-Schwelle (°C):" Margin="0,16,0,0"/>
-        <TextBox Text="{Binding RampPushThresholdCelsius, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,0,0"/>
+                    <TextBlock Text="Update-Schwelle (°C):" Margin="0,16,0,0"/>
+                    <TextBox Text="{Binding RampPushThresholdCelsius, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,0,0"/>
 
-        <CheckBox Content="Sound-Effekte aktiviert" IsChecked="{Binding SoundEnabled}" Margin="0,16,0,0"/>
+                    <CheckBox Content="Sound-Effekte aktiviert" IsChecked="{Binding SoundEnabled}" Margin="0,16,0,0"/>
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="Temperaturen">
+                <StackPanel Margin="8">
+                    <TextBlock Text="Vordefinierte Temperaturen für die Zieltemperatur-Auswahl:" TextWrapping="Wrap"/>
+                    <ListBox ItemsSource="{Binding PredefinedTemperatures}"
+                             SelectedItem="{Binding SelectedPredefinedTemperature}"
+                             Height="140" Margin="0,8,0,8"/>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBox Text="{Binding NewPredefinedTemperature, UpdateSourceTrigger=PropertyChanged}" Width="90"/>
+                        <Button Content="Hinzufügen" Command="{Binding AddPredefinedTemperatureCommand}" Padding="12,4" Margin="8,0,0,0"/>
+                        <Button Content="Entfernen" Command="{Binding RemovePredefinedTemperatureCommand}" Padding="12,4" Margin="8,0,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+            </TabItem>
+        </TabControl>
 
         <TextBlock Text="{Binding ErrorMessage}" Foreground="Red" TextWrapping="Wrap" Margin="0,12,0,0"/>
 

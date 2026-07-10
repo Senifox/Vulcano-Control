@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
 using System.Windows;
 using System.Windows.Threading;
@@ -171,6 +172,10 @@ public partial class MainViewModel : ObservableValidator, IAsyncDisposable
     public TimeSpan RemainingAutoOffTimeSpan => TimeSpan.FromSeconds(RemainingAutoOffSeconds);
 
     public IReadOnlyList<InterpolationMethod> InterpolationMethods { get; } = Enum.GetValues<InterpolationMethod>();
+
+    /// <summary>User-maintained shortlist offered in the Zieltemperatur combo box, kept in sync
+    /// with the Programmeinstellungen dialog (see ApplySettings).</summary>
+    public ObservableCollection<int> PredefinedTemperatures { get; } = new();
 
     public MainViewModel(
         ThemeService themeService,
@@ -752,6 +757,12 @@ public partial class MainViewModel : ObservableValidator, IAsyncDisposable
         _historyRetention = TimeSpan.FromMinutes(settings.HistoryRetentionMinutes);
         _rampController.PushThresholdCelsius = settings.RampPushThresholdCelsius;
         _soundService.SoundEnabled = settings.SoundEnabled;
+
+        PredefinedTemperatures.Clear();
+        foreach (var temperature in settings.PredefinedTemperatures.OrderBy(t => t))
+        {
+            PredefinedTemperatures.Add(temperature);
+        }
     }
 
     private void OnSettingsSaved(object? sender, AppSettings settings) => ApplySettings(settings);

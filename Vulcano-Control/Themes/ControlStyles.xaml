@@ -103,7 +103,9 @@
     </Style>
 
     <!-- Classic ComboBox chrome likewise ignores Background/Foreground for the selected-value
-         display - explicit template for the (non-editable) ComboBoxes used in this app. -->
+         display - explicit template covering both non-editable ComboBoxes and the editable
+         Zieltemperatur one (PART_EditableTextBox is required by WPF for IsEditable to have any
+         effect - without it, typing into an editable ComboBox is silently ignored). -->
     <Style TargetType="ComboBox">
         <Setter Property="Background" Value="{DynamicResource ControlBackgroundBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource ControlForegroundBrush}"/>
@@ -143,6 +145,15 @@
                                           ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
                                           Margin="{TemplateBinding Padding}"
                                           HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                        <!-- Declared after the ToggleButton (and not hit-test-hidden) so it sits on
+                             top and actually receives clicks/typing instead of toggling the
+                             dropdown; only shown when IsEditable="True" via the trigger below. -->
+                        <TextBox x:Name="PART_EditableTextBox"
+                                 Background="Transparent" BorderThickness="0"
+                                 Foreground="{TemplateBinding Foreground}"
+                                 Margin="{TemplateBinding Padding}"
+                                 HorizontalAlignment="Left" VerticalAlignment="Center"
+                                 Visibility="Collapsed" Focusable="True"/>
                         <Popup x:Name="Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}"
                                AllowsTransparency="True" Focusable="False" PopupAnimation="Slide">
                             <Border Background="{DynamicResource ControlBackgroundBrush}"
@@ -155,6 +166,12 @@
                             </Border>
                         </Popup>
                     </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsEditable" Value="True">
+                            <Setter TargetName="ContentSite" Property="Visibility" Value="Collapsed"/>
+                            <Setter TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
@@ -183,6 +200,113 @@
     <Style TargetType="GroupBox">
         <Setter Property="Foreground" Value="{DynamicResource ControlForegroundBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}"/>
+    </Style>
+
+    <!-- Classic ListBox chrome has the same "ignores Background/Foreground" issue as the other
+         controls in this file - first use is the predefined-temperatures list in Programmeinstellungen. -->
+    <Style TargetType="ListBox">
+        <Setter Property="Background" Value="{DynamicResource ControlBackgroundBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ControlForegroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBox">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}">
+                        <ScrollViewer Focusable="False">
+                            <ItemsPresenter/>
+                        </ScrollViewer>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="ListBoxItem">
+        <Setter Property="Background" Value="{DynamicResource ControlBackgroundBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ControlForegroundBrush}"/>
+        <Setter Property="Padding" Value="4,2"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <Border x:Name="Bd" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ControlBorderBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ControlBorderBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- No Win10-fallback styling existed for TabControl/TabItem at all before (first use is the
+         Programmeinstellungen dialog's tabs) - classic chrome for these ignores Background/
+         Foreground the same way the other controls in this file do. -->
+    <Style TargetType="TabControl">
+        <Setter Property="Background" Value="{DynamicResource WindowBackgroundBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource WindowForegroundBrush}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TabControl">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <TabPanel Grid.Row="0" IsItemsHost="True" Background="{TemplateBinding Background}"/>
+                        <Border Grid.Row="1" Background="{TemplateBinding Background}"
+                                BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1">
+                            <ContentPresenter ContentSource="SelectedContent" Margin="8"/>
+                        </Border>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="TabItem">
+        <Setter Property="Background" Value="{DynamicResource ControlBackgroundBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ControlForegroundBrush}"/>
+        <Setter Property="Padding" Value="12,6"/>
+        <!-- A plain string Header (as used here: "Allgemein"/"Temperaturen") is rendered by WPF
+             via AccessText, not TextBlock - the app-wide implicit TextBlock style (which is what
+             normally delivers the correct dark-theme text color) doesn't match that type, so an
+             explicit HeaderTemplate is needed to guarantee the right color regardless. -->
+        <Setter Property="HeaderTemplate">
+            <Setter.Value>
+                <DataTemplate>
+                    <TextBlock Text="{Binding}"
+                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=TabItem}}"/>
+                </DataTemplate>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TabItem">
+                    <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                            BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1,1,1,0"
+                            Padding="{TemplateBinding Padding}" Margin="0,0,2,0">
+                        <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource WindowBackgroundBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ControlBorderBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <!-- Classic CheckBox chrome (BulletChrome) has the same "ignores Background/Foreground"

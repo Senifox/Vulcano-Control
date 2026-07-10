@@ -14,4 +14,7 @@ public sealed class AppSettings
     public int RampEndTemperatureCelsius { get; set; } = 225;
     public InterpolationMethod RampInterpolationMethod { get; set; } = InterpolationMethod.Linear;
     public int RampHoldMinutes { get; set; } = 5;
+
+    // User-maintained shortlist offered in the Zieltemperatur combo box.
+    public List<int> PredefinedTemperatures { get; set; } = new() { 180, 185, 190, 195, 200, 210, 220 };
 }

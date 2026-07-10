@@ -43,6 +43,14 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+
+        <Style x:Key="ValidatedComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+            <Style.Triggers>
+                <Trigger Property="Validation.HasError" Value="True">
+                    <Setter Property="ToolTip" Value="{Binding RelativeSource={RelativeSource Self}, Path=(Validation.Errors)[0].ErrorContent}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
     <Grid Margin="16">
         <Grid.RowDefinitions>
@@ -112,10 +120,11 @@
                     TickFrequency="1" IsSnapToTickEnabled="True"
                     Validation.ErrorTemplate="{x:Null}"
                     Value="{Binding TargetTemperature, UpdateSourceTrigger=PropertyChanged}"/>
-            <TextBox x:Name="TargetTemperatureTextBox"
-                     Text="{Binding TargetTemperature, UpdateSourceTrigger=LostFocus}"
-                     Style="{StaticResource ValidatedTextBoxStyle}"
-                     Width="90" VerticalAlignment="Center" Margin="8,0"/>
+            <ComboBox x:Name="TargetTemperatureTextBox" IsEditable="True"
+                      Text="{Binding TargetTemperature, UpdateSourceTrigger=LostFocus}"
+                      ItemsSource="{Binding PredefinedTemperatures}"
+                      Style="{StaticResource ValidatedComboBoxStyle}"
+                      Width="90" VerticalAlignment="Center" Margin="8,0"/>
             <Button Content="Setzen" Command="{Binding ApplyTargetTemperatureCommand}" Padding="12,4">
                 <Button.IsEnabled>
                     <MultiBinding Converter="{StaticResource NoValidationErrorsConverter}">
