@@ -52,7 +52,10 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
@@ -87,13 +90,15 @@
             <TextBlock Text="{Binding ConnectionState}" VerticalAlignment="Center" FontWeight="Bold"/>
         </StackPanel>
 
-        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,16"
+        <Separator Grid.Row="2" Margin="0,0,0,16"/>
+
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,0,0,16"
                     IsEnabled="{Binding IsConnected}">
             <TextBlock Text="Aktuelle Temperatur: " VerticalAlignment="Center" FontSize="18"/>
             <TextBlock Text="{Binding CurrentTemperatureDisplay}" FontSize="24" FontWeight="Bold"/>
         </StackPanel>
 
-        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,0,0,16"
+        <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,0,0,16"
                     IsEnabled="{Binding IsConnected}">
             <TextBlock Text="Zieltemperatur: " VerticalAlignment="Center"/>
             <!-- Validation.ErrorTemplate is suppressed here on purpose: the slider's own Minimum/
@@ -117,7 +122,7 @@
             </Button>
         </StackPanel>
 
-        <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,0,0,16"
+        <StackPanel Grid.Row="5" Orientation="Horizontal" Margin="0,0,0,16"
                     IsEnabled="{Binding IsConnected}">
             <ToggleButton Content="Heizung" IsChecked="{Binding IsHeaterOn, Mode=OneWay}"
                           Command="{Binding ToggleHeaterCommand}" Padding="16,8" Margin="0,0,8,0"/>
@@ -128,7 +133,9 @@
                        Visibility="{Binding IsAutoOffCountingDown, Converter={StaticResource BooleanToVisibilityConverter}}"/>
         </StackPanel>
 
-        <GroupBox Grid.Row="5" Header="Temperatur-Rampe" Margin="0,0,0,16" Padding="8"
+        <Separator Grid.Row="6" Margin="0,0,0,16"/>
+
+        <GroupBox Grid.Row="7" Header="Temperatur-Rampe" Margin="0,0,0,16" Padding="8"
                   IsEnabled="{Binding IsConnected}">
             <StackPanel>
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
@@ -189,7 +196,7 @@
             </StackPanel>
         </GroupBox>
 
-        <GroupBox Grid.Row="6" Margin="0,0,0,16" Padding="8"
+        <GroupBox Grid.Row="8" Margin="0,0,0,16" Padding="8"
                   VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
                   VerticalContentAlignment="Stretch" HorizontalContentAlignment="Stretch"
                   Visibility="{Binding IsChartVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
@@ -220,9 +227,11 @@
             </oxy:PlotView>
         </GroupBox>
 
-        <TextBlock Grid.Row="7" Text="{Binding StatusMessage}" Foreground="{StaticResource SecondaryTextBrush}"
+        <Separator Grid.Row="9" Margin="0,0,0,8"/>
+
+        <TextBlock Grid.Row="10" Text="{Binding StatusMessage}" Foreground="{StaticResource SecondaryTextBrush}"
                    VerticalAlignment="Bottom" TextWrapping="Wrap"/>
-        <TextBlock Grid.Row="7" Text="{Binding AppVersionDisplay}" Foreground="{StaticResource SecondaryTextBrush}"
+        <TextBlock Grid.Row="10" Text="{Binding AppVersionDisplay}" Foreground="{StaticResource SecondaryTextBrush}"
                    HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="8,0,0,0"/>
     </Grid>
 </Window>
