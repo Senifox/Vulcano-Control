@@ -33,7 +33,7 @@ namespace Vulcano_Control
       }
       ThemeService.ApplyTitleBarTheme(this, themeService.CurrentTheme);
 
-      var service = new VolcanoBluetoothService(logService);
+      var service = new VolcanoDeviceOrchestrator(logService);
 
       var logWindow = new LogWindow(logService, themeService);
       var settingsWindow = new SettingsWindow(new SettingsViewModel(settingsService), themeService);

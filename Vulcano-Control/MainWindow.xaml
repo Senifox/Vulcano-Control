@@ -90,6 +90,13 @@
                 <MenuItem Header="Programmeinstellungen..." Command="{Binding OpenProgramSettingsCommand}"/>
                 <MenuItem Header="Vulcano-Einstellungen..." Command="{Binding OpenDeviceSettingsCommand}"/>
             </MenuItem>
+            <MenuItem Header="_Netzwerk">
+                <MenuItem Header="Server starten..." Command="{Binding StartServerCommand}"/>
+                <MenuItem Header="Server beenden" Command="{Binding StopServerCommand}"/>
+                <Separator/>
+                <MenuItem Header="Mit Server verbinden..." Command="{Binding ConnectToServerCommand}"/>
+                <MenuItem Header="Vom Server trennen" Command="{Binding DisconnectFromServerCommand}"/>
+            </MenuItem>
             <MenuItem Header="_Hilfe">
                 <MenuItem Header="Nach Updates suchen" Command="{Binding CheckForUpdatesCommand}"/>
             </MenuItem>
@@ -99,6 +106,8 @@
             <Button Content="Verbinden" Command="{Binding ConnectCommand}" Padding="12,4" Margin="0,0,8,0"/>
             <Button Content="Trennen" Command="{Binding DisconnectCommand}" Padding="12,4" Margin="0,0,8,0"/>
             <TextBlock Text="{Binding ConnectionState}" VerticalAlignment="Center" FontWeight="Bold"/>
+            <TextBlock Text="{Binding NetworkStatusDisplay}" VerticalAlignment="Center" Margin="8,0,0,0"
+                       Foreground="{StaticResource SecondaryTextBrush}"/>
         </StackPanel>
 
         <Separator Grid.Row="2" Margin="0,0,0,16"/>

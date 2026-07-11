@@ -17,4 +17,11 @@ public sealed class AppSettings
 
     // User-maintained shortlist offered in the Zieltemperatur combo box.
     public List<int> PredefinedTemperatures { get; set; } = new() { 180, 185, 190, 195, 200, 210, 220 };
+
+    // LAN-relay convenience persistence, so the host/join dialogs don't start empty every time.
+    // Deliberately plain text - the PIN is only a door lock for the trusted home network, not
+    // real security.
+    public int RelayServerPort { get; set; } = 58642;
+    public string RelayPin { get; set; } = "";
+    public string RelayLastHostAddress { get; set; } = "";
 }

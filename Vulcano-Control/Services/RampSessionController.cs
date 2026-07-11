@@ -13,7 +13,7 @@ public readonly record struct RampProgressEventArgs(
 
 /// <summary>
 /// Drives a <see cref="TemperatureRampPlan"/> over time, pushing target-temperature
-/// writes to a <see cref="VolcanoBluetoothService"/> only once the ideal target has
+/// writes to an <see cref="IVolcanoDevice"/> only once the ideal target has
 /// drifted far enough from the last pushed value.
 ///
 /// Before the timed ramp itself begins, the controller waits in a "warm-up" phase until
@@ -23,7 +23,7 @@ public readonly record struct RampProgressEventArgs(
 /// (so the device is left on its default start value for the next session, whether or not this
 /// app controls it) and the heater is switched off right away - no waiting for actual cooldown.
 /// </summary>
-public sealed class RampSessionController : IDisposable
+public sealed class RampSessionController : IRampSessionController
 {
     private static readonly TimeSpan TickInterval = TimeSpan.FromSeconds(1);
     private const double ResetTemperatureCelsius = 185.0;
@@ -34,7 +34,7 @@ public sealed class RampSessionController : IDisposable
 
     private enum Phase { Idle, WarmingUp, Ramping, Holding }
 
-    private readonly VolcanoBluetoothService _service;
+    private readonly IVolcanoDevice _service;
     private readonly LogService _logService;
     private readonly DispatcherTimer _timer;
 
@@ -53,8 +53,9 @@ public sealed class RampSessionController : IDisposable
     public event EventHandler? WarmupCompleted;
     public event EventHandler<double>? Completed;
     public event EventHandler<string>? ErrorOccurred;
+    public event EventHandler? Stopped;
 
-    public RampSessionController(VolcanoBluetoothService service, LogService logService)
+    public RampSessionController(IVolcanoDevice service, LogService logService)
     {
         _service = service;
         _logService = logService;
@@ -103,6 +104,7 @@ public sealed class RampSessionController : IDisposable
         _timer.Stop();
         _phase = Phase.Idle;
         _logService.Log("Rampe manuell gestoppt.");
+        Stopped?.Invoke(this, EventArgs.Empty);
     }
 
     private void OnCurrentTemperatureChanged(object? sender, double celsius) =>

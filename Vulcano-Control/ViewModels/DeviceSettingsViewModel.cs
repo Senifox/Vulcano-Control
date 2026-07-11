@@ -11,7 +11,7 @@ namespace Vulcano_Control.ViewModels;
 /// </summary>
 public partial class DeviceSettingsViewModel : ObservableObject
 {
-    private readonly VolcanoBluetoothService _service;
+    private readonly IVolcanoDevice _service;
 
     /// <summary>Raised by the Schließen button - the window (unlike SettingsWindow) has no
     /// Save/Cancel round trip, since every control here writes straight to the device.</summary>
@@ -47,7 +47,7 @@ public partial class DeviceSettingsViewModel : ObservableObject
     [ObservableProperty]
     private bool deviceFahrenheitEnabled;
 
-    public DeviceSettingsViewModel(VolcanoBluetoothService service)
+    public DeviceSettingsViewModel(IVolcanoDevice service)
     {
         _service = service;
     }

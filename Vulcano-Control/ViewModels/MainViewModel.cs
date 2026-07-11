@@ -40,8 +40,8 @@ public partial class MainViewModel : ObservableValidator, IAsyncDisposable
     private const int MinDeviceTemperatureCelsius = 40;
     private const int MaxDeviceTemperatureCelsius = 230;
 
-    private readonly VolcanoBluetoothService _service;
-    private readonly RampSessionController _rampController;
+    private readonly VolcanoDeviceOrchestrator _service;
+    private readonly IRampSessionController _rampController;
     private readonly ThemeService _themeService;
     private readonly LogService _logService;
     private readonly LogWindow _logWindow;
@@ -152,7 +152,28 @@ public partial class MainViewModel : ObservableValidator, IAsyncDisposable
     [ObservableProperty]
     private int remainingAutoOffSeconds;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(NetworkStatusDisplay))]
+    private bool isHosting;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(NetworkStatusDisplay))]
+    private int? hostingPort;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(NetworkStatusDisplay))]
+    private bool isRemoteClient;
+
     public bool IsConnected => ConnectionState == ConnectionState.Connected;
+
+    /// <summary>Short status text shown next to ConnectionState when the LAN-relay feature is
+    /// in use - empty otherwise, so it doesn't clutter the UI for single-user sessions.</summary>
+    public string NetworkStatusDisplay => (IsHosting, IsRemoteClient) switch
+    {
+        (true, _) => $"(Server aktiv, Port {HostingPort})",
+        (_, true) => "(als Client verbunden)",
+        _ => string.Empty
+    };
 
     /// <summary>Static for the process lifetime - Velopack only changes this via a full restart.</summary>
     public string AppVersionDisplay => _updateService.CurrentVersionDisplay;
@@ -185,7 +206,7 @@ public partial class MainViewModel : ObservableValidator, IAsyncDisposable
         SettingsWindow settingsWindow,
         DeviceSettingsWindow deviceSettingsWindow,
         SoundService soundService,
-        VolcanoBluetoothService service,
+        VolcanoDeviceOrchestrator service,
         UpdateService updateService)
     {
         _themeService = themeService;
@@ -199,13 +220,13 @@ public partial class MainViewModel : ObservableValidator, IAsyncDisposable
         currentTheme = _themeService.CurrentTheme;
 
         _service = service;
-        _rampController = new RampSessionController(_service, _logService);
+        _rampController = service;
 
         var settings = _settingsService.Load();
         ApplySettings(settings);
 
         _service.ConnectionStateChanged += OnServiceConnectionStateChanged;
-        _service.ErrorOccurred += OnServiceErrorOccurred;
+        ((IVolcanoDevice)_service).ErrorOccurred += OnServiceErrorOccurred;
         _service.CurrentTemperatureChanged += OnServiceCurrentTemperatureChanged;
         _service.ActivityChanged += OnServiceActivityChanged;
         _service.RemainingAutoOffSecondsChanged += OnServiceRemainingAutoOffSecondsChanged;
@@ -337,6 +358,92 @@ public partial class MainViewModel : ObservableValidator, IAsyncDisposable
         _deviceSettingsWindow.Activate();
     }
 
+    [RelayCommand(CanExecute = nameof(CanStartServer))]
+    private void StartServer()
+    {
+        var settings = _settingsService.Load();
+        var dialogViewModel = new NetworkHostViewModel(settings.RelayServerPort, settings.RelayPin);
+        var dialog = new NetworkHostDialog(dialogViewModel, _themeService) { Owner = Application.Current.MainWindow };
+        if (dialog.ShowDialog() != true) return;
+
+        try
+        {
+            _service.StartHosting(dialogViewModel.Port, dialogViewModel.Pin);
+        }
+        catch (InvalidOperationException ex)
+        {
+            StatusMessage = ex.Message;
+            return;
+        }
+
+        settings.RelayServerPort = dialogViewModel.Port;
+        settings.RelayPin = dialogViewModel.Pin;
+        _settingsService.Save(settings);
+
+        IsHosting = _service.IsHosting;
+        HostingPort = _service.HostingPort;
+        StatusMessage = $"LAN-Server gestartet auf Port {HostingPort}.";
+        NotifyNetworkCommandsCanExecuteChanged();
+    }
+
+    private bool CanStartServer() => IsConnected && !IsRemoteClient && !IsHosting;
+
+    [RelayCommand(CanExecute = nameof(CanStopServer))]
+    private async Task StopServerAsync()
+    {
+        await _service.StopHostingAsync();
+        IsHosting = _service.IsHosting;
+        HostingPort = _service.HostingPort;
+        StatusMessage = "LAN-Server beendet.";
+        NotifyNetworkCommandsCanExecuteChanged();
+    }
+
+    private bool CanStopServer() => IsHosting;
+
+    [RelayCommand(CanExecute = nameof(CanConnectToServer))]
+    private async Task ConnectToServerAsync()
+    {
+        var settings = _settingsService.Load();
+        var dialogViewModel = new NetworkJoinViewModel(settings.RelayLastHostAddress, settings.RelayServerPort, settings.RelayPin);
+        var dialog = new NetworkJoinDialog(dialogViewModel, _themeService) { Owner = Application.Current.MainWindow };
+        if (dialog.ShowDialog() != true) return;
+
+        var connected = await _service.ConnectToServerAsync(dialogViewModel.Host, dialogViewModel.Port, dialogViewModel.Pin);
+
+        settings.RelayLastHostAddress = dialogViewModel.Host;
+        settings.RelayServerPort = dialogViewModel.Port;
+        settings.RelayPin = dialogViewModel.Pin;
+        _settingsService.Save(settings);
+
+        IsRemoteClient = _service.IsRemoteClient;
+        if (connected)
+        {
+            StatusMessage = $"Mit Server {dialogViewModel.Host}:{dialogViewModel.Port} verbunden.";
+        }
+        NotifyNetworkCommandsCanExecuteChanged();
+    }
+
+    private bool CanConnectToServer() => !IsHosting && !IsRemoteClient;
+
+    [RelayCommand(CanExecute = nameof(CanDisconnectFromServer))]
+    private async Task DisconnectFromServerAsync()
+    {
+        await _service.DisconnectFromServerAsync();
+        IsRemoteClient = _service.IsRemoteClient;
+        StatusMessage = "Vom Server getrennt.";
+        NotifyNetworkCommandsCanExecuteChanged();
+    }
+
+    private bool CanDisconnectFromServer() => IsRemoteClient;
+
+    private void NotifyNetworkCommandsCanExecuteChanged()
+    {
+        StartServerCommand.NotifyCanExecuteChanged();
+        StopServerCommand.NotifyCanExecuteChanged();
+        ConnectToServerCommand.NotifyCanExecuteChanged();
+        DisconnectFromServerCommand.NotifyCanExecuteChanged();
+    }
+
     [RelayCommand]
     private void ResetChartView()
     {
@@ -425,6 +532,7 @@ public partial class MainViewModel : ObservableValidator, IAsyncDisposable
         ApplyTargetTemperatureCommand.NotifyCanExecuteChanged();
         OpenDeviceSettingsCommand.NotifyCanExecuteChanged();
         NotifyRampCommandsCanExecuteChanged();
+        NotifyNetworkCommandsCanExecuteChanged();
     }
 
     partial void OnRemainingAutoOffSecondsChanged(int value)
@@ -854,7 +962,7 @@ public partial class MainViewModel : ObservableValidator, IAsyncDisposable
         _rampController.Dispose();
 
         _service.ConnectionStateChanged -= OnServiceConnectionStateChanged;
-        _service.ErrorOccurred -= OnServiceErrorOccurred;
+        ((IVolcanoDevice)_service).ErrorOccurred -= OnServiceErrorOccurred;
         _service.CurrentTemperatureChanged -= OnServiceCurrentTemperatureChanged;
         _service.ActivityChanged -= OnServiceActivityChanged;
         _service.RemainingAutoOffSecondsChanged -= OnServiceRemainingAutoOffSecondsChanged;

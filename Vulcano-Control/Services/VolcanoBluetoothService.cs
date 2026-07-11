@@ -8,19 +8,11 @@ using Windows.Foundation;
 
 namespace Vulcano_Control.Services;
 
-/// <summary>One-time device information, read on demand (e.g. when opening the settings dialog).</summary>
-public readonly record struct VolcanoDeviceInfo(
-    string SerialNumber,
-    string FirmwareVersion,
-    string FirmwareBleVersion,
-    int HoursOfHeating,
-    int MinutesOfHeating);
-
 /// <summary>
 /// Encapsulates BLE discovery, GATT connection and read/write/notify access to a
 /// Storz &amp; Bickel Volcano. UI-agnostic: raises plain events, no Dispatcher usage here.
 /// </summary>
-public sealed class VolcanoBluetoothService : IAsyncDisposable
+public sealed class VolcanoBluetoothService : IVolcanoDevice
 {
     private const int ScanTimeoutSeconds = 15;
 
