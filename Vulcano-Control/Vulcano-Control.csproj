@@ -14,6 +14,9 @@
          the WPF-generated one, which requires App.xaml to compile as a Page rather than the
          ApplicationDefinition. -->
     <StartupObject>Vulcano_Control.App</StartupObject>
+    <!-- The rewrite manages package versions centrally from the repo root; this project keeps its
+         own inline versions until it is removed. -->
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
   </PropertyGroup>
 
   <ItemGroup>

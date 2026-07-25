@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <!-- Windows-only while the BlueZ adapter is outstanding: a net10.0 app cannot reference the
+         WinRT adapter, and multi-targeting would cost a -f switch on every dotnet run for a
+         second flavour that has no transport yet. When BlueZ lands this becomes
+         <TargetFrameworks>net10.0;net10.0-windows10.0.19041.0</TargetFrameworks> and the
+         adapter references get a $(TargetFramework) condition. Nothing else has to change -
+         the app only ever talks to IVolcanoTransport from Vulcano.Core. -->
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+    <RootNamespace>Vulcano.App</RootNamespace>
+    <AssemblyName>vulcano-control</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Avalonia.Diagnostics" Condition="'$(Configuration)' == 'Debug'" />
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="LiveChartsCore.SkiaSharpView.Avalonia" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Fonts and icons ship inside the assembly, reachable as avares:// URIs. The .axaml files
+         are picked up by the Avalonia targets on their own; Assets are not. -->
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Vulcano.Core\Vulcano.Core.csproj" />
+    <!-- Joined by Vulcano.Bluetooth.BlueZ once the Linux adapter exists; the app picks the
+         transport through a factory at startup, so nothing else changes. -->
+    <ProjectReference Include="..\Vulcano.Bluetooth.Windows\Vulcano.Bluetooth.Windows.csproj" />
+  </ItemGroup>
+
+</Project>

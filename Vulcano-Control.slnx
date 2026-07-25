@@ -1,3 +1,14 @@
 <Solution>
-  <Project Path="Vulcano-Control/Vulcano-Control.csproj" />
+  <Folder Name="/src/">
+    <Project Path="src/Vulcano.Core/Vulcano.Core.csproj" />
+    <Project Path="src/Vulcano.App/Vulcano.App.csproj" />
+    <Project Path="src/Vulcano.Bluetooth.Windows/Vulcano.Bluetooth.Windows.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Vulcano.Core.Tests/Vulcano.Core.Tests.csproj" />
+  </Folder>
+  <Folder Name="/legacy/">
+    <!-- The WPF app stays buildable until the Avalonia rewrite replaces it. -->
+    <Project Path="Vulcano-Control/Vulcano-Control.csproj" />
+  </Folder>
 </Solution>

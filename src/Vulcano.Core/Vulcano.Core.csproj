@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Platform-free core: models, ramp maths, BLE encoding, settings, log, relay protocol.
+       No UI, no WinRT, no D-Bus - everything OS-specific lives behind IVolcanoTransport. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Vulcano.Core</RootNamespace>
+  </PropertyGroup>
+
+</Project>

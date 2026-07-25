@@ -1,0 +1,11 @@
+<Project>
+
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <!-- Deliberately NOT InvariantGlobalization: the app ships EN/DE resources and formats
+         temperatures and times per culture, both of which need the full ICU data. -->
+  </PropertyGroup>
+
+</Project>
