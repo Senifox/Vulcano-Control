@@ -1,0 +1,28 @@
+<!--
+  IBM Plex, embedded rather than relied upon: Segoe UI does not exist under Linux, and without a
+  fixed font every column width in the app shifts between platforms. Numbers are always Mono - the
+  large temperature readout only holds still because its digits are the same width.
+
+  The type scale is the one from the handoff. Sizes are identical in both colour modes.
+-->
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <FontFamily x:Key="Font.Sans">avares://vulcano-control/Assets/Fonts#IBM Plex Sans</FontFamily>
+  <FontFamily x:Key="Font.Mono">avares://vulcano-control/Assets/Fonts#IBM Plex Mono</FontFamily>
+
+  <!-- Live temperature, the one number the whole cockpit is built around. -->
+  <x:Double x:Key="Text.Display">72</x:Double>
+  <!-- Same number in the compact window and on a remote client. -->
+  <x:Double x:Key="Text.DisplayCompact">56</x:Double>
+  <x:Double x:Key="Text.DisplayRemote">48</x:Double>
+
+  <x:Double x:Key="Text.Section">18</x:Double>
+  <x:Double x:Key="Text.CardTitle">14.5</x:Double>
+  <x:Double x:Key="Text.Body">12.5</x:Double>
+  <x:Double x:Key="Text.Small">11.5</x:Double>
+  <x:Double x:Key="Text.Footnote">11</x:Double>
+  <!-- Section labels: mono, uppercase, wide tracking. -->
+  <x:Double x:Key="Text.Label">10</x:Double>
+
+</ResourceDictionary>

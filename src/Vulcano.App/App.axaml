@@ -1,0 +1,24 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="clr-namespace:Vulcano.App.Converters"
+             x:Class="Vulcano.App.App"
+             RequestedThemeVariant="Dark">
+
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://vulcano-control/Theme/Tokens.axaml" />
+        <ResourceInclude Source="avares://vulcano-control/Theme/Typography.axaml" />
+        <ResourceInclude Source="avares://vulcano-control/Theme/Icons.axaml" />
+        <ResourceInclude Source="avares://vulcano-control/Theme/Controls.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+
+      <conv:EnumToBoolConverter x:Key="EnumToBool" />
+    </ResourceDictionary>
+  </Application.Resources>
+
+  <Application.Styles>
+    <FluentTheme />
+  </Application.Styles>
+
+</Application>

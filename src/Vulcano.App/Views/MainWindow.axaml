@@ -1,0 +1,272 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:c="clr-namespace:Vulcano.App.Controls"
+        xmlns:vm="clr-namespace:Vulcano.App.ViewModels"
+        x:Class="Vulcano.App.Views.MainWindow"
+        x:DataType="vm:ShellViewModel"
+        Title="Vulcano Control"
+        Width="1180" Height="760"
+        MinWidth="{StaticResource Size.WindowMinWidth}"
+        MinHeight="{StaticResource Size.WindowMinHeight}"
+        Background="{DynamicResource Bg.App}"
+        FontFamily="{StaticResource Font.Sans}"
+        FontSize="{StaticResource Text.Body}"
+        Topmost="{Binding IsAlwaysOnTop}"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        ExtendClientAreaTitleBarHeightHint="-1">
+
+  <Grid RowDefinitions="Auto,Auto,*">
+
+    <!-- ============ Title bar · 40 ============ -->
+    <Border Grid.Row="0"
+            Name="TitleBar"
+            Height="{StaticResource Size.TitleBar}"
+            Background="{DynamicResource Bg.Chrome}"
+            BorderBrush="{DynamicResource Border}"
+            BorderThickness="0,0,0,1"
+            PointerPressed="OnTitleBarPointerPressed">
+      <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+
+        <Border Grid.Column="0"
+                Width="14" Height="14"
+                Margin="14,0,9,0"
+                CornerRadius="3"
+                Background="{DynamicResource Accent}" />
+
+        <TextBlock Grid.Column="1"
+                   Text="Vulcano Control"
+                   FontSize="{StaticResource Text.Body}"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource Text}"
+                   VerticalAlignment="Center" />
+
+        <!-- Status pill: dot, state, serial. The serial is mono because it is an identifier,
+             not prose. -->
+        <Border Grid.Column="2"
+                Margin="14,0,0,0"
+                Padding="9,3"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Center"
+                CornerRadius="{StaticResource Radius.Pill}"
+                Background="{DynamicResource Bg.Field}"
+                BorderBrush="{DynamicResource Border}"
+                BorderThickness="1">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <Ellipse Width="7" Height="7" VerticalAlignment="Center"
+                     Fill="{DynamicResource Success}"
+                     IsVisible="{Binding IsConnected}" />
+            <Ellipse Width="7" Height="7" VerticalAlignment="Center"
+                     Fill="{DynamicResource Text.Faint}"
+                     IsVisible="{Binding !IsConnected}" />
+            <TextBlock Text="{Binding ConnectionText}"
+                       FontSize="{StaticResource Text.Small}"
+                       Foreground="{DynamicResource Text.Sub}"
+                       VerticalAlignment="Center" />
+            <TextBlock Text="{Binding SerialNumber}"
+                       FontFamily="{StaticResource Font.Mono}"
+                       FontSize="{StaticResource Text.Footnote}"
+                       Foreground="{DynamicResource Text.Dim}"
+                       VerticalAlignment="Center"
+                       IsVisible="{Binding SerialNumber, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          </StackPanel>
+        </Border>
+
+        <StackPanel Grid.Column="3" Orientation="Horizontal">
+          <Button Theme="{StaticResource GhostButton}"
+                  Content="Compact"
+                  Margin="0,0,4,0"
+                  VerticalAlignment="Center" />
+          <ToggleButton Name="AlwaysOnTopToggle"
+                        Content="Always on top"
+                        IsChecked="{Binding IsAlwaysOnTop, Mode=TwoWay}"
+                        Theme="{StaticResource SegmentButton}"
+                        Margin="0,0,8,0"
+                        VerticalAlignment="Center" />
+          <Button Theme="{StaticResource WindowButton}" Click="OnMinimiseClick">
+            <c:Icon Data="{StaticResource Icon.Minus}" Width="14" Height="14" />
+          </Button>
+          <Button Theme="{StaticResource WindowButton}" Click="OnMaximiseClick">
+            <c:Icon Data="{StaticResource Icon.Square}" Width="12" Height="12" />
+          </Button>
+          <Button Theme="{StaticResource WindowButton}" Classes="close" Click="OnCloseClick">
+            <c:Icon Data="{StaticResource Icon.X}" Width="14" Height="14" />
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- ============ Toolbar · 46 ============ -->
+    <Border Grid.Row="1"
+            Height="{StaticResource Size.Toolbar}"
+            Background="{DynamicResource Bg.App}"
+            BorderBrush="{DynamicResource Border}"
+            BorderThickness="0,0,0,1"
+            Padding="14,0">
+      <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto">
+
+        <Button Grid.Column="0"
+                Theme="{StaticResource SecondaryButton}"
+                Content="{Binding DisconnectLabel}"
+                Command="{Binding DisconnectCommand}"
+                IsVisible="{Binding IsConnected}"
+                VerticalAlignment="Center" />
+
+        <Button Grid.Column="0"
+                Theme="{StaticResource PrimaryButton}"
+                Content="Connect"
+                Command="{Binding ConnectCommand}"
+                IsVisible="{Binding !IsConnected}"
+                VerticalAlignment="Center" />
+
+        <Rectangle Grid.Column="1"
+                   Width="1" Height="22"
+                   Margin="12,0"
+                   Fill="{DynamicResource Border.Strong}" />
+
+        <!-- Control · Ramp · Run -->
+        <Border Grid.Column="2"
+                Padding="3"
+                CornerRadius="9"
+                Background="{DynamicResource Bg.Field}"
+                BorderBrush="{DynamicResource Border}"
+                BorderThickness="1"
+                VerticalAlignment="Center">
+          <StackPanel Orientation="Horizontal" Spacing="2">
+            <RadioButton Theme="{StaticResource SegmentButton}"
+                         GroupName="MainTab"
+                         Content="Control"
+                         IsChecked="{Binding SelectedTab, Converter={StaticResource EnumToBool}, ConverterParameter=Control, Mode=TwoWay}" />
+            <RadioButton Theme="{StaticResource SegmentButton}"
+                         GroupName="MainTab"
+                         Content="Ramp"
+                         IsChecked="{Binding SelectedTab, Converter={StaticResource EnumToBool}, ConverterParameter=Ramp, Mode=TwoWay}" />
+            <RadioButton Theme="{StaticResource SegmentButton}"
+                         GroupName="MainTab"
+                         Content="Run"
+                         IsVisible="{Binding IsRunTabVisible}"
+                         IsChecked="{Binding SelectedTab, Converter={StaticResource EnumToBool}, ConverterParameter=Run, Mode=TwoWay}" />
+          </StackPanel>
+        </Border>
+
+        <!-- Device · Network · Log · Settings. Icons always carry their word. -->
+        <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="2">
+          <RadioButton Theme="{StaticResource SegmentButton}"
+                       GroupName="SideTab"
+                       IsChecked="{Binding SelectedTab, Converter={StaticResource EnumToBool}, ConverterParameter=Device, Mode=TwoWay}">
+            <StackPanel Orientation="Horizontal" Spacing="7">
+              <c:Icon Data="{StaticResource Icon.Bluetooth}" />
+              <TextBlock Text="Device" VerticalAlignment="Center" />
+            </StackPanel>
+          </RadioButton>
+          <RadioButton Theme="{StaticResource SegmentButton}"
+                       GroupName="SideTab"
+                       IsChecked="{Binding SelectedTab, Converter={StaticResource EnumToBool}, ConverterParameter=Network, Mode=TwoWay}">
+            <StackPanel Orientation="Horizontal" Spacing="7">
+              <c:Icon Data="{StaticResource Icon.Network}" />
+              <TextBlock Text="Network" VerticalAlignment="Center" />
+            </StackPanel>
+          </RadioButton>
+          <RadioButton Theme="{StaticResource SegmentButton}"
+                       GroupName="SideTab"
+                       IsChecked="{Binding SelectedTab, Converter={StaticResource EnumToBool}, ConverterParameter=Log, Mode=TwoWay}">
+            <StackPanel Orientation="Horizontal" Spacing="7">
+              <c:Icon Data="{StaticResource Icon.Terminal}" />
+              <TextBlock Text="Log" VerticalAlignment="Center" />
+            </StackPanel>
+          </RadioButton>
+          <RadioButton Theme="{StaticResource SegmentButton}"
+                       GroupName="SideTab"
+                       IsChecked="{Binding SelectedTab, Converter={StaticResource EnumToBool}, ConverterParameter=Settings, Mode=TwoWay}">
+            <StackPanel Orientation="Horizontal" Spacing="7">
+              <c:Icon Data="{StaticResource Icon.SlidersHorizontal}" />
+              <TextBlock Text="Settings" VerticalAlignment="Center" />
+            </StackPanel>
+          </RadioButton>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- ============ Content ============ -->
+    <Panel Grid.Row="2">
+
+      <!-- Control: only the live readout so far. The full cockpit - target stepper, quick
+           temperatures, chart - is the next step. -->
+      <Border Padding="18"
+              IsVisible="{Binding SelectedTab, Converter={StaticResource EnumToBool}, ConverterParameter=Control}">
+        <Border Width="404"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top"
+                Padding="18"
+                CornerRadius="{StaticResource Radius.Card}"
+                Background="{DynamicResource Bg.Panel}"
+                BorderBrush="{DynamicResource Border}"
+                BorderThickness="1">
+          <StackPanel Spacing="14">
+            <TextBlock Text="CURRENT"
+                       FontFamily="{StaticResource Font.Mono}"
+                       FontSize="{StaticResource Text.Label}"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource Text.Dim}" />
+
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <TextBlock Text="{Binding CurrentTemperature, StringFormat={}{0:0}}"
+                         FontFamily="{StaticResource Font.Mono}"
+                         FontSize="{StaticResource Text.Display}"
+                         FontWeight="Medium"
+                         Foreground="{DynamicResource Text}" />
+              <TextBlock Text="°C"
+                         FontFamily="{StaticResource Font.Mono}"
+                         FontSize="{StaticResource Text.Section}"
+                         Foreground="{DynamicResource Text.Dim}"
+                         VerticalAlignment="Bottom"
+                         Margin="0,0,0,14" />
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <Button Theme="{StaticResource SecondaryButton}"
+                      Command="{Binding ToggleHeaterCommand}"
+                      IsEnabled="{Binding IsConnected}">
+                <StackPanel Orientation="Horizontal" Spacing="7">
+                  <c:Icon Data="{StaticResource Icon.Flame}" />
+                  <TextBlock Text="Heater" VerticalAlignment="Center" />
+                </StackPanel>
+              </Button>
+              <Button Theme="{StaticResource SecondaryButton}"
+                      Command="{Binding TogglePumpCommand}"
+                      IsEnabled="{Binding IsConnected}">
+                <StackPanel Orientation="Horizontal" Spacing="7">
+                  <c:Icon Data="{StaticResource Icon.Fan}" />
+                  <TextBlock Text="Pump" VerticalAlignment="Center" />
+                </StackPanel>
+              </Button>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+      </Border>
+
+      <TextBlock Text="Ramp" Classes="placeholder"
+                 IsVisible="{Binding SelectedTab, Converter={StaticResource EnumToBool}, ConverterParameter=Ramp}" />
+      <TextBlock Text="Run" Classes="placeholder"
+                 IsVisible="{Binding SelectedTab, Converter={StaticResource EnumToBool}, ConverterParameter=Run}" />
+      <TextBlock Text="Device" Classes="placeholder"
+                 IsVisible="{Binding SelectedTab, Converter={StaticResource EnumToBool}, ConverterParameter=Device}" />
+      <TextBlock Text="Network" Classes="placeholder"
+                 IsVisible="{Binding SelectedTab, Converter={StaticResource EnumToBool}, ConverterParameter=Network}" />
+      <TextBlock Text="Log" Classes="placeholder"
+                 IsVisible="{Binding SelectedTab, Converter={StaticResource EnumToBool}, ConverterParameter=Log}" />
+      <TextBlock Text="Settings" Classes="placeholder"
+                 IsVisible="{Binding SelectedTab, Converter={StaticResource EnumToBool}, ConverterParameter=Settings}" />
+    </Panel>
+  </Grid>
+
+  <Window.Styles>
+    <Style Selector="TextBlock.placeholder">
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="FontSize" Value="{StaticResource Text.Section}" />
+      <Setter Property="Foreground" Value="{DynamicResource Text.Faint}" />
+    </Style>
+  </Window.Styles>
+
+</Window>

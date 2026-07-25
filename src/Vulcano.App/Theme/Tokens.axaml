@@ -1,0 +1,149 @@
+<!--
+  The design tokens from the handoff, one for one. Names are kept exactly as the design names them
+  (Bg.App, Text.Muted, ...) so a value can be traced back to the spec without a translation table.
+
+  Two rules the light set follows and that are easy to get wrong:
+  on dark, a surface carries the structure; on light, the border does - which is why light cards are
+  pure white on off-white and always have a border. And the accent stays #FF9800 as a *fill* only:
+  as text or a hairline it is too weak on paper, so that is Accent.Text at #C05600.
+
+  Radii, spacings, sizes and stroke widths are identical in both modes. Only colours change.
+-->
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <ResourceDictionary.ThemeDictionaries>
+
+    <ResourceDictionary x:Key="Dark">
+      <Color x:Key="Color.Bg.App">#141310</Color>
+      <Color x:Key="Color.Bg.Chrome">#16150F</Color>
+      <Color x:Key="Color.Bg.Panel">#1A1917</Color>
+      <Color x:Key="Color.Bg.Field">#211F1C</Color>
+      <Color x:Key="Color.Bg.Deep">#0D0C0B</Color>
+      <Color x:Key="Color.Border">#262320</Color>
+      <Color x:Key="Color.Border.Strong">#302C27</Color>
+      <Color x:Key="Color.Border.Faint">#201E1B</Color>
+      <Color x:Key="Color.Border.Dashed">#3A3530</Color>
+      <Color x:Key="Color.Text">#F2EEE8</Color>
+      <Color x:Key="Color.Text.Sub">#D8D2C8</Color>
+      <Color x:Key="Color.Text.Muted">#A29A8E</Color>
+      <Color x:Key="Color.Text.Dim">#8A8175</Color>
+      <Color x:Key="Color.Text.Faint">#5F584F</Color>
+      <Color x:Key="Color.Accent">#FF9800</Color>
+      <Color x:Key="Color.Accent.On">#17140F</Color>
+      <Color x:Key="Color.Accent.Text">#FF9800</Color>
+      <Color x:Key="Color.Heat">#F2613F</Color>
+      <Color x:Key="Color.Success">#5FC77A</Color>
+      <Color x:Key="Color.Warn">#E8C06A</Color>
+      <Color x:Key="Color.Error">#E05B4B</Color>
+      <Color x:Key="Color.Error.Text">#FF9E90</Color>
+      <Color x:Key="Color.Info">#8FC5F5</Color>
+      <Color x:Key="Color.Toggle.Knob">#7D746A</Color>
+
+      <SolidColorBrush x:Key="Bg.App" Color="{StaticResource Color.Bg.App}" />
+      <SolidColorBrush x:Key="Bg.Chrome" Color="{StaticResource Color.Bg.Chrome}" />
+      <SolidColorBrush x:Key="Bg.Panel" Color="{StaticResource Color.Bg.Panel}" />
+      <SolidColorBrush x:Key="Bg.Field" Color="{StaticResource Color.Bg.Field}" />
+      <SolidColorBrush x:Key="Bg.Deep" Color="{StaticResource Color.Bg.Deep}" />
+      <SolidColorBrush x:Key="Border" Color="{StaticResource Color.Border}" />
+      <SolidColorBrush x:Key="Border.Strong" Color="{StaticResource Color.Border.Strong}" />
+      <SolidColorBrush x:Key="Border.Faint" Color="{StaticResource Color.Border.Faint}" />
+      <SolidColorBrush x:Key="Border.Dashed" Color="{StaticResource Color.Border.Dashed}" />
+      <SolidColorBrush x:Key="Text" Color="{StaticResource Color.Text}" />
+      <SolidColorBrush x:Key="Text.Sub" Color="{StaticResource Color.Text.Sub}" />
+      <SolidColorBrush x:Key="Text.Muted" Color="{StaticResource Color.Text.Muted}" />
+      <SolidColorBrush x:Key="Text.Dim" Color="{StaticResource Color.Text.Dim}" />
+      <SolidColorBrush x:Key="Text.Faint" Color="{StaticResource Color.Text.Faint}" />
+      <SolidColorBrush x:Key="Accent" Color="{StaticResource Color.Accent}" />
+      <SolidColorBrush x:Key="Accent.On" Color="{StaticResource Color.Accent.On}" />
+      <SolidColorBrush x:Key="Accent.Text" Color="{StaticResource Color.Accent.Text}" />
+      <SolidColorBrush x:Key="Heat" Color="{StaticResource Color.Heat}" />
+      <SolidColorBrush x:Key="Success" Color="{StaticResource Color.Success}" />
+      <SolidColorBrush x:Key="Warn" Color="{StaticResource Color.Warn}" />
+      <SolidColorBrush x:Key="Error" Color="{StaticResource Color.Error}" />
+      <SolidColorBrush x:Key="Error.Text" Color="{StaticResource Color.Error.Text}" />
+      <SolidColorBrush x:Key="Info" Color="{StaticResource Color.Info}" />
+      <SolidColorBrush x:Key="Toggle.Knob" Color="{StaticResource Color.Toggle.Knob}" />
+    </ResourceDictionary>
+
+    <ResourceDictionary x:Key="Light">
+      <Color x:Key="Color.Bg.App">#FBF9F5</Color>
+      <Color x:Key="Color.Bg.Chrome">#F2EDE5</Color>
+      <Color x:Key="Color.Bg.Panel">#FFFFFF</Color>
+      <Color x:Key="Color.Bg.Field">#F3F0EA</Color>
+      <Color x:Key="Color.Bg.Deep">#F6F3EE</Color>
+      <Color x:Key="Color.Border">#E3DED6</Color>
+      <Color x:Key="Color.Border.Strong">#D6D0C6</Color>
+      <Color x:Key="Color.Border.Faint">#EDE8E0</Color>
+      <Color x:Key="Color.Border.Dashed">#C9C2B7</Color>
+      <Color x:Key="Color.Text">#1B1917</Color>
+      <Color x:Key="Color.Text.Sub">#3A352F</Color>
+      <Color x:Key="Color.Text.Muted">#6E665C</Color>
+      <Color x:Key="Color.Text.Dim">#7C7469</Color>
+      <Color x:Key="Color.Text.Faint">#9C9389</Color>
+      <Color x:Key="Color.Accent">#FF9800</Color>
+      <Color x:Key="Color.Accent.On">#17140F</Color>
+      <Color x:Key="Color.Accent.Text">#C05600</Color>
+      <Color x:Key="Color.Heat">#C0392B</Color>
+      <Color x:Key="Color.Success">#2E8B4F</Color>
+      <Color x:Key="Color.Warn">#A8760B</Color>
+      <Color x:Key="Color.Error">#C0392B</Color>
+      <Color x:Key="Color.Error.Text">#B03A2E</Color>
+      <Color x:Key="Color.Info">#2C6FA8</Color>
+      <Color x:Key="Color.Toggle.Knob">#B5ADA2</Color>
+
+      <SolidColorBrush x:Key="Bg.App" Color="{StaticResource Color.Bg.App}" />
+      <SolidColorBrush x:Key="Bg.Chrome" Color="{StaticResource Color.Bg.Chrome}" />
+      <SolidColorBrush x:Key="Bg.Panel" Color="{StaticResource Color.Bg.Panel}" />
+      <SolidColorBrush x:Key="Bg.Field" Color="{StaticResource Color.Bg.Field}" />
+      <SolidColorBrush x:Key="Bg.Deep" Color="{StaticResource Color.Bg.Deep}" />
+      <SolidColorBrush x:Key="Border" Color="{StaticResource Color.Border}" />
+      <SolidColorBrush x:Key="Border.Strong" Color="{StaticResource Color.Border.Strong}" />
+      <SolidColorBrush x:Key="Border.Faint" Color="{StaticResource Color.Border.Faint}" />
+      <SolidColorBrush x:Key="Border.Dashed" Color="{StaticResource Color.Border.Dashed}" />
+      <SolidColorBrush x:Key="Text" Color="{StaticResource Color.Text}" />
+      <SolidColorBrush x:Key="Text.Sub" Color="{StaticResource Color.Text.Sub}" />
+      <SolidColorBrush x:Key="Text.Muted" Color="{StaticResource Color.Text.Muted}" />
+      <SolidColorBrush x:Key="Text.Dim" Color="{StaticResource Color.Text.Dim}" />
+      <SolidColorBrush x:Key="Text.Faint" Color="{StaticResource Color.Text.Faint}" />
+      <SolidColorBrush x:Key="Accent" Color="{StaticResource Color.Accent}" />
+      <SolidColorBrush x:Key="Accent.On" Color="{StaticResource Color.Accent.On}" />
+      <SolidColorBrush x:Key="Accent.Text" Color="{StaticResource Color.Accent.Text}" />
+      <SolidColorBrush x:Key="Heat" Color="{StaticResource Color.Heat}" />
+      <SolidColorBrush x:Key="Success" Color="{StaticResource Color.Success}" />
+      <SolidColorBrush x:Key="Warn" Color="{StaticResource Color.Warn}" />
+      <SolidColorBrush x:Key="Error" Color="{StaticResource Color.Error}" />
+      <SolidColorBrush x:Key="Error.Text" Color="{StaticResource Color.Error.Text}" />
+      <SolidColorBrush x:Key="Info" Color="{StaticResource Color.Info}" />
+      <SolidColorBrush x:Key="Toggle.Knob" Color="{StaticResource Color.Toggle.Knob}" />
+    </ResourceDictionary>
+
+  </ResourceDictionary.ThemeDictionaries>
+
+  <!--
+    Tinted surfaces are alpha over the accent or status colour rather than their own hex, so they
+    sit correctly on whatever background they land on. Identical in both modes for that reason.
+  -->
+  <SolidColorBrush x:Key="Surface.Accent" Color="#FF9800" Opacity="0.14" />
+  <SolidColorBrush x:Key="Surface.Heat" Color="#F2613F" Opacity="0.12" />
+  <SolidColorBrush x:Key="Surface.Success" Color="#5FC77A" Opacity="0.12" />
+  <SolidColorBrush x:Key="Surface.Error" Color="#E05B4B" Opacity="0.14" />
+  <SolidColorBrush x:Key="Surface.Info" Color="#8FC5F5" Opacity="0.12" />
+
+  <!-- Radii. Window card 12, card 10-11, field/button 7, chip 999, icon tile 8-9. -->
+  <CornerRadius x:Key="Radius.Window">12</CornerRadius>
+  <CornerRadius x:Key="Radius.Card">10</CornerRadius>
+  <CornerRadius x:Key="Radius.Field">7</CornerRadius>
+  <CornerRadius x:Key="Radius.Tile">8</CornerRadius>
+  <CornerRadius x:Key="Radius.Pill">999</CornerRadius>
+
+  <!-- Heights. Title bar 40, toolbar 46, field 30-32, list row 34. Nothing below 30 is clickable. -->
+  <x:Double x:Key="Size.TitleBar">40</x:Double>
+  <x:Double x:Key="Size.Toolbar">46</x:Double>
+  <x:Double x:Key="Size.Field">30</x:Double>
+  <x:Double x:Key="Size.Row">34</x:Double>
+  <x:Double x:Key="Size.LeftColumn">404</x:Double>
+  <x:Double x:Key="Size.WindowMinWidth">900</x:Double>
+  <x:Double x:Key="Size.WindowMinHeight">648</x:Double>
+
+</ResourceDictionary>

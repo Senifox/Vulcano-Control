@@ -1,0 +1,312 @@
+<!--
+  Control themes. Fluent supplies everything not listed here; these are the handful of controls the
+  design actually restyles, plus the small compound pieces (segment control, chips, pills) that
+  appear often enough to deserve a name.
+-->
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:controls="clr-namespace:Vulcano.App.Controls">
+
+  <ControlTheme x:Key="{x:Type controls:Icon}" TargetType="controls:Icon">
+    <Setter Property="Width" Value="16" />
+    <Setter Property="Height" Value="16" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Viewbox Stretch="Uniform">
+          <!-- The canvas pins the 24x24 grid the geometries were drawn on, so icons with
+               different bounding boxes still line up with each other. -->
+          <Canvas Width="24" Height="24">
+            <Path Data="{TemplateBinding Data}"
+                  Stroke="{TemplateBinding Foreground}"
+                  StrokeThickness="{TemplateBinding StrokeThickness}"
+                  StrokeLineCap="Round"
+                  StrokeJoin="Round" />
+          </Canvas>
+        </Viewbox>
+      </ControlTemplate>
+    </Setter>
+  </ControlTheme>
+
+  <!-- Primary action: accent fill, dark text on it. One per view, at most. -->
+  <ControlTheme x:Key="PrimaryButton" TargetType="Button">
+    <Setter Property="Background" Value="{DynamicResource Accent}" />
+    <Setter Property="Foreground" Value="{DynamicResource Accent.On}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="{StaticResource Radius.Field}" />
+    <Setter Property="Height" Value="{StaticResource Size.Field}" />
+    <Setter Property="Padding" Value="14,0" />
+    <Setter Property="FontSize" Value="{StaticResource Text.Body}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="{TemplateBinding Background}"
+                CornerRadius="{TemplateBinding CornerRadius}"
+                Padding="{TemplateBinding Padding}">
+          <ContentPresenter Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                            HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                            VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+        </Border>
+      </ControlTemplate>
+    </Setter>
+    <Style Selector="^:pointerover">
+      <Setter Property="Opacity" Value="0.88" />
+    </Style>
+    <Style Selector="^:pressed">
+      <Setter Property="Opacity" Value="0.75" />
+    </Style>
+    <Style Selector="^:disabled">
+      <Setter Property="Opacity" Value="0.4" />
+      <Setter Property="Cursor" Value="Arrow" />
+    </Style>
+  </ControlTheme>
+
+  <!-- Everything else that is still a real button: field-coloured with a border. -->
+  <ControlTheme x:Key="SecondaryButton" TargetType="Button">
+    <Setter Property="Background" Value="{DynamicResource Bg.Field}" />
+    <Setter Property="Foreground" Value="{DynamicResource Text}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Border.Strong}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{StaticResource Radius.Field}" />
+    <Setter Property="Height" Value="{StaticResource Size.Field}" />
+    <Setter Property="Padding" Value="12,0" />
+    <Setter Property="FontSize" Value="{StaticResource Text.Body}" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                CornerRadius="{TemplateBinding CornerRadius}"
+                Padding="{TemplateBinding Padding}">
+          <ContentPresenter Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                            HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                            VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+        </Border>
+      </ControlTemplate>
+    </Setter>
+    <Style Selector="^:pointerover">
+      <Setter Property="BorderBrush" Value="{DynamicResource Text.Faint}" />
+    </Style>
+    <Style Selector="^:disabled">
+      <Setter Property="Opacity" Value="0.4" />
+      <Setter Property="Cursor" Value="Arrow" />
+    </Style>
+  </ControlTheme>
+
+  <!-- Toolbar buttons: no chrome until hovered. Icon plus label, per the design's rule that no
+       icon ever appears without its word next to it. -->
+  <ControlTheme x:Key="GhostButton" TargetType="Button">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="{StaticResource Radius.Field}" />
+    <Setter Property="Height" Value="{StaticResource Size.Field}" />
+    <Setter Property="Padding" Value="10,0" />
+    <Setter Property="FontSize" Value="{StaticResource Text.Body}" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="{TemplateBinding Background}"
+                CornerRadius="{TemplateBinding CornerRadius}"
+                Padding="{TemplateBinding Padding}">
+          <ContentPresenter Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                            HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                            VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+        </Border>
+      </ControlTemplate>
+    </Setter>
+    <Style Selector="^:pointerover">
+      <Setter Property="Background" Value="{DynamicResource Bg.Field}" />
+      <Setter Property="Foreground" Value="{DynamicResource Text}" />
+    </Style>
+    <Style Selector="^:disabled">
+      <Setter Property="Opacity" Value="0.4" />
+      <Setter Property="Cursor" Value="Arrow" />
+    </Style>
+  </ControlTheme>
+
+  <!-- Minimise / maximise / close, 44 x 40 each, flush to the window's top right corner. -->
+  <ControlTheme x:Key="WindowButton" TargetType="Button">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="Width" Value="44" />
+    <Setter Property="Height" Value="{StaticResource Size.TitleBar}" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="{TemplateBinding Background}">
+          <ContentPresenter Content="{TemplateBinding Content}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center" />
+        </Border>
+      </ControlTemplate>
+    </Setter>
+    <Style Selector="^:pointerover">
+      <Setter Property="Background" Value="{DynamicResource Bg.Field}" />
+      <Setter Property="Foreground" Value="{DynamicResource Text}" />
+    </Style>
+    <Style Selector="^.close:pointerover">
+      <Setter Property="Background" Value="{DynamicResource Error}" />
+      <Setter Property="Foreground" Value="#FFFFFF" />
+    </Style>
+  </ControlTheme>
+
+  <!-- One tab of the Control / Ramp / Run segment control. Active is an accent fill. -->
+  <ControlTheme x:Key="SegmentButton" TargetType="ToggleButton">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Height" Value="26" />
+    <Setter Property="Padding" Value="14,0" />
+    <Setter Property="FontSize" Value="{StaticResource Text.Body}" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="{TemplateBinding Background}"
+                CornerRadius="{TemplateBinding CornerRadius}"
+                Padding="{TemplateBinding Padding}">
+          <ContentPresenter Content="{TemplateBinding Content}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center" />
+        </Border>
+      </ControlTemplate>
+    </Setter>
+    <Style Selector="^:pointerover">
+      <Setter Property="Foreground" Value="{DynamicResource Text}" />
+    </Style>
+    <Style Selector="^:checked">
+      <Setter Property="Background" Value="{DynamicResource Accent}" />
+      <Setter Property="Foreground" Value="{DynamicResource Accent.On}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+  </ControlTheme>
+
+  <!-- Quick-select temperature chips and the curve chips in the ramp inspector. -->
+  <ControlTheme x:Key="Chip" TargetType="ToggleButton">
+    <Setter Property="Background" Value="{DynamicResource Bg.Field}" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Sub}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Border}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{StaticResource Radius.Pill}" />
+    <Setter Property="Height" Value="{StaticResource Size.Field}" />
+    <Setter Property="Padding" Value="12,0" />
+    <Setter Property="FontSize" Value="{StaticResource Text.Small}" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                CornerRadius="{TemplateBinding CornerRadius}"
+                Padding="{TemplateBinding Padding}">
+          <ContentPresenter Content="{TemplateBinding Content}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center" />
+        </Border>
+      </ControlTemplate>
+    </Setter>
+    <Style Selector="^:pointerover">
+      <Setter Property="BorderBrush" Value="{DynamicResource Border.Strong}" />
+      <Setter Property="Foreground" Value="{DynamicResource Text}" />
+    </Style>
+    <Style Selector="^:checked">
+      <Setter Property="Background" Value="{DynamicResource Surface.Accent}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+      <Setter Property="Foreground" Value="{DynamicResource Accent.Text}" />
+    </Style>
+  </ControlTheme>
+
+  <!--
+    38 x 22 track, 16 x 16 knob, 3 px inset - the design's numbers, not Fluent's.
+    Built on ToggleButton rather than ToggleSwitch: ToggleSwitch requires named template parts it
+    animates itself (PART_MovingKnobs and friends), and this switch is a track with a knob in it,
+    with nothing for that machinery to do.
+  -->
+  <ControlTheme x:Key="Toggle" TargetType="ToggleButton">
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border x:Name="Track"
+                Width="38" Height="22"
+                Background="{DynamicResource Bg.Field}"
+                BorderBrush="{DynamicResource Border.Strong}"
+                BorderThickness="1"
+                CornerRadius="999">
+          <Ellipse x:Name="Knob"
+                   Width="16" Height="16"
+                   Margin="2,0,0,0"
+                   HorizontalAlignment="Left"
+                   Fill="{DynamicResource Toggle.Knob}" />
+        </Border>
+      </ControlTemplate>
+    </Setter>
+    <Style Selector="^:checked /template/ Border#Track">
+      <Setter Property="Background" Value="{DynamicResource Accent}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+    </Style>
+    <Style Selector="^:checked /template/ Ellipse#Knob">
+      <Setter Property="HorizontalAlignment" Value="Right" />
+      <Setter Property="Margin" Value="0,0,2,0" />
+      <Setter Property="Fill" Value="{DynamicResource Accent.On}" />
+    </Style>
+    <Style Selector="^:disabled">
+      <Setter Property="Opacity" Value="0.4" />
+      <Setter Property="Cursor" Value="Arrow" />
+    </Style>
+  </ControlTheme>
+
+  <ControlTheme x:Key="{x:Type TextBox}" TargetType="TextBox">
+    <Setter Property="Background" Value="{DynamicResource Bg.Field}" />
+    <Setter Property="Foreground" Value="{DynamicResource Text}" />
+    <Setter Property="CaretBrush" Value="{DynamicResource Accent}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Border.Strong}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{StaticResource Radius.Field}" />
+    <Setter Property="MinHeight" Value="{StaticResource Size.Field}" />
+    <Setter Property="Padding" Value="9,0" />
+    <Setter Property="FontSize" Value="{StaticResource Text.Body}" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="SelectionBrush" Value="{DynamicResource Surface.Accent}" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                CornerRadius="{TemplateBinding CornerRadius}">
+          <Panel Margin="{TemplateBinding Padding}">
+            <TextBlock Text="{TemplateBinding Watermark}"
+                       Foreground="{DynamicResource Text.Faint}"
+                       VerticalAlignment="Center"
+                       IsVisible="{TemplateBinding Text, Converter={x:Static StringConverters.IsNullOrEmpty}}" />
+            <TextPresenter Name="PART_TextPresenter"
+                           Text="{TemplateBinding Text, Mode=TwoWay}"
+                           CaretBrush="{TemplateBinding CaretBrush}"
+                           SelectionBrush="{TemplateBinding SelectionBrush}"
+                           SelectionStart="{TemplateBinding SelectionStart}"
+                           SelectionEnd="{TemplateBinding SelectionEnd}"
+                           VerticalAlignment="Center" />
+          </Panel>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+    <Style Selector="^:focus">
+      <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+    </Style>
+    <Style Selector="^:disabled">
+      <Setter Property="Opacity" Value="0.4" />
+    </Style>
+  </ControlTheme>
+
+</ResourceDictionary>
