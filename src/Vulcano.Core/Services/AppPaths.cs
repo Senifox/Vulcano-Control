@@ -20,7 +20,16 @@ public static class AppPaths
     /// </summary>
     public static string DataDirectory { get; } = CreateDataDirectory();
 
-    public static string SettingsFilePath => Path.Combine(DataDirectory, "settings.json");
+    /// <summary>
+    /// Deliberately not settings.json: the WPF version is still installed and still uses that file,
+    /// and this app's migration is one-way - it drops the five old ramp properties as soon as it
+    /// saves. Writing beside it instead of over it lets both run on the same machine.
+    /// Renamed back once the WPF app is gone.
+    /// </summary>
+    public static string SettingsFilePath => Path.Combine(DataDirectory, "settings.v2.json");
+
+    /// <summary>The WPF version's file. Read once, on first start, and never written.</summary>
+    public static string LegacySettingsFilePath => Path.Combine(DataDirectory, "settings.json");
 
     private static string CreateDataDirectory()
     {
