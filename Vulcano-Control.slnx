@@ -7,6 +7,10 @@
   <Folder Name="/tests/">
     <Project Path="tests/Vulcano.Core.Tests/Vulcano.Core.Tests.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <!-- Records heating and cooling from a real device; not shipped with the app. -->
+    <Project Path="tools/Vulcano.Measure/Vulcano.Measure.csproj" />
+  </Folder>
   <Folder Name="/legacy/">
     <!-- The WPF app stays buildable until the Avalonia rewrite replaces it. -->
     <Project Path="Vulcano-Control/Vulcano-Control.csproj" />

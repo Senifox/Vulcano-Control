@@ -172,11 +172,8 @@ public sealed class BluetoothVolcanoDevice : IVolcanoDevice
         }
 
         // Notifications only arrive on change, so without this the readout stays empty until the
-        // temperature happens to move.
-        if (await ReadUInt16Async(VolcanoUuids.Characteristics.CurrentTemperature) is { } rawTemperature)
-        {
-            CurrentTemperatureChanged?.Invoke(this, BleEncoding.DecodeTemperature(rawTemperature));
-        }
+        // temperature happens to move - which on a cold device standing idle can be a very long time.
+        await ReadInitialTemperatureAsync();
 
         SetState(ConnectionState.Connected);
 
@@ -354,6 +351,34 @@ public sealed class BluetoothVolcanoDevice : IVolcanoDevice
                 // Disconnected.
             }
         }, ct);
+    }
+
+    /// <summary>
+    /// Reads the temperature once on connect, retrying while the device answers with a raw zero.
+    ///
+    /// Straight after subscribing it does answer with zero - the characteristic has not been filled
+    /// in yet - and a single read therefore reported 0.0 °C. On a device that is warm or cooling
+    /// nobody noticed, because a notification followed within the second and overwrote it; on a cold
+    /// one standing idle there is nothing to notify, so the reading stayed at zero until somebody
+    /// switched the heater on.
+    ///
+    /// A raw zero is the device saying "not yet" rather than a temperature: the Volcano works from
+    /// 40 °C upwards and stands in a room, so 0.0 °C is not a reading this has to be able to report.
+    /// </summary>
+    private async Task ReadInitialTemperatureAsync()
+    {
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            if (await ReadUInt16Async(VolcanoUuids.Characteristics.CurrentTemperature) is { } raw && raw != 0)
+            {
+                CurrentTemperatureChanged?.Invoke(this, BleEncoding.DecodeTemperature(raw));
+                return;
+            }
+
+            await Task.Delay(TimeSpan.FromMilliseconds(300));
+        }
+
+        _logService.Log(Strings.Get("Log.NoInitialTemperature"), LogLevel.Warning);
     }
 
     // --- Notification handlers ---

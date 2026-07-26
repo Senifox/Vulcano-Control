@@ -898,6 +898,9 @@
   <data name="Log.AutoOffPolling" xml:space="preserve">
     <value>Kein Notify für die Auto-Abschaltung - fällt auf Abfragen zurück</value>
   </data>
+  <data name="Log.NoInitialTemperature" xml:space="preserve">
+    <value>Das Gerät hat die Temperaturabfrage wiederholt mit null beantwortet; warte, bis es von selbst eine meldet.</value>
+  </data>
   <data name="Log.BleConnecting" xml:space="preserve">
     <value>Verbinde mit {0}</value>
   </data>

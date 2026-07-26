@@ -308,4 +308,41 @@ public sealed class BluetoothVolcanoDeviceTests : IAsyncDisposable
 
         Assert.Contains(1634, seconds);
     }
+
+    /// <summary>
+    /// Straight after subscribing the device answers the temperature read with a raw zero, and a
+    /// single read therefore reported 0.0 °C. On a warm device a notification followed within the
+    /// second and hid it; on a cold one standing still there is nothing to notify, so the reading
+    /// stayed at zero until somebody switched the heater on. Found by a measurement run that
+    /// connected to an idle device and got no believable temperature at all.
+    /// </summary>
+    [Fact]
+    public async Task A_zero_from_the_first_temperature_read_is_not_reported_as_a_temperature()
+    {
+        var temperatures = new List<double>();
+        _device.CurrentTemperatureChanged += (_, c) => temperatures.Add(c);
+
+        _transport.GiveEverything();
+        _transport.Characteristics[VolcanoUuids.Characteristics.CurrentTemperature] = FakeVolcanoTransport.Bytes(0);
+        _transport.Advertise("STORZ&BICKEL VOLCANO");
+
+        await _device.ScanAndConnectAsync();
+
+        Assert.DoesNotContain(0, temperatures);
+    }
+
+    [Fact]
+    public async Task The_first_temperature_read_is_reported_once_it_answers_with_one()
+    {
+        var temperatures = new List<double>();
+        _device.CurrentTemperatureChanged += (_, c) => temperatures.Add(c);
+
+        _transport.GiveEverything();
+        _transport.Characteristics[VolcanoUuids.Characteristics.CurrentTemperature] = FakeVolcanoTransport.Bytes(1955);
+        _transport.Advertise("STORZ&BICKEL VOLCANO");
+
+        await _device.ScanAndConnectAsync();
+
+        Assert.Contains(195.5, temperatures);
+    }
 }

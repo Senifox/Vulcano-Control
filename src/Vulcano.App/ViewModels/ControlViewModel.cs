@@ -43,6 +43,7 @@ public partial class ControlViewModel : ObservableObject, IDisposable
     private DateTime? _heaterOnSince;
     private double _previousTemperature = double.NaN;
     private bool _isFalling;
+    private bool _hasReading;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CurrentTemperatureText))]
@@ -125,8 +126,15 @@ public partial class ControlViewModel : ObservableObject, IDisposable
     /// <summary>The shortlist from the settings, offered as chips next to the stepper.</summary>
     public ObservableCollection<int> QuickTemperatures { get; }
 
+    /// <summary>
+    /// The big number, or a dash while there is nothing to put there. An idle Volcano that has not
+    /// heated since it was switched on does not fill in its temperature at all - it answers the read
+    /// with zero and sends no notification, because notifications only follow a change. Showing 0 °C
+    /// for that is a made-up reading; a dash is the truth, and it turns into a number the moment the
+    /// device says anything.
+    /// </summary>
     public string CurrentTemperatureText =>
-        IsConnected ? Math.Round(CurrentTemperature).ToString("0") : "—";
+        IsConnected && _hasReading ? Math.Round(CurrentTemperature).ToString("0") : "—";
 
     public string TargetTemperatureText => Formatting.Celsius(TargetTemperature);
 
@@ -223,6 +231,7 @@ public partial class ControlViewModel : ObservableObject, IDisposable
     private void OnCurrentTemperatureChanged(object? sender, double celsius) =>
         Dispatcher.UIThread.Post(() =>
         {
+            _hasReading = true;
             CurrentTemperature = celsius;
             _isFalling = !double.IsNaN(_previousTemperature) && celsius < _previousTemperature - 0.05;
             _previousTemperature = celsius;
@@ -326,6 +335,7 @@ public partial class ControlViewModel : ObservableObject, IDisposable
                 _heaterOnSince = null;
                 _previousTemperature = double.NaN;
                 _isFalling = false;
+                _hasReading = false;
             }
 
             OnPropertyChanged(nameof(CurrentTemperatureText));

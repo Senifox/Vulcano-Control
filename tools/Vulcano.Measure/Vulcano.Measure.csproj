@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Records what the device actually does, so the ramp editor can warn with measured numbers
+       instead of guessed ones. Deliberately its own console app rather than a mode of the main one:
+       nothing here should be able to touch the app's settings, and a measurement run wants to be
+       repeatable without a window in the way. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+    <RootNamespace>Vulcano.Measure</RootNamespace>
+    <AssemblyName>vulcano-measure</AssemblyName>
+    <!-- Not InvariantGlobalization: Strings resolves "en" and "de" through CultureInfo, and turning
+         that off makes the whole string table throw on first use. The CSV asks for the invariant
+         culture where it matters, which is the narrower and correct fix. -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Vulcano.Core\Vulcano.Core.csproj" />
+    <ProjectReference Include="..\..\src\Vulcano.Bluetooth.Windows\Vulcano.Bluetooth.Windows.csproj" />
+  </ItemGroup>
+
+</Project>
