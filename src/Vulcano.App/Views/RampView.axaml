@@ -188,6 +188,14 @@
                      Classes="error"
                      IsVisible="{Binding ValidationMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
 
+          <!-- What the device cannot follow. A warning, not a refusal: the numbers behind it are
+               measurements rather than limits, and a climb drawn too steep is a fair way of saying
+               "as fast as you can". A fall is the one worth reading. -->
+          <TextBlock Text="{Binding ReachabilityNote}"
+                     Classes="sub warn"
+                     TextWrapping="Wrap"
+                     IsVisible="{Binding ReachabilityNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
           <TextBlock Text="{Binding WarmUpNote}"
                      Classes="sub"
                      TextWrapping="Wrap"

@@ -112,6 +112,12 @@
   <data name="Action.DeleteProfile" xml:space="preserve">
     <value>Profil löschen</value>
   </data>
+  <data name="Ramp.TooFast.Cooling" xml:space="preserve">
+    <value>Segment {0} bräuchte etwa {1} statt {2}: Das Gerät kühlt nicht aktiv und verliert Wärme nur langsam.</value>
+  </data>
+  <data name="Ramp.TooFast.Heating" xml:space="preserve">
+    <value>Segment {0} bräuchte etwa {1} statt {2} - es läuft dem Plan hinterher und holt später auf.</value>
+  </data>
   <data name="Ramp.Profile.NewName" xml:space="preserve">
     <value>Rampe</value>
   </data>

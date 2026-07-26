@@ -82,6 +82,14 @@
     <Setter Property="TextWrapping" Value="Wrap" />
   </Style>
 
+  <!-- Between sub and error: something is worth reading but nothing is wrong. Used where the device
+       cannot follow what was drawn - the ramp still runs. -->
+  <Style Selector="TextBlock.warn">
+    <Setter Property="FontSize" Value="{StaticResource Text.Small}" />
+    <Setter Property="Foreground" Value="{DynamicResource Warn}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+
   <!-- Pills. Neutral by default, tinted by adding heat / accent / success / info. -->
   <Style Selector="Border.chip">
     <Setter Property="Padding" Value="8,3" />

@@ -69,6 +69,10 @@ public partial class RampViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string _warmUpNote = "";
 
+    /// <summary>Empty unless some segment asks for more than the device can deliver.</summary>
+    [ObservableProperty]
+    private string _reachabilityNote = "";
+
     public RampViewModel(
         VolcanoDeviceOrchestrator device,
         SettingsService settingsService,
@@ -250,7 +254,36 @@ public partial class RampViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(TotalDurationText));
         OnPropertyChanged(nameof(Plan));
         UpdateWarmUpNote();
+        UpdateReachabilityNote();
         PlanChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Says which segments the device could not follow, and how long each would really take.
+    ///
+    /// A warning rather than a refusal. The figures behind it are measurements from one device in
+    /// one room, and drawing a climb steeper than the device can manage is a perfectly reasonable
+    /// way of saying "as fast as you can" - it arrives late and nothing is harmed. A fall is the
+    /// other story: the Volcano has no cooling, so a segment that drops 190 K in a minute is off by
+    /// the best part of an hour, and that is worth knowing before starting rather than after.
+    /// </summary>
+    private void UpdateReachabilityNote()
+    {
+        if (Plan is not { } plan)
+        {
+            ReachabilityNote = "";
+            return;
+        }
+
+        var problems = RampFeasibility.OutOfReach(plan);
+
+        ReachabilityNote = string.Join(
+            Environment.NewLine,
+            problems.Select(s => Strings.Get(
+                s.IsCooling ? "Ramp.TooFast.Cooling" : "Ramp.TooFast.Heating",
+                s.SegmentNumber,
+                Formatting.Duration(s.Needed),
+                Formatting.Duration(s.Allowed))));
     }
 
     /// <summary>Raised whenever the curve itself changed, so the editor can redraw.</summary>

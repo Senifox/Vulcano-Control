@@ -112,6 +112,12 @@
   <data name="Action.DeleteProfile" xml:space="preserve">
     <value>Delete profile</value>
   </data>
+  <data name="Ramp.TooFast.Cooling" xml:space="preserve">
+    <value>Segment {0} would need about {1} instead of {2}: the device has no cooling and can only lose heat slowly.</value>
+  </data>
+  <data name="Ramp.TooFast.Heating" xml:space="preserve">
+    <value>Segment {0} would need about {1} instead of {2} - it will run behind the plan and catch up later.</value>
+  </data>
   <data name="Ramp.Profile.NewName" xml:space="preserve">
     <value>Ramp</value>
   </data>
