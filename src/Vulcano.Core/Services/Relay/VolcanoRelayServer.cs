@@ -292,6 +292,9 @@ public sealed class VolcanoRelayServer : IAsyncDisposable
 
         switch (request.Method)
         {
+            case RelayMethods.ReadTargetTemperature:
+                return (ToElement(await _device.ReadTargetTemperatureAsync()), null);
+
             case RelayMethods.SetTargetTemperature:
                 await _device.SetTargetTemperatureAsync(RequireArgs<SetTargetTemperatureArgs>(request).Celsius);
                 return (Ok(), null);

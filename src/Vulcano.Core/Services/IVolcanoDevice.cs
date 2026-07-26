@@ -40,6 +40,13 @@ public interface IVolcanoDevice : IAsyncDisposable
     Task DisconnectAsync();
 
     Task SetTargetTemperatureAsync(double celsius);
+
+    /// <summary>
+    /// The target the device currently holds, or null when it cannot be read. Worth asking on
+    /// connect: the device keeps its own target between sessions, and showing a value the app made
+    /// up instead is how you end up heating to something nobody chose.
+    /// </summary>
+    Task<double?> ReadTargetTemperatureAsync();
     Task SetHeaterAsync(bool on);
     Task SetPumpAsync(bool on);
 

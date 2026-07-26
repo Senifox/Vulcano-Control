@@ -751,4 +751,88 @@
   <data name="Error.JoinWhileHosting" xml:space="preserve">
     <value>Beitreten nicht möglich, während man selbst freigibt.</value>
   </data>
+  <data name="Error.DeviceNotFound" xml:space="preserve">
+    <value>Kein Gerät gefunden. Prüfen, ob es eingeschaltet und nicht mit einer anderen App verbunden ist.</value>
+  </data>
+  <data name="Error.ConnectFailed" xml:space="preserve">
+    <value>Verbindung fehlgeschlagen: {0}</value>
+  </data>
+  <data name="Error.ServicesNotFound" xml:space="preserve">
+    <value>Das Gerät hat die erwarteten Services nicht angeboten. Läuft noch die offizielle App?</value>
+  </data>
+  <data name="Error.CharacteristicsMissing" xml:space="preserve">
+    <value>{0} erwartete Charakteristik(en) fehlen - das sieht nicht nach einem Volcano aus.</value>
+  </data>
+  <data name="Error.NotifyFailed" xml:space="preserve">
+    <value>Das Gerät hat das Notify-Abo abgelehnt.</value>
+  </data>
+  <data name="Error.NotConnected" xml:space="preserve">
+    <value>Nicht verbunden.</value>
+  </data>
+  <data name="Error.WriteFailed" xml:space="preserve">
+    <value>Schreiben fehlgeschlagen: {0}</value>
+  </data>
+  <data name="Error.ScanFailed" xml:space="preserve">
+    <value>Bluetooth-Suche konnte nicht gestartet werden: {0}</value>
+  </data>
+  <data name="Log.DeviceFound" xml:space="preserve">
+    <value>Gerät gefunden: {0}</value>
+  </data>
+  <data name="Log.ConnectionState" xml:space="preserve">
+    <value>Verbindungszustand: {0}</value>
+  </data>
+  <data name="Log.TargetSet" xml:space="preserve">
+    <value>Zieltemperatur gesetzt: {0}</value>
+  </data>
+  <data name="Log.HeaterOn" xml:space="preserve">
+    <value>Heizung an</value>
+  </data>
+  <data name="Log.HeaterOff" xml:space="preserve">
+    <value>Heizung aus</value>
+  </data>
+  <data name="Log.PumpOn" xml:space="preserve">
+    <value>Pumpe an</value>
+  </data>
+  <data name="Log.PumpOff" xml:space="preserve">
+    <value>Pumpe aus</value>
+  </data>
+  <data name="Log.BrightnessSet" xml:space="preserve">
+    <value>Display-Helligkeit gesetzt: {0} %</value>
+  </data>
+  <data name="Log.AutoOffSet" xml:space="preserve">
+    <value>Auto-Abschaltung gesetzt: {0} min</value>
+  </data>
+  <data name="Log.UnitSet" xml:space="preserve">
+    <value>Temperatureinheit auf das Gerät geschrieben</value>
+  </data>
+  <data name="Log.DisplayOnCoolingSet" xml:space="preserve">
+    <value>Anzeige beim Abkühlen auf das Gerät geschrieben</value>
+  </data>
+  <data name="Log.VibrationSet" xml:space="preserve">
+    <value>Vibrationsalarm auf das Gerät geschrieben</value>
+  </data>
+  <data name="Log.AutoOffNotify" xml:space="preserve">
+    <value>Live-Abo für die Auto-Abschaltung eingerichtet</value>
+  </data>
+  <data name="Log.AutoOffPolling" xml:space="preserve">
+    <value>Kein Notify für die Auto-Abschaltung - fällt auf Abfragen zurück</value>
+  </data>
+  <data name="Log.BleConnecting" xml:space="preserve">
+    <value>Verbinde mit {0}</value>
+  </data>
+  <data name="Log.BleServiceFound" xml:space="preserve">
+    <value>Service {0} aufgelöst, {1} Charakteristik(en)</value>
+  </data>
+  <data name="Log.BleServiceTimeout" xml:space="preserve">
+    <value>Service {0}: Timeout nach {1} s</value>
+  </data>
+  <data name="Log.BleServiceMissing" xml:space="preserve">
+    <value>Service {0} nicht gefunden (Status {1})</value>
+  </data>
+  <data name="Log.UsingRealAdapter" xml:space="preserve">
+    <value>Nutzt den Bluetooth-Adapter dieses Rechners</value>
+  </data>
+  <data name="Log.UsingSimulator" xml:space="preserve">
+    <value>Läuft gegen das simulierte Gerät (--simulate)</value>
+  </data>
 </root>

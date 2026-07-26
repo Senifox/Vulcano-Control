@@ -138,6 +138,11 @@ public sealed class SimulatedVolcanoDevice : IVolcanoDevice
         return Task.CompletedTask;
     }
 
+    public Task<double?> ReadTargetTemperatureAsync()
+    {
+        lock (_lock) return Task.FromResult<double?>(_targetCelsius);
+    }
+
     public Task SetHeaterAsync(bool on)
     {
         lock (_lock)

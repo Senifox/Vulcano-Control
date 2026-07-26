@@ -37,6 +37,7 @@ public partial class ControlViewModel : ObservableObject, IDisposable
 
     private DateTime? _heaterOnSince;
     private double _previousTemperature = double.NaN;
+    private bool _isFalling;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CurrentTemperatureText))]
@@ -86,6 +87,9 @@ public partial class ControlViewModel : ObservableObject, IDisposable
         _device.ActivityChanged += OnActivityChanged;
         _device.RemainingAutoOffSecondsChanged += OnRemainingAutoOffSecondsChanged;
         _device.ConnectionStateChanged += OnConnectionStateChanged;
+        _device.ProgressChanged += OnRampProgressChanged;
+        _device.Completed += OnRampCompleted;
+        _device.Stopped += OnRampStopped;
     }
 
     /// <summary>The temperature chart filling the right-hand column.</summary>
@@ -160,17 +164,22 @@ public partial class ControlViewModel : ObservableObject, IDisposable
         Dispatcher.UIThread.Post(() =>
         {
             CurrentTemperature = celsius;
-            UpdateHeatState(celsius);
+            _isFalling = !double.IsNaN(_previousTemperature) && celsius < _previousTemperature - 0.05;
+            _previousTemperature = celsius;
+            UpdateHeatState();
         });
 
-    private void UpdateHeatState(double celsius)
+    /// <summary>
+    /// Derives the chip from the three things it depends on - heater, temperature, target - and is
+    /// therefore called whenever any of them changes, not just on a new temperature. The device only
+    /// reports a temperature when it actually moves, so a chip that waited for one read "heating"
+    /// for seconds after the heater had been switched off.
+    /// </summary>
+    private void UpdateHeatState()
     {
-        var falling = !double.IsNaN(_previousTemperature) && celsius < _previousTemperature - 0.05;
-        _previousTemperature = celsius;
-
         if (IsHeaterOn)
         {
-            HeatState = Math.Abs(TargetTemperature - celsius) <= AtTargetToleranceCelsius
+            HeatState = Math.Abs(TargetTemperature - _previousTemperature) <= AtTargetToleranceCelsius
                 ? HeatState.AtTarget
                 : HeatState.Heating;
             return;
@@ -178,8 +187,10 @@ public partial class ControlViewModel : ObservableObject, IDisposable
 
         // With the heater off the device is either giving off heat or sitting at room temperature;
         // "cooling" is only worth saying while the number is actually still moving.
-        HeatState = falling ? HeatState.Cooling : HeatState.Idle;
+        HeatState = _isFalling ? HeatState.Cooling : HeatState.Idle;
     }
+
+    partial void OnTargetTemperatureChanged(double value) => UpdateHeatState();
 
     private void OnActivityChanged(object? sender, ushort activity) =>
         Dispatcher.UIThread.Post(() =>
@@ -191,6 +202,27 @@ public partial class ControlViewModel : ObservableObject, IDisposable
 
             IsHeaterOn = heaterOn;
             IsPumpOn = (activity & VolcanoUuids.ActivityFlags.PumpEnabled) != 0;
+            UpdateHeatState();
+        });
+
+    /// <summary>
+    /// While a ramp runs it owns the target, so the cockpit shows what the ramp is asking for rather
+    /// than the value the device happened to hold when we connected. Without this the Control tab sat
+    /// at 225 °C through a ramp that drove the device from 180 to 195 - the delta underneath was
+    /// nonsense and the number contradicted the Run tab.
+    /// </summary>
+    private void OnRampProgressChanged(object? sender, RampProgressEventArgs e) =>
+        Dispatcher.UIThread.Post(() => TargetTemperature = Math.Round(e.CurrentComputedTarget));
+
+    // The ramp has let go of the target: ask the device what it now holds instead of guessing.
+    // A finished ramp resets it, a stopped one leaves the last pushed value - reading covers both.
+    private void OnRampCompleted(object? sender, double resetTemperature) => RereadTarget();
+    private void OnRampStopped(object? sender, EventArgs e) => RereadTarget();
+
+    private void RereadTarget() =>
+        Dispatcher.UIThread.Post(async () =>
+        {
+            if (await _device.ReadTargetTemperatureAsync() is { } target) TargetTemperature = target;
         });
 
     private void OnRemainingAutoOffSecondsChanged(object? sender, int seconds) =>
@@ -204,15 +236,23 @@ public partial class ControlViewModel : ObservableObject, IDisposable
 
 
     private void OnConnectionStateChanged(object? sender, ConnectionState state) =>
-        Dispatcher.UIThread.Post(() =>
+        Dispatcher.UIThread.Post(async () =>
         {
             IsConnected = state == ConnectionState.Connected;
+
+            // The device keeps its own target between sessions. Reading it means the number on
+            // screen is the device's, not one this app invented.
+            if (IsConnected && await _device.ReadTargetTemperatureAsync() is { } target)
+            {
+                TargetTemperature = target;
+            }
 
             if (!IsConnected)
             {
                 HeatState = HeatState.Idle;
                 _heaterOnSince = null;
                 _previousTemperature = double.NaN;
+                _isFalling = false;
             }
 
             OnPropertyChanged(nameof(CurrentTemperatureText));
@@ -226,6 +266,9 @@ public partial class ControlViewModel : ObservableObject, IDisposable
         _device.ActivityChanged -= OnActivityChanged;
         _device.RemainingAutoOffSecondsChanged -= OnRemainingAutoOffSecondsChanged;
         _device.ConnectionStateChanged -= OnConnectionStateChanged;
+        _device.ProgressChanged -= OnRampProgressChanged;
+        _device.Completed -= OnRampCompleted;
+        _device.Stopped -= OnRampStopped;
     }
 
     /// <summary>Re-reads every computed label. Called after a language change; passing a

@@ -138,6 +138,9 @@ public sealed class VolcanoRelayClient : IVolcanoDevice
         State = ConnectionState.Disconnected;
     }
 
+    public Task<double?> ReadTargetTemperatureAsync() =>
+        SendReadRequestAsync<double>(RelayMethods.ReadTargetTemperature);
+
     public Task SetTargetTemperatureAsync(double celsius) =>
         SendVoidRequestAsync(RelayMethods.SetTargetTemperature, new SetTargetTemperatureArgs(celsius));
 

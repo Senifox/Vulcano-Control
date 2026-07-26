@@ -751,4 +751,88 @@
   <data name="Error.JoinWhileHosting" xml:space="preserve">
     <value>Cannot join a host while hosting.</value>
   </data>
+  <data name="Error.DeviceNotFound" xml:space="preserve">
+    <value>No device found. Check that it is switched on and not connected to another app.</value>
+  </data>
+  <data name="Error.ConnectFailed" xml:space="preserve">
+    <value>Connection failed: {0}</value>
+  </data>
+  <data name="Error.ServicesNotFound" xml:space="preserve">
+    <value>The device did not offer the expected services. Is the official app still running?</value>
+  </data>
+  <data name="Error.CharacteristicsMissing" xml:space="preserve">
+    <value>{0} expected characteristic(s) are missing - this does not look like a Volcano.</value>
+  </data>
+  <data name="Error.NotifyFailed" xml:space="preserve">
+    <value>The device refused the notification subscription.</value>
+  </data>
+  <data name="Error.NotConnected" xml:space="preserve">
+    <value>Not connected.</value>
+  </data>
+  <data name="Error.WriteFailed" xml:space="preserve">
+    <value>Writing failed: {0}</value>
+  </data>
+  <data name="Error.ScanFailed" xml:space="preserve">
+    <value>Bluetooth scan could not be started: {0}</value>
+  </data>
+  <data name="Log.DeviceFound" xml:space="preserve">
+    <value>Device found: {0}</value>
+  </data>
+  <data name="Log.ConnectionState" xml:space="preserve">
+    <value>Connection state: {0}</value>
+  </data>
+  <data name="Log.TargetSet" xml:space="preserve">
+    <value>Target temperature set: {0}</value>
+  </data>
+  <data name="Log.HeaterOn" xml:space="preserve">
+    <value>Heater on</value>
+  </data>
+  <data name="Log.HeaterOff" xml:space="preserve">
+    <value>Heater off</value>
+  </data>
+  <data name="Log.PumpOn" xml:space="preserve">
+    <value>Pump on</value>
+  </data>
+  <data name="Log.PumpOff" xml:space="preserve">
+    <value>Pump off</value>
+  </data>
+  <data name="Log.BrightnessSet" xml:space="preserve">
+    <value>Display brightness set: {0} %</value>
+  </data>
+  <data name="Log.AutoOffSet" xml:space="preserve">
+    <value>Auto shut-off set: {0} min</value>
+  </data>
+  <data name="Log.UnitSet" xml:space="preserve">
+    <value>Temperature unit written to the device</value>
+  </data>
+  <data name="Log.DisplayOnCoolingSet" xml:space="preserve">
+    <value>Display while cooling written to the device</value>
+  </data>
+  <data name="Log.VibrationSet" xml:space="preserve">
+    <value>Vibration alarm written to the device</value>
+  </data>
+  <data name="Log.AutoOffNotify" xml:space="preserve">
+    <value>Live subscription for the auto shut-off countdown established</value>
+  </data>
+  <data name="Log.AutoOffPolling" xml:space="preserve">
+    <value>No notification for the auto shut-off countdown - falling back to polling</value>
+  </data>
+  <data name="Log.BleConnecting" xml:space="preserve">
+    <value>Connecting to {0}</value>
+  </data>
+  <data name="Log.BleServiceFound" xml:space="preserve">
+    <value>Service {0} resolved, {1} characteristic(s)</value>
+  </data>
+  <data name="Log.BleServiceTimeout" xml:space="preserve">
+    <value>Service {0}: timeout after {1} s</value>
+  </data>
+  <data name="Log.BleServiceMissing" xml:space="preserve">
+    <value>Service {0} not found (status {1})</value>
+  </data>
+  <data name="Log.UsingRealAdapter" xml:space="preserve">
+    <value>Using this machine&apos;s Bluetooth adapter</value>
+  </data>
+  <data name="Log.UsingSimulator" xml:space="preserve">
+    <value>Running against the simulated device (--simulate)</value>
+  </data>
 </root>

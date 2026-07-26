@@ -63,6 +63,48 @@ public class StringsTests
         }
     }
 
+    /// <summary>
+    /// Reads the source and checks that every key handed to <see cref="Strings.Get(string)"/>
+    /// actually exists. A missing key is not a crash - it renders as the key itself - so nothing
+    /// catches it until someone reads the screen, and one of them (Log.TargetSet) got as far as a
+    /// log line during a ramp on a real device before anyone noticed.
+    /// </summary>
+    [Fact]
+    public void Every_key_used_in_the_source_exists_in_the_table()
+    {
+        Strings.Use(AppLanguage.English);
+        var table = Strings.All().Select(p => p.Key).ToHashSet(StringComparer.Ordinal);
+
+        var missing = new List<string>();
+        foreach (var file in Directory.EnumerateFiles(SourceRoot, "*.cs", SearchOption.AllDirectories))
+        {
+            foreach (var match in Regex.Matches(File.ReadAllText(file), @"Strings\.Get\(""([^""]+)""").Cast<Match>())
+            {
+                var key = match.Groups[1].Value;
+                if (!table.Contains(key)) missing.Add($"{Path.GetFileName(file)}: {key}");
+            }
+        }
+
+        Assert.Empty(missing);
+    }
+
+    /// <summary>The repo's <c>src</c> directory, found by walking up from the test assembly - the
+    /// build output sits several levels below it and the depth differs per configuration.</summary>
+    private static string SourceRoot
+    {
+        get
+        {
+            var dir = new DirectoryInfo(AppContext.BaseDirectory);
+            while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "Vulcano-Control.slnx")))
+            {
+                dir = dir.Parent;
+            }
+
+            Assert.NotNull(dir);
+            return Path.Combine(dir.FullName, "src");
+        }
+    }
+
     private static IEnumerable<string> Placeholders(string value) =>
         Regex.Matches(value, @"\{\d+\}").Select(m => m.Value).Distinct().OrderBy(p => p);
 

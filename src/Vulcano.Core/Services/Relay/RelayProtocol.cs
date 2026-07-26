@@ -70,6 +70,7 @@ public static class RelayMethods
 {
     public const string Hello = "Hello";
 
+    public const string ReadTargetTemperature = "ReadTargetTemperature";
     public const string SetTargetTemperature = "SetTargetTemperature";
     public const string SetHeater = "SetHeater";
     public const string SetPump = "SetPump";

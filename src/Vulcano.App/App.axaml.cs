@@ -1,9 +1,12 @@
+using System;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Vulcano.App.Services;
 using Vulcano.App.ViewModels;
 using Vulcano.App.Views;
+using Vulcano.Bluetooth.Windows;
 using Vulcano.Core.Services;
 
 namespace Vulcano.App;
@@ -30,12 +33,12 @@ public partial class App : Application
             _themeManager = new ThemeManager();
             _themeManager.Apply(settings.Theme);
 
-            // The Bluetooth adapter is not ported yet, so there is nothing else to choose: every
-            // run talks to the simulated device. Once the WinRT transport lands this becomes a
-            // factory that picks the real device and falls back to the simulator on --simulate.
-            log.Log(Strings.Get("Log.NoAdapter"));
+            // Real Bluetooth by default; --simulate gets the in-memory device, which is what makes
+            // it possible to work on the interface without a Volcano on the desk.
+            var simulate = desktop.Args?.Contains("--simulate", StringComparer.OrdinalIgnoreCase) == true;
+            log.Log(Strings.Get(simulate ? "Log.UsingSimulator" : "Log.UsingRealAdapter"));
 
-            var orchestrator = new VolcanoDeviceOrchestrator(() => new SimulatedVolcanoDevice(log), log)
+            var orchestrator = new VolcanoDeviceOrchestrator(() => CreateDevice(simulate, log), log)
             {
                 PushThresholdCelsius = settings.RampPushThresholdCelsius,
             };
@@ -51,4 +54,14 @@ public partial class App : Application
 
         base.OnFrameworkInitializationCompleted();
     }
+
+    /// <summary>
+    /// The one place that decides which Bluetooth stack is in use. Everything above it takes an
+    /// IVolcanoDevice and cannot tell the difference - which is what will let the BlueZ adapter slot
+    /// in here with nothing else changing.
+    /// </summary>
+    private static IVolcanoDevice CreateDevice(bool simulate, LogService log) =>
+        simulate
+            ? new SimulatedVolcanoDevice(log)
+            : new BluetoothVolcanoDevice(new WinRtVolcanoTransport(log), log);
 }

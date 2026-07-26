@@ -80,6 +80,7 @@ public sealed class VolcanoDeviceOrchestrator : IVolcanoDevice, IRampSessionCont
     public Task DisconnectAsync() => _device.DisconnectAsync();
 
     public Task SetTargetTemperatureAsync(double celsius) => _device.SetTargetTemperatureAsync(celsius);
+    public Task<double?> ReadTargetTemperatureAsync() => _device.ReadTargetTemperatureAsync();
     public Task SetHeaterAsync(bool on) => _device.SetHeaterAsync(on);
     public Task SetPumpAsync(bool on) => _device.SetPumpAsync(on);
 

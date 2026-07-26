@@ -47,6 +47,9 @@ public sealed class FakeVolcanoDevice : IVolcanoDevice
         return Task.CompletedTask;
     }
 
+    public Task<double?> ReadTargetTemperatureAsync() =>
+        Task.FromResult<double?>(WrittenTargets.Count > 0 ? WrittenTargets[^1] : null);
+
     public Task SetHeaterAsync(bool on)
     {
         WrittenHeaterStates.Add(on);
