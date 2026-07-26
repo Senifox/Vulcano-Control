@@ -14,6 +14,14 @@
     <AssemblyName>vulcano-control</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+
+    <!-- The taskbar and Explorer read this one out of the executable; the window icon is set
+         separately from the embedded 256 px PNG. -->
+    <ApplicationIcon>Assets\Icons\vulcano-control.ico</ApplicationIcon>
+
+    <Version>2.0.0</Version>
+    <Product>Vulcano Control</Product>
+    <Company>Vulcano Control</Company>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,6 +31,12 @@
     <PackageReference Include="Avalonia.Diagnostics" Condition="'$(Configuration)' == 'Debug'" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="LiveChartsCore.SkiaSharpView.Avalonia" />
+
+    <!-- For packaging only. Velopack's own update *checking* is deliberately not wired up yet -
+         that comes back together with the Linux packaging - but VelopackApp.Build().Run() still has
+         to be the first thing Main does, because the installer drives the app through it to create
+         shortcuts and finish an install. Without it, installing appears to do nothing. -->
+    <PackageReference Include="Velopack" />
   </ItemGroup>
 
   <ItemGroup>

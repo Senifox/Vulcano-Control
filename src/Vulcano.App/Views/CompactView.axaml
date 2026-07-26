@@ -15,8 +15,8 @@
             BorderThickness="0,0,0,1"
             PointerPressed="OnTitleBarPointerPressed">
       <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto">
-        <Border Grid.Column="0" Width="10" Height="10" Margin="9,0,7,0"
-                CornerRadius="2" Background="{DynamicResource Accent}" />
+        <Image Grid.Column="0" Width="11" Height="11" Margin="9,0,7,0"
+               Source="avares://vulcano-control/Assets/Icons/vulcano-control-16.png" />
         <TextBlock Grid.Column="1" Text="{DynamicResource S.Compact.Title}" FontSize="10.5"
                    Foreground="{DynamicResource Text.Dim}" VerticalAlignment="Center" />
 

@@ -210,7 +210,9 @@
             <TextBlock Classes="label" Text="{DynamicResource S.Settings.About}" />
 
             <StackPanel Orientation="Horizontal" Spacing="12">
-              <Border Width="38" Height="38" CornerRadius="9" Background="{DynamicResource Accent}" />
+              <!-- The real icon rather than an orange square standing in for it. -->
+              <Image Width="38" Height="38"
+                     Source="avares://vulcano-control/Assets/Icons/vulcano-control-128.png" />
               <StackPanel Spacing="3" VerticalAlignment="Center">
                 <TextBlock Text="{DynamicResource S.Settings.AppName}" FontWeight="SemiBold" />
                 <StackPanel Orientation="Horizontal" Spacing="8">

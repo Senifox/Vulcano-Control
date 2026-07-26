@@ -55,3 +55,7 @@ Desktop.ini
 
 
 _Documents/*
+
+## Release output from Release.ps1 - a self-contained publish plus the Velopack package
+publish/
+Releases/
