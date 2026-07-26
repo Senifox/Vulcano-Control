@@ -85,7 +85,8 @@
     <Border Grid.Row="1" Classes="card" Background="{DynamicResource Bg.Deep}" Padding="6">
       <c:RampCurveEditor Points="{Binding Points}"
                          HoldMinutes="{Binding HoldMinutes}"
-                         SelectedIndex="{Binding SelectedIndex, Mode=TwoWay}" />
+                         SelectedIndex="{Binding SelectedIndex, Mode=TwoWay}"
+                         InsertPointCommand="{Binding InsertPointAtMinuteCommand}" />
     </Border>
 
     <!-- ============ Table · Inspector ============ -->

@@ -376,6 +376,34 @@ public partial class RampViewModel : ObservableObject, IDisposable
         Revalidate();
     }
 
+    /// <summary>
+    /// Adds a point where somebody clicked the curve, at the temperature the curve already has
+    /// there. The curve editor asks for this rather than inserting one itself: a point has to be
+    /// subscribed to, numbered and revalidated, and only the owner of the list can do that.
+    /// </summary>
+    [RelayCommand]
+    private void InsertPointAtMinute(int minutes)
+    {
+        if (Points.Count < 2) return;
+
+        var index = 0;
+        while (index < Points.Count - 1 && Points[index + 1].TimeMinutes < minutes) index++;
+
+        if (minutes <= Points[index].TimeMinutes || minutes >= Points[index + 1].TimeMinutes) return;
+
+        var celsius = Plan?.GetTargetTemperature(TimeSpan.FromMinutes(minutes)) ?? Points[index].Celsius;
+
+        var point = new RampPointViewModel(
+            new RampPoint(minutes, Math.Round(celsius), Points[index].CurveToNext));
+        point.PropertyChanged += OnPointChanged;
+
+        Points.Insert(index + 1, point);
+
+        Renumber();
+        SelectedIndex = index + 1;
+        Revalidate();
+    }
+
     private bool CanRemovePoint() => Points.Count > 2 && SelectedIndex >= 0;
 
     [RelayCommand(CanExecute = nameof(CanRemovePoint))]

@@ -4,6 +4,7 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
+using System.Windows.Input;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -46,6 +47,17 @@ public class RampCurveEditor : Control
     public static readonly StyledProperty<int> SelectedIndexProperty =
         AvaloniaProperty.Register<RampCurveEditor, int>(
             nameof(SelectedIndex), defaultBindingMode: Avalonia.Data.BindingMode.TwoWay);
+
+    /// <summary>Invoked with the minute a click landed on, so the view model can create the point
+    /// and do the bookkeeping that goes with owning the list.</summary>
+    public static readonly StyledProperty<ICommand?> InsertPointCommandProperty =
+        AvaloniaProperty.Register<RampCurveEditor, ICommand?>(nameof(InsertPointCommand));
+
+    public ICommand? InsertPointCommand
+    {
+        get => GetValue(InsertPointCommandProperty);
+        set => SetValue(InsertPointCommandProperty, value);
+    }
 
     private int _dragIndex = -1;
     private double? _ghostMinutes;
@@ -198,6 +210,16 @@ public class RampCurveEditor : Control
         InvalidateVisual();
     }
 
+    /// <summary>
+    /// Asks for a point at this minute rather than inserting one.
+    ///
+    /// It used to build the point and put it into the collection itself, which looked harmless and
+    /// was not: the view model subscribes to each point it creates, renumbers the list and
+    /// revalidates, and a point that appeared behind its back got none of that. The row showed as
+    /// number 0, the segment label read "0 to 1", and - the part that actually bit - editing that
+    /// point afterwards changed nothing the view model noticed, so the ramp was validated and
+    /// checked against the device as it had been before the edit.
+    /// </summary>
     private void InsertPointAt(double minutes)
     {
         if (Points is not { Count: > 1 } points) return;
@@ -208,14 +230,12 @@ public class RampCurveEditor : Control
         var whole = (int)Math.Round(minutes);
         if (whole <= points[index].TimeMinutes || whole >= points[index + 1].TimeMinutes) return;
 
-        var plan = BuildPlan(points);
-        var celsius = plan?.GetTargetTemperature(TimeSpan.FromMinutes(whole)) ?? points[index].Celsius;
-
-        points.Insert(index + 1, new RampPointViewModel(
-            new RampPoint(whole, Math.Round(celsius), points[index].CurveToNext)));
-
-        SelectedIndex = index + 1;
         _ghostMinutes = null;
+
+        if (InsertPointCommand is { } command && command.CanExecute(whole))
+        {
+            command.Execute(whole);
+        }
     }
 
     private int FindPointAt(Point position)
