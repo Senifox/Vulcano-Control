@@ -13,7 +13,6 @@
         <ResourceInclude Source="avares://vulcano-control/Theme/Controls.axaml" />
       </ResourceDictionary.MergedDictionaries>
 
-      <conv:EnumToBoolConverter x:Key="EnumToBool" />
     </ResourceDictionary>
   </Application.Resources>
 

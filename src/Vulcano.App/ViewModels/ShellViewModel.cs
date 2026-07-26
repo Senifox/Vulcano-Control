@@ -48,33 +48,27 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
     private string _serialNumber = "";
 
     [ObservableProperty]
-    private double _currentTemperature;
-
-    [ObservableProperty]
-    private bool _isHeaterOn;
-
-    [ObservableProperty]
-    private bool _isPumpOn;
-
-    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsRunTabVisible))]
     private bool _isRampRunning;
 
     [ObservableProperty]
     private bool _isAlwaysOnTop;
 
-    public ShellViewModel(VolcanoDeviceOrchestrator device, LogService log)
+    public ShellViewModel(VolcanoDeviceOrchestrator device, AppSettings settings, LogService log)
     {
         _device = device;
         _log = log;
 
+        Control = new ControlViewModel(device, settings);
+
         _device.ConnectionStateChanged += OnConnectionStateChanged;
-        _device.CurrentTemperatureChanged += OnCurrentTemperatureChanged;
-        _device.ActivityChanged += OnActivityChanged;
         _device.ProgressChanged += OnRampProgressChanged;
         _device.Completed += OnRampEnded;
         _device.Stopped += OnRampEnded;
     }
+
+    /// <summary>The cockpit. Owns everything about live temperature, heater, pump and target.</summary>
+    public ControlViewModel Control { get; }
 
     public bool IsConnected => ConnectionState == ConnectionState.Connected;
 
@@ -134,12 +128,6 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
     private bool CanDisconnect() => IsConnected;
 
     [RelayCommand]
-    private async Task ToggleHeaterAsync() => await _device.SetHeaterAsync(!IsHeaterOn);
-
-    [RelayCommand]
-    private async Task TogglePumpAsync() => await _device.SetPumpAsync(!IsPumpOn);
-
-    [RelayCommand]
     private void ShowTab(AppTab tab) => SelectedTab = tab;
 
     // --- Device events, all arriving off the UI thread ---
@@ -153,22 +141,13 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
             OnPropertyChanged(nameof(DisconnectLabel));
         });
 
-    private void OnCurrentTemperatureChanged(object? sender, double celsius) =>
-        Dispatcher.UIThread.Post(() => CurrentTemperature = celsius);
-
-    private void OnActivityChanged(object? sender, ushort activity) =>
-        Dispatcher.UIThread.Post(() =>
-        {
-            IsHeaterOn = (activity & VolcanoUuids.ActivityFlags.HeatingEnabled) != 0;
-            IsPumpOn = (activity & VolcanoUuids.ActivityFlags.PumpEnabled) != 0;
-        });
-
     private void OnRampProgressChanged(object? sender, RampProgressEventArgs e) =>
         Dispatcher.UIThread.Post(() =>
         {
             if (IsRampRunning) return;
 
             IsRampRunning = true;
+            Control.IsRampRunning = true;
             // A ramp that starts anywhere - here, or on another machine through the relay - brings
             // the Run tab up by itself.
             SelectedTab = AppTab.Run;
@@ -182,17 +161,17 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
         Dispatcher.UIThread.Post(() =>
         {
             IsRampRunning = false;
+            Control.IsRampRunning = false;
             if (SelectedTab == AppTab.Run) SelectedTab = AppTab.Control;
         });
 
     public async ValueTask DisposeAsync()
     {
         _device.ConnectionStateChanged -= OnConnectionStateChanged;
-        _device.CurrentTemperatureChanged -= OnCurrentTemperatureChanged;
-        _device.ActivityChanged -= OnActivityChanged;
         _device.ProgressChanged -= OnRampProgressChanged;
         _device.Completed -= OnRampEnded;
         _device.Stopped -= OnRampEnded;
+        Control.Dispose();
 
         _log.Log("Shutting down");
         _device.Dispose();

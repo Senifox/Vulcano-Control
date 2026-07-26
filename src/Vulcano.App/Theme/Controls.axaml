@@ -5,7 +5,14 @@
 -->
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:controls="clr-namespace:Vulcano.App.Controls">
+                    xmlns:controls="clr-namespace:Vulcano.App.Controls"
+                    xmlns:conv="clr-namespace:Vulcano.App.Converters">
+
+  <!-- Declared here rather than in App.axaml because the templates below reach for them with
+       StaticResource, which resolves within this dictionary. Merged into the application's
+       resources along with everything else, so views can use them too. -->
+  <conv:EnumToBoolConverter x:Key="EnumToBool" />
+  <conv:WholeNumberConverter x:Key="WholeNumber" />
 
   <ControlTheme x:Key="{x:Type controls:Icon}" TargetType="controls:Icon">
     <Setter Property="Width" Value="16" />
@@ -25,6 +32,95 @@
         </Viewbox>
       </ControlTemplate>
     </Setter>
+  </ControlTheme>
+
+  <!-- "– 195 +". The number is mono with tabular figures so the field does not twitch as the
+       value changes width. -->
+  <ControlTheme x:Key="{x:Type controls:Stepper}" TargetType="controls:Stepper">
+    <Setter Property="Height" Value="{StaticResource Size.Field}" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="{DynamicResource Bg.Field}"
+                BorderBrush="{DynamicResource Border.Strong}"
+                BorderThickness="1"
+                CornerRadius="{StaticResource Radius.Field}">
+          <Grid ColumnDefinitions="Auto,*,Auto">
+            <Button Name="PART_Decrease"
+                    Grid.Column="0"
+                    Theme="{StaticResource StepperButton}"
+                    Content="–" />
+
+            <StackPanel Grid.Column="1"
+                        Orientation="Horizontal"
+                        Spacing="4"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
+              <TextBlock Text="{TemplateBinding Value, Converter={StaticResource WholeNumber}}"
+                         FontFamily="{StaticResource Font.Mono}"
+                         FontSize="{StaticResource Text.Body}"
+                         FontWeight="Medium"
+                         Foreground="{DynamicResource Text}" />
+              <TextBlock Text="{TemplateBinding Unit}"
+                         FontFamily="{StaticResource Font.Mono}"
+                         FontSize="{StaticResource Text.Small}"
+                         Foreground="{DynamicResource Text.Dim}"
+                         VerticalAlignment="Center" />
+            </StackPanel>
+
+            <Button Name="PART_Increase"
+                    Grid.Column="2"
+                    Theme="{StaticResource StepperButton}"
+                    Content="+" />
+          </Grid>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </ControlTheme>
+
+  <!-- The 5 px bar under the live temperature. Heat on the left, accent on the right, so the
+       colour itself says how close the device is. -->
+  <ControlTheme x:Key="ThinProgress" TargetType="ProgressBar">
+    <Setter Property="Height" Value="5" />
+    <Setter Property="Minimum" Value="0" />
+    <Setter Property="Maximum" Value="1" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="{DynamicResource Bg.Field}" CornerRadius="999" ClipToBounds="True">
+          <Panel Name="PART_ContainerGrid" HorizontalAlignment="Stretch">
+            <Border Name="PART_Indicator" HorizontalAlignment="Left" CornerRadius="999">
+              <Border.Background>
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+                  <GradientStop Offset="0" Color="{DynamicResource Color.Heat}" />
+                  <GradientStop Offset="1" Color="{DynamicResource Color.Accent}" />
+                </LinearGradientBrush>
+              </Border.Background>
+            </Border>
+          </Panel>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </ControlTheme>
+
+  <ControlTheme x:Key="StepperButton" TargetType="Button">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+    <Setter Property="Width" Value="30" />
+    <Setter Property="CornerRadius" Value="{StaticResource Radius.Field}" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding CornerRadius}">
+          <ContentPresenter Content="{TemplateBinding Content}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center" />
+        </Border>
+      </ControlTemplate>
+    </Setter>
+    <Style Selector="^:pointerover">
+      <Setter Property="Background" Value="{DynamicResource Border}" />
+      <Setter Property="Foreground" Value="{DynamicResource Text}" />
+    </Style>
   </ControlTheme>
 
   <!-- Primary action: accent fill, dark text on it. One per view, at most. -->

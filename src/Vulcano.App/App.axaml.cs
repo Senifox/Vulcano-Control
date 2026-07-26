@@ -36,7 +36,7 @@ public partial class App : Application
                 PushThresholdCelsius = settings.RampPushThresholdCelsius,
             };
 
-            _shell = new ShellViewModel(orchestrator, log);
+            _shell = new ShellViewModel(orchestrator, settings, log);
             desktop.MainWindow = new MainWindow { DataContext = _shell };
 
             desktop.ShutdownRequested += async (_, _) =>

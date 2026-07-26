@@ -1,0 +1,226 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:Vulcano.App.Controls"
+             xmlns:vm="clr-namespace:Vulcano.App.ViewModels"
+             xmlns:sys="clr-namespace:System;assembly=System.Runtime"
+             xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.Avalonia;assembly=LiveChartsCore.SkiaSharpView.Avalonia"
+             x:Class="Vulcano.App.Views.ControlView"
+             x:DataType="vm:ControlViewModel">
+
+  <!-- 404 px fixed on the left, the chart takes whatever is left. -->
+  <Grid ColumnDefinitions="404,*" Margin="14">
+
+    <StackPanel Grid.Column="0" Spacing="12">
+
+      <!-- ============ Current ============ -->
+      <Border Classes="card" Padding="18,16,18,0">
+        <StackPanel Spacing="10">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Grid.Column="0" Classes="label" Text="CURRENT" />
+            <Border Grid.Column="1" Classes="chip heat" IsVisible="{Binding IsConnected}">
+              <TextBlock Text="{Binding HeatStateText}" />
+            </Border>
+          </Grid>
+
+          <StackPanel Orientation="Horizontal" Spacing="4">
+            <TextBlock Text="{Binding CurrentTemperatureText}"
+                       FontFamily="{StaticResource Font.Mono}"
+                       FontSize="{StaticResource Text.Display}"
+                       FontWeight="Medium"
+                       LineHeight="68"
+                       Foreground="{DynamicResource Text}" />
+            <TextBlock Text="°C"
+                       FontFamily="{StaticResource Font.Mono}"
+                       FontSize="20"
+                       Foreground="{DynamicResource Text.Dim}"
+                       VerticalAlignment="Bottom"
+                       Margin="0,0,0,10" />
+          </StackPanel>
+
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Text="Target" Foreground="{DynamicResource Text.Muted}" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding TargetTemperatureText}"
+                       FontFamily="{StaticResource Font.Mono}"
+                       Foreground="{DynamicResource Text.Sub}"
+                       VerticalAlignment="Center" />
+            <Border Classes="chip accent"
+                    IsVisible="{Binding DeltaToTargetText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+              <TextBlock Text="{Binding DeltaToTargetText}" FontFamily="{StaticResource Font.Mono}" />
+            </Border>
+          </StackPanel>
+
+          <!-- 5 px bar, heat to accent - the run from "still climbing" to "there". -->
+          <ProgressBar Theme="{StaticResource ThinProgress}"
+                       Value="{Binding ProgressToTarget}"
+                       Margin="0,4,0,16" />
+        </StackPanel>
+      </Border>
+
+      <!-- ============ Heater · Pump ============ -->
+      <Grid ColumnDefinitions="*,12,*">
+        <Border Grid.Column="0" Classes="card tile" Classes.active="{Binding IsHeaterOn}">
+          <StackPanel Spacing="10">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+              <c:Icon Grid.Column="0" Data="{StaticResource Icon.Flame}"
+                      Foreground="{DynamicResource Heat}" Width="18" Height="18" />
+              <ToggleButton Grid.Column="2" Theme="{StaticResource Toggle}"
+                            IsChecked="{Binding IsHeaterOn, Mode=OneWay}"
+                            Command="{Binding ToggleHeaterCommand}"
+                            IsEnabled="{Binding IsConnected}" />
+            </Grid>
+            <TextBlock Text="Heater" FontSize="{StaticResource Text.CardTitle}" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding HeaterDetailText}" Classes="sub" />
+          </StackPanel>
+        </Border>
+
+        <Border Grid.Column="2" Classes="card tile">
+          <StackPanel Spacing="10">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+              <c:Icon Grid.Column="0" Data="{StaticResource Icon.Fan}"
+                      Foreground="{DynamicResource Text.Muted}" Width="18" Height="18" />
+              <ToggleButton Grid.Column="2" Theme="{StaticResource Toggle}"
+                            IsChecked="{Binding IsPumpOn, Mode=OneWay}"
+                            Command="{Binding TogglePumpCommand}"
+                            IsEnabled="{Binding IsConnected}" />
+            </Grid>
+            <TextBlock Text="Pump" FontSize="{StaticResource Text.CardTitle}" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding PumpDetailText}" Classes="sub" />
+          </StackPanel>
+        </Border>
+      </Grid>
+
+      <!-- ============ Target temperature ============ -->
+      <Border Classes="card">
+        <StackPanel Spacing="12">
+          <TextBlock Classes="label" Text="TARGET TEMPERATURE" />
+
+          <Grid ColumnDefinitions="*,10,Auto">
+            <c:Stepper Grid.Column="0"
+                       Value="{Binding TargetTemperature, Mode=TwoWay}"
+                       Minimum="40" Maximum="230" Step="1" Unit="°C" />
+            <Button Grid.Column="2"
+                    Theme="{StaticResource PrimaryButton}"
+                    Content="Set"
+                    Command="{Binding ApplyTargetCommand}"
+                    IsEnabled="{Binding IsConnected}" />
+          </Grid>
+
+          <ItemsControl ItemsSource="{Binding QuickTemperatures}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="sys:Int32">
+                <Button Theme="{StaticResource SecondaryButton}"
+                        Content="{Binding}"
+                        FontFamily="{StaticResource Font.Mono}"
+                        Margin="0,0,6,6"
+                        Padding="10,0"
+                        Command="{Binding $parent[ItemsControl].((vm:ControlViewModel)DataContext).SelectQuickTemperatureCommand}"
+                        CommandParameter="{Binding}" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+
+      <!-- ============ Auto shut-off ============ -->
+      <Border Classes="card">
+        <StackPanel Spacing="6">
+          <TextBlock Classes="label" Text="AUTO SHUT-OFF" />
+          <TextBlock Text="{Binding AutoShutOffText}"
+                     FontFamily="{StaticResource Font.Mono}"
+                     FontSize="{StaticResource Text.Section}"
+                     Foreground="{DynamicResource Text}" />
+          <TextBlock Text="{Binding AutoShutOffNote}"
+                     Classes="sub"
+                     TextWrapping="Wrap"
+                     IsVisible="{Binding AutoShutOffNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        </StackPanel>
+      </Border>
+    </StackPanel>
+
+    <!-- ============ Chart ============ -->
+    <Border Grid.Column="1" Classes="card" Margin="12,0,0,0" Background="{DynamicResource Bg.Deep}">
+      <Grid RowDefinitions="Auto,*">
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,10">
+          <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Border Width="14" Height="2" CornerRadius="1" VerticalAlignment="Center"
+                      Background="{DynamicResource Info}" />
+              <TextBlock Text="Measured" Classes="sub" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Border Width="14" Height="2" CornerRadius="1" VerticalAlignment="Center"
+                      Background="{DynamicResource Accent}" />
+              <TextBlock Text="Plan" Classes="sub" />
+            </StackPanel>
+          </StackPanel>
+
+          <TextBlock Grid.Column="1" Classes="sub"
+                     Text="{Binding Chart.HistoryNote}" VerticalAlignment="Center" />
+        </Grid>
+
+        <lvc:CartesianChart Grid.Row="1"
+                            Series="{Binding Chart.Series}"
+                            XAxes="{Binding Chart.XAxes}"
+                            YAxes="{Binding Chart.YAxes}"
+                            TooltipPosition="Hidden" />
+      </Grid>
+    </Border>
+  </Grid>
+
+  <UserControl.Styles>
+    <Style Selector="Border.card">
+      <Setter Property="Padding" Value="18,16" />
+      <Setter Property="CornerRadius" Value="{StaticResource Radius.Card}" />
+      <Setter Property="Background" Value="{DynamicResource Bg.Panel}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Border}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <!-- The heater tile turns warm when it is on: tinted surface, tinted border. -->
+    <Style Selector="Border.tile.active">
+      <Setter Property="Background" Value="{DynamicResource Surface.Heat}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Heat}" />
+    </Style>
+
+    <Style Selector="TextBlock.label">
+      <Setter Property="FontFamily" Value="{StaticResource Font.Mono}" />
+      <Setter Property="FontSize" Value="{StaticResource Text.Label}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource Text.Dim}" />
+    </Style>
+
+    <Style Selector="TextBlock.sub">
+      <Setter Property="FontSize" Value="{StaticResource Text.Small}" />
+      <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+    </Style>
+
+    <Style Selector="Border.chip">
+      <Setter Property="Padding" Value="8,3" />
+      <Setter Property="CornerRadius" Value="{StaticResource Radius.Pill}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.chip > TextBlock">
+      <Setter Property="FontSize" Value="{StaticResource Text.Footnote}" />
+    </Style>
+
+    <Style Selector="Border.chip.heat">
+      <Setter Property="Background" Value="{DynamicResource Surface.Heat}" />
+    </Style>
+    <Style Selector="Border.chip.heat > TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource Heat}" />
+    </Style>
+
+    <Style Selector="Border.chip.accent">
+      <Setter Property="Background" Value="{DynamicResource Surface.Accent}" />
+    </Style>
+    <Style Selector="Border.chip.accent > TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource Accent.Text}" />
+    </Style>
+  </UserControl.Styles>
+
+</UserControl>

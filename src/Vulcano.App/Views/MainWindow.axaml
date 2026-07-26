@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:c="clr-namespace:Vulcano.App.Controls"
         xmlns:vm="clr-namespace:Vulcano.App.ViewModels"
+        xmlns:views="clr-namespace:Vulcano.App.Views"
         x:Class="Vulcano.App.Views.MainWindow"
         x:DataType="vm:ShellViewModel"
         Title="Vulcano Control"
@@ -190,60 +191,8 @@
     <!-- ============ Content ============ -->
     <Panel Grid.Row="2">
 
-      <!-- Control: only the live readout so far. The full cockpit - target stepper, quick
-           temperatures, chart - is the next step. -->
-      <Border Padding="18"
-              IsVisible="{Binding SelectedTab, Converter={StaticResource EnumToBool}, ConverterParameter=Control}">
-        <Border Width="404"
-                HorizontalAlignment="Left"
-                VerticalAlignment="Top"
-                Padding="18"
-                CornerRadius="{StaticResource Radius.Card}"
-                Background="{DynamicResource Bg.Panel}"
-                BorderBrush="{DynamicResource Border}"
-                BorderThickness="1">
-          <StackPanel Spacing="14">
-            <TextBlock Text="CURRENT"
-                       FontFamily="{StaticResource Font.Mono}"
-                       FontSize="{StaticResource Text.Label}"
-                       FontWeight="SemiBold"
-                       Foreground="{DynamicResource Text.Dim}" />
-
-            <StackPanel Orientation="Horizontal" Spacing="6">
-              <TextBlock Text="{Binding CurrentTemperature, StringFormat={}{0:0}}"
-                         FontFamily="{StaticResource Font.Mono}"
-                         FontSize="{StaticResource Text.Display}"
-                         FontWeight="Medium"
-                         Foreground="{DynamicResource Text}" />
-              <TextBlock Text="°C"
-                         FontFamily="{StaticResource Font.Mono}"
-                         FontSize="{StaticResource Text.Section}"
-                         Foreground="{DynamicResource Text.Dim}"
-                         VerticalAlignment="Bottom"
-                         Margin="0,0,0,14" />
-            </StackPanel>
-
-            <StackPanel Orientation="Horizontal" Spacing="10">
-              <Button Theme="{StaticResource SecondaryButton}"
-                      Command="{Binding ToggleHeaterCommand}"
-                      IsEnabled="{Binding IsConnected}">
-                <StackPanel Orientation="Horizontal" Spacing="7">
-                  <c:Icon Data="{StaticResource Icon.Flame}" />
-                  <TextBlock Text="Heater" VerticalAlignment="Center" />
-                </StackPanel>
-              </Button>
-              <Button Theme="{StaticResource SecondaryButton}"
-                      Command="{Binding TogglePumpCommand}"
-                      IsEnabled="{Binding IsConnected}">
-                <StackPanel Orientation="Horizontal" Spacing="7">
-                  <c:Icon Data="{StaticResource Icon.Fan}" />
-                  <TextBlock Text="Pump" VerticalAlignment="Center" />
-                </StackPanel>
-              </Button>
-            </StackPanel>
-          </StackPanel>
-        </Border>
-      </Border>
+      <views:ControlView DataContext="{Binding Control}"
+                         IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).SelectedTab, Converter={StaticResource EnumToBool}, ConverterParameter=Control}" />
 
       <TextBlock Text="Ramp" Classes="placeholder"
                  IsVisible="{Binding SelectedTab, Converter={StaticResource EnumToBool}, ConverterParameter=Ramp}" />
