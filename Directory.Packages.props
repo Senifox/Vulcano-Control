@@ -13,6 +13,10 @@
     <PackageVersion Include="Avalonia.Desktop" Version="$(AvaloniaVersion)" />
     <PackageVersion Include="Avalonia.Themes.Fluent" Version="$(AvaloniaVersion)" />
     <PackageVersion Include="Avalonia.Diagnostics" Version="$(AvaloniaVersion)" />
+  <!-- Runs a real Avalonia dispatcher in tests, which the view models need: they marshal every
+       device event through Dispatcher.UIThread.Post, and without a dispatcher those jobs are queued
+       and never run. Tied to the same version as the rest of Avalonia. -->
+  <PackageVersion Include="Avalonia.Headless.XUnit" Version="$(AvaloniaVersion)" />
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageVersion Include="LiveChartsCore.SkiaSharpView.Avalonia" Version="2.0.5" />
     <PackageVersion Include="Velopack" Version="1.2.0" />

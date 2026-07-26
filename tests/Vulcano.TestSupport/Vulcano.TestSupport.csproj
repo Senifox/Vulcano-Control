@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Fakes and helpers shared by the Core and App test projects. Its own library rather than one
+       test project referencing another, which works but reads like an accident. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Vulcano.TestSupport</RootNamespace>
+    <!-- It references xunit for Assert, which is enough for the SDK to take it for a test project
+         and for "dotnet test" on the solution to try running it. It holds no tests. -->
+    <IsTestProject>false</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Vulcano.Core\Vulcano.Core.csproj" />
+  </ItemGroup>
+
+</Project>

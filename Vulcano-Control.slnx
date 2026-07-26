@@ -6,6 +6,8 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Vulcano.Core.Tests/Vulcano.Core.Tests.csproj" />
+    <Project Path="tests/Vulcano.TestSupport/Vulcano.TestSupport.csproj" />
+    <Project Path="tests/Vulcano.App.Tests/Vulcano.App.Tests.csproj" />
   </Folder>
   <Folder Name="/tools/">
     <!-- Records heating and cooling from a real device; not shipped with the app. -->

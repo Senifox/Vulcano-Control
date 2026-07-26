@@ -13,10 +13,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Vulcano.Core\Vulcano.Core.csproj" />
+    <ProjectReference Include="..\Vulcano.TestSupport\Vulcano.TestSupport.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <Using Include="Vulcano.TestSupport" />
   </ItemGroup>
 
 </Project>

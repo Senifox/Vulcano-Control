@@ -144,9 +144,12 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
         _notifier = notifier;
         IsSimulated = isSimulated;
 
-        Control = new ControlViewModel(device, settings, sound);
-        Ramp = new RampViewModel(device, settingsService, settings);
-        Run = new RunViewModel(device);
+        // The orchestrator is both a device and a ramp controller, and these three want it as one or
+        // the other rather than as itself - which is what lets them be built in a test around a fake
+        // device and a real RampSessionController, with no Bluetooth anywhere near it.
+        Control = new ControlViewModel(device, device, settings, sound);
+        Ramp = new RampViewModel(device, device, settingsService, settings);
+        Run = new RunViewModel(device, device);
         Device = new DeviceViewModel(device, log);
         Network = new NetworkViewModel(device, settingsService, settings, log);
         Log = new LogViewModel(log);

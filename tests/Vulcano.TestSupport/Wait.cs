@@ -1,4 +1,6 @@
-namespace Vulcano.Core.Tests;
+using Xunit;
+
+namespace Vulcano.TestSupport;
 
 /// <summary>
 /// Polls for something that happens on another thread. Everything under test here - ramp ticks,
@@ -6,7 +8,7 @@ namespace Vulcano.Core.Tests;
 /// after acting is asserting on a race. Polling with a deadline gives a failure that names what it
 /// was waiting for instead of an assertion that is wrong roughly one run in twenty.
 /// </summary>
-internal static class Wait
+public static class Wait
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(5);
 

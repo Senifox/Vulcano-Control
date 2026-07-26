@@ -1,7 +1,7 @@
 using Vulcano.Core.Models;
 using Vulcano.Core.Services;
 
-namespace Vulcano.Core.Tests;
+namespace Vulcano.TestSupport;
 
 /// <summary>
 /// A device that only records what was written to it and lets a test push notifications back.

@@ -33,7 +33,8 @@ public partial class ControlViewModel : ObservableObject, IDisposable
     /// "at target" is worse than useless.</summary>
     private const double AtTargetToleranceCelsius = 1.5;
 
-    private readonly VolcanoDeviceOrchestrator _device;
+    private readonly IVolcanoDevice _device;
+    private readonly IRampSessionController _ramp;
     private readonly SoundService? _sound;
 
     /// <summary>The target the user last asked for and has not been told about reaching yet, or NaN.
@@ -103,21 +104,26 @@ public partial class ControlViewModel : ObservableObject, IDisposable
     [NotifyPropertyChangedFor(nameof(AutoShutOffNote))]
     private bool _isRampRunning;
 
-    public ControlViewModel(VolcanoDeviceOrchestrator device, AppSettings settings, SoundService? sound = null)
+    public ControlViewModel(
+        IVolcanoDevice device,
+        IRampSessionController ramp,
+        AppSettings settings,
+        SoundService? sound = null)
     {
         _device = device;
+        _ramp = ramp;
         _sound = sound;
 
-        Chart = new ChartViewModel(device, settings);
+        Chart = new ChartViewModel(device, ramp, settings);
         QuickTemperatures = new ObservableCollection<int>(settings.PredefinedTemperatures);
 
         _device.CurrentTemperatureChanged += OnCurrentTemperatureChanged;
         _device.ActivityChanged += OnActivityChanged;
         _device.RemainingAutoOffSecondsChanged += OnRemainingAutoOffSecondsChanged;
         _device.ConnectionStateChanged += OnConnectionStateChanged;
-        _device.ProgressChanged += OnRampProgressChanged;
-        _device.Completed += OnRampCompleted;
-        _device.Stopped += OnRampStopped;
+        _ramp.ProgressChanged += OnRampProgressChanged;
+        _ramp.Completed += OnRampCompleted;
+        _ramp.Stopped += OnRampStopped;
     }
 
     /// <summary>The temperature chart filling the right-hand column.</summary>
@@ -348,9 +354,9 @@ public partial class ControlViewModel : ObservableObject, IDisposable
         _device.ActivityChanged -= OnActivityChanged;
         _device.RemainingAutoOffSecondsChanged -= OnRemainingAutoOffSecondsChanged;
         _device.ConnectionStateChanged -= OnConnectionStateChanged;
-        _device.ProgressChanged -= OnRampProgressChanged;
-        _device.Completed -= OnRampCompleted;
-        _device.Stopped -= OnRampStopped;
+        _ramp.ProgressChanged -= OnRampProgressChanged;
+        _ramp.Completed -= OnRampCompleted;
+        _ramp.Stopped -= OnRampStopped;
     }
 
     /// <summary>Re-reads every computed label. Called after a language change; passing a

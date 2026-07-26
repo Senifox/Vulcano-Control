@@ -18,7 +18,8 @@ namespace Vulcano.App.ViewModels;
 /// </summary>
 public partial class RampViewModel : ObservableObject, IDisposable
 {
-    private readonly VolcanoDeviceOrchestrator _device;
+    private readonly IVolcanoDevice _device;
+    private readonly IRampSessionController _ramp;
     private readonly SettingsService _settingsService;
     private readonly AppSettings _settings;
 
@@ -74,11 +75,13 @@ public partial class RampViewModel : ObservableObject, IDisposable
     private string _reachabilityNote = "";
 
     public RampViewModel(
-        VolcanoDeviceOrchestrator device,
+        IVolcanoDevice device,
+        IRampSessionController ramp,
         SettingsService settingsService,
         AppSettings settings)
     {
         _device = device;
+        _ramp = ramp;
         _settingsService = settingsService;
         _settings = settings;
 
@@ -531,7 +534,7 @@ public partial class RampViewModel : ObservableObject, IDisposable
     {
         if (Plan is not { } plan) return;
 
-        await _device.StartAsync(plan, _isHeaterOn);
+        await _ramp.StartAsync(plan, _isHeaterOn);
     }
 
     // --- Device events ---

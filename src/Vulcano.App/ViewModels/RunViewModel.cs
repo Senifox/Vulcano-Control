@@ -37,7 +37,8 @@ public partial class RunSegmentViewModel : ObservableObject
 /// </summary>
 public partial class RunViewModel : ObservableObject, IDisposable
 {
-    private readonly VolcanoDeviceOrchestrator _device;
+    private readonly IVolcanoDevice _device;
+    private readonly IRampSessionController _ramp;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(MeasuredText))]
@@ -85,11 +86,12 @@ public partial class RunViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string _segmentDetail = "";
 
-    public RunViewModel(VolcanoDeviceOrchestrator device)
+    public RunViewModel(IVolcanoDevice device, IRampSessionController ramp)
     {
         _device = device;
+        _ramp = ramp;
 
-        _device.ProgressChanged += OnProgressChanged;
+        _ramp.ProgressChanged += OnProgressChanged;
         _device.CurrentTemperatureChanged += OnCurrentTemperatureChanged;
         _device.ActivityChanged += OnActivityChanged;
     }
@@ -121,19 +123,19 @@ public partial class RunViewModel : ObservableObject, IDisposable
     {
         if (IsPaused)
         {
-            _device.Resume();
+            _ramp.Resume();
         }
         else
         {
-            _device.Pause();
+            _ramp.Pause();
         }
     }
 
     [RelayCommand]
-    private void SkipSegment() => _device.SkipSegment();
+    private void SkipSegment() => _ramp.SkipSegment();
 
     [RelayCommand]
-    private void StopRamp() => _device.Stop();
+    private void StopRamp() => _ramp.Stop();
 
     /// <summary>
     /// Builds the strip once per run, from the plan the controller is actually driving. A relay
@@ -144,7 +146,7 @@ public partial class RunViewModel : ObservableObject, IDisposable
     {
         Segments.Clear();
 
-        if (_device.ActivePlan is not { } plan)
+        if (_ramp.ActivePlan is not { } plan)
         {
             for (var i = 0; i < progress.SegmentCount; i++)
             {
@@ -206,7 +208,7 @@ public partial class RunViewModel : ObservableObject, IDisposable
             // The strip only has to be rebuilt when the shape of the run changes, which in practice
             // means once, at the start.
             if (Segments.Count == 0 ||
-                (_device.ActivePlan is { } plan && Segments.Count != ExpectedSegmentCount(plan)))
+                (_ramp.ActivePlan is { } plan && Segments.Count != ExpectedSegmentCount(plan)))
             {
                 RebuildSegments(e);
             }
@@ -220,7 +222,7 @@ public partial class RunViewModel : ObservableObject, IDisposable
 
     private void UpdateSegmentDetail()
     {
-        if (_device.ActivePlan is not { } plan || SegmentNumber < 1 || SegmentNumber > plan.SegmentCount)
+        if (_ramp.ActivePlan is not { } plan || SegmentNumber < 1 || SegmentNumber > plan.SegmentCount)
         {
             SegmentDetail = "";
             return;
@@ -246,7 +248,7 @@ public partial class RunViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
-        _device.ProgressChanged -= OnProgressChanged;
+        _ramp.ProgressChanged -= OnProgressChanged;
         _device.CurrentTemperatureChanged -= OnCurrentTemperatureChanged;
         _device.ActivityChanged -= OnActivityChanged;
     }

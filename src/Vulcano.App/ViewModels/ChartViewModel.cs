@@ -30,7 +30,8 @@ public readonly record struct ChartPalette(
 /// </summary>
 public partial class ChartViewModel : ObservableObject, IDisposable
 {
-    private readonly VolcanoDeviceOrchestrator _device;
+    private readonly IVolcanoDevice _device;
+    private readonly IRampSessionController _ramp;
     private readonly AppSettings _settings;
 
     private readonly ObservableCollection<DateTimePoint> _measured = new();
@@ -41,9 +42,10 @@ public partial class ChartViewModel : ObservableObject, IDisposable
     private readonly DateTimeAxis _xAxis;
     private readonly Axis _yAxis;
 
-    public ChartViewModel(VolcanoDeviceOrchestrator device, AppSettings settings)
+    public ChartViewModel(IVolcanoDevice device, IRampSessionController ramp, AppSettings settings)
     {
         _device = device;
+        _ramp = ramp;
         _settings = settings;
 
         _measuredSeries = new LineSeries<DateTimePoint>
@@ -93,9 +95,9 @@ public partial class ChartViewModel : ObservableObject, IDisposable
         YAxes = [_yAxis];
 
         _device.CurrentTemperatureChanged += OnCurrentTemperatureChanged;
-        _device.ProgressChanged += OnRampProgressChanged;
-        _device.Completed += OnRampEnded;
-        _device.Stopped += OnRampEnded;
+        _ramp.ProgressChanged += OnRampProgressChanged;
+        _ramp.Completed += OnRampEnded;
+        _ramp.Stopped += OnRampEnded;
     }
 
     public ISeries[] Series { get; }
@@ -169,8 +171,8 @@ public partial class ChartViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         _device.CurrentTemperatureChanged -= OnCurrentTemperatureChanged;
-        _device.ProgressChanged -= OnRampProgressChanged;
-        _device.Completed -= OnRampEnded;
-        _device.Stopped -= OnRampEnded;
+        _ramp.ProgressChanged -= OnRampProgressChanged;
+        _ramp.Completed -= OnRampEnded;
+        _ramp.Stopped -= OnRampEnded;
     }
 }
