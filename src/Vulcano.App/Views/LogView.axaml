@@ -10,7 +10,7 @@
     <!-- ============ Filters ============ -->
     <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,12">
       <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-        <TextBlock Text="Log" FontSize="{StaticResource Text.Section}" FontWeight="SemiBold"
+        <TextBlock Text="{DynamicResource S.Log.Title}" FontSize="{StaticResource Text.Section}" FontWeight="SemiBold"
                    VerticalAlignment="Center" Margin="0,0,8,0" />
 
         <Border Classes="chip">
@@ -38,7 +38,7 @@
               Command="{Binding ExportCommand}">
         <StackPanel Orientation="Horizontal" Spacing="7">
           <c:Icon Data="{StaticResource Icon.Download}" />
-          <TextBlock Text="Export" VerticalAlignment="Center" />
+          <TextBlock Text="{DynamicResource S.Action.Export}" VerticalAlignment="Center" />
         </StackPanel>
       </Button>
     </Grid>
@@ -47,9 +47,9 @@
     <Border Grid.Row="1" Classes="card flush" Background="{DynamicResource Bg.Deep}">
       <DockPanel>
         <Grid DockPanel.Dock="Top" ColumnDefinitions="72,74,*" Margin="14,12,14,8">
-          <TextBlock Grid.Column="0" Classes="label" Text="TIME" />
-          <TextBlock Grid.Column="1" Classes="label" Text="LEVEL" />
-          <TextBlock Grid.Column="2" Classes="label" Text="MESSAGE" />
+          <TextBlock Grid.Column="0" Classes="label" Text="{DynamicResource S.Log.Time}" />
+          <TextBlock Grid.Column="1" Classes="label" Text="{DynamicResource S.Log.Level}" />
+          <TextBlock Grid.Column="2" Classes="label" Text="{DynamicResource S.Log.Message}" />
         </Grid>
 
         <ListBox Name="Lines" Classes="rows" ItemsSource="{Binding Entries}">

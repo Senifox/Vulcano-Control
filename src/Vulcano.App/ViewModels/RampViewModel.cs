@@ -98,7 +98,8 @@ public partial class RampViewModel : ObservableObject, IDisposable
     public bool HasSegment => SelectedPoint is { IsLast: false };
 
     public string SegmentTitle =>
-        SelectedPoint is { IsLast: false } point ? $"SEGMENT {point.Number} → {point.Number + 1}" : "SEGMENT";
+        SelectedPoint is { IsLast: false } point ? Strings.Get("Ramp.Segment", point.Number, point.Number + 1)
+            : Strings.Get("Ramp.SegmentEmpty");
 
     public string TotalDurationText
     {
@@ -108,7 +109,7 @@ public partial class RampViewModel : ObservableObject, IDisposable
 
             var total = Points[^1].TimeMinutes;
             return HoldMinutes > 0
-                ? $"{Formatting.Minutes(total)} + {Formatting.Minutes(HoldMinutes)} hold"
+                ? Strings.Get("Ramp.HoldSuffix", Formatting.Minutes(total), Formatting.Minutes(HoldMinutes))
                 : Formatting.Minutes(total);
         }
     }
@@ -233,15 +234,10 @@ public partial class RampViewModel : ObservableObject, IDisposable
             ? plan
             : null;
 
-    private static string Describe(RampValidationError error) => error.Issue switch
-    {
-        RampValidationIssue.TooFewPoints => "A ramp needs at least two points.",
-        RampValidationIssue.FirstPointNotAtZero => "The first point has to be at minute 0.",
-        RampValidationIssue.TimeNotIncreasing => "Each point has to come after the one before it.",
-        RampValidationIssue.TemperatureOutOfRange => "must be between 40 and 230 °C",
-        RampValidationIssue.NegativeHold => "The hold cannot be negative.",
-        _ => "",
-    };
+    /// <summary>The key follows the issue name, so a new validation issue cannot be added
+    /// without a message - the string table test fails until one exists.</summary>
+    private static string Describe(RampValidationError error) =>
+        Strings.Get($"Ramp.Invalid.{error.Issue}");
 
     private void UpdateWarmUpNote()
     {
@@ -254,15 +250,17 @@ public partial class RampViewModel : ObservableObject, IDisposable
         var start = Points[0].Celsius;
         if (_currentTemperature >= start - 0.5)
         {
-            WarmUpNote = $"The device is already at {Formatting.Celsius(start)}, so the ramp starts right away.";
+            WarmUpNote = Strings.Get("Ramp.WarmUp.AlreadyThere", Formatting.Celsius(start));
             return;
         }
 
         // Matches the simulator's and the real device's rough climb rate; it is a hint, not a promise.
         var seconds = (start - _currentTemperature) / 3.5;
-        WarmUpNote =
-            $"Warm-up to {Formatting.Celsius(start)} takes about {Formatting.Duration(TimeSpan.FromSeconds(seconds))} " +
-            $"from {Formatting.Celsius(_currentTemperature)} - it runs before the ramp and is not counted in it.";
+        WarmUpNote = Strings.Get(
+            "Ramp.WarmUp.Needed",
+            Formatting.Celsius(start),
+            Formatting.Duration(TimeSpan.FromSeconds(seconds)),
+            Formatting.Celsius(_currentTemperature));
     }
 
     // --- Commands ---
@@ -383,4 +381,9 @@ public partial class RampViewModel : ObservableObject, IDisposable
         _device.CurrentTemperatureChanged -= OnCurrentTemperatureChanged;
         _device.ConnectionStateChanged -= OnConnectionStateChanged;
     }
+
+    /// <summary>Re-reads every computed label. Called after a language change; passing a
+    /// null property name is the framework's "all of them" signal.</summary>
+    public void RefreshText() => OnPropertyChanged(new PropertyChangedEventArgs(null));
 }
+

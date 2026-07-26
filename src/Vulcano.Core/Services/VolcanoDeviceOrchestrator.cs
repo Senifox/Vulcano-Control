@@ -135,7 +135,7 @@ public sealed class VolcanoDeviceOrchestrator : IVolcanoDevice, IRampSessionCont
         if (IsHosting) return;
         if (IsRemote)
         {
-            throw new InvalidOperationException("Cannot host while connected to someone else's host.");
+            throw new InvalidOperationException(Strings.Get("Error.HostWhileRemote"));
         }
 
         if (_relayServer is null)
@@ -163,7 +163,7 @@ public sealed class VolcanoDeviceOrchestrator : IVolcanoDevice, IRampSessionCont
     {
         if (IsHosting)
         {
-            throw new InvalidOperationException("Cannot join a host while hosting.");
+            throw new InvalidOperationException(Strings.Get("Error.JoinWhileHosting"));
         }
 
         var previousDevice = _device;

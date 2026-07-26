@@ -23,13 +23,17 @@ public partial class App : Application
             var settingsService = new SettingsService();
             var settings = settingsService.Load();
 
+            // Before anything is built: the log writes its first line immediately, and the views
+            // read their labels out of the resources the moment they are constructed.
+            Loc.Apply(settings.Language);
+
             _themeManager = new ThemeManager();
             _themeManager.Apply(settings.Theme);
 
             // The Bluetooth adapter is not ported yet, so there is nothing else to choose: every
             // run talks to the simulated device. Once the WinRT transport lands this becomes a
             // factory that picks the real device and falls back to the simulator on --simulate.
-            log.Log("No Bluetooth adapter available yet - running against the simulated device");
+            log.Log(Strings.Get("Log.NoAdapter"));
 
             var orchestrator = new VolcanoDeviceOrchestrator(() => new SimulatedVolcanoDevice(log), log)
             {

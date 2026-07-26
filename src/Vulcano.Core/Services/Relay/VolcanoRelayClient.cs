@@ -96,7 +96,7 @@ public sealed class VolcanoRelayClient : IVolcanoDevice
         catch (Exception ex)
         {
             State = ConnectionState.Error;
-            ErrorOccurred?.Invoke(this, $"Host unreachable: {ex.Message}");
+            ErrorOccurred?.Invoke(this, Strings.Get("Error.HostUnreachable", ex.Message));
             return false;
         }
 
@@ -121,12 +121,12 @@ public sealed class VolcanoRelayClient : IVolcanoDevice
         catch (Exception ex)
         {
             State = ConnectionState.Error;
-            ErrorOccurred?.Invoke(this, $"Could not connect to the host: {ex.Message}");
+            ErrorOccurred?.Invoke(this, Strings.Get("Error.ConnectToHostFailed", ex.Message));
             await TeardownAsync();
             return false;
         }
 
-        _logService.Log($"Connected to LAN host {_host}:{_port} ({_role})");
+        _logService.Log(Strings.Get("Log.JoinedHost", _host, _port, _role));
         State = ConnectionState.Connected;
         return true;
     }
@@ -348,7 +348,7 @@ public sealed class VolcanoRelayClient : IVolcanoDevice
         if (_disconnecting) return;
 
         State = ConnectionState.Error;
-        ErrorOccurred?.Invoke(this, "Connection to host lost");
+        ErrorOccurred?.Invoke(this, Strings.Get("Error.ConnectionToHostLost"));
     }
 
     private async Task TeardownAsync()

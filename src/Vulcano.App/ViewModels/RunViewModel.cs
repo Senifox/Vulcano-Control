@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Collections.ObjectModel;
 using System.Linq;
 using Avalonia.Threading;
@@ -103,17 +104,17 @@ public partial class RunViewModel : ObservableObject, IDisposable
 
     public string TimeLeftText => Formatting.Duration(Remaining);
 
-    public string EndsAtText => $"ends {(DateTime.Now + Remaining):HH:mm}";
+    public string EndsAtText => Strings.Get("Run.EndsAt", (DateTime.Now + Remaining).ToString("HH:mm"));
 
     public string SegmentText => SegmentCount > 0 ? $"{SegmentNumber}/{SegmentCount}" : "—";
 
-    public string PhaseText => IsPaused
-        ? "paused"
-        : IsWarmingUp ? "warming up"
-        : IsHolding ? "holding"
-        : "running";
+    public string PhaseText => Strings.Get(
+        IsPaused ? "State.Paused"
+        : IsWarmingUp ? "State.WarmingUp"
+        : IsHolding ? "State.Holding"
+        : "State.Running");
 
-    public string PauseLabel => IsPaused ? "Resume" : "Pause";
+    public string PauseLabel => Strings.Get(IsPaused ? "Action.Resume" : "Action.Pause");
 
     [RelayCommand]
     private void TogglePause()
@@ -152,7 +153,7 @@ public partial class RunViewModel : ObservableObject, IDisposable
             return;
         }
 
-        Segments.Add(new RunSegmentViewModel("Warm-up", 0.6));
+        Segments.Add(new RunSegmentViewModel(Strings.Get("Run.WarmUp"), 0.6));
 
         for (var i = 0; i < plan.SegmentCount; i++)
         {
@@ -166,7 +167,7 @@ public partial class RunViewModel : ObservableObject, IDisposable
         if (plan.HoldDuration > TimeSpan.Zero)
         {
             Segments.Add(new RunSegmentViewModel(
-                $"hold {Formatting.Minutes((int)plan.HoldDuration.TotalMinutes)}",
+                Strings.Get("Run.HoldFor", Formatting.Minutes((int)plan.HoldDuration.TotalMinutes)),
                 Math.Max(plan.HoldDuration.TotalMinutes, 1)));
         }
     }
@@ -175,7 +176,7 @@ public partial class RunViewModel : ObservableObject, IDisposable
     {
         if (Segments.Count == 0) return;
 
-        var hasWarmUp = Segments[0].Label == "Warm-up";
+        var hasWarmUp = Segments[0].Label == Strings.Get("Run.WarmUp");
         var offset = hasWarmUp ? 1 : 0;
 
         var active = progress.IsWarmingUp && hasWarmUp
@@ -249,4 +250,9 @@ public partial class RunViewModel : ObservableObject, IDisposable
         _device.CurrentTemperatureChanged -= OnCurrentTemperatureChanged;
         _device.ActivityChanged -= OnActivityChanged;
     }
+
+    /// <summary>Re-reads every computed label. Called after a language change; passing a
+    /// null property name is the framework's "all of them" signal.</summary>
+    public void RefreshText() => OnPropertyChanged(new PropertyChangedEventArgs(null));
 }
+

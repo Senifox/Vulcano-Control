@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net;
@@ -19,9 +20,9 @@ public sealed record ConnectedClientRow(RelayClientInfo Info)
 {
     public string Name => Info.Name;
 
-    public string Detail => $"since {Info.ConnectedAt:HH:mm} · {Info.Address}";
+    public string Detail => Strings.Get("Network.Client.Since", Info.ConnectedAt.ToString("HH:mm"), Info.Address);
 
-    public string Role => Info.Role == RelayClientRole.Controlling ? "controlling" : "watching";
+    public string Role => Strings.Get($"Network.Role.{Info.Role}");
 }
 
 /// <summary>
@@ -111,10 +112,10 @@ public partial class NetworkViewModel : ObservableObject, IDisposable
     public bool CanHost => !IsRemote;
 
     public string RemoteBanner => IsRemote
-        ? $"Connected through {_device.HostName}. The device is paired with that machine."
+        ? Strings.Get("Network.RemoteBanner", _device.HostName)
         : "";
 
-    public string ClientsTitle => $"CONNECTED CLIENTS · {Clients.Count}";
+    public string ClientsTitle => Strings.Get("Network.Clients", Clients.Count);
 
     public bool HasClients => Clients.Count > 0;
 
@@ -130,7 +131,7 @@ public partial class NetworkViewModel : ObservableObject, IDisposable
         }
         catch (Exception ex)
         {
-            _log.Log($"Could not start hosting: {ex.Message}", LogLevel.Warning);
+            _log.Log(Strings.Get("Log.HostingFailed", ex.Message), LogLevel.Warning);
         }
     }
 
@@ -164,7 +165,7 @@ public partial class NetworkViewModel : ObservableObject, IDisposable
 
             if (!joined)
             {
-                JoinError = "Could not join - check the address, the port and the PIN.";
+                JoinError = Strings.Get("Network.Join.Failed");
                 return;
             }
 
@@ -258,4 +259,9 @@ public partial class NetworkViewModel : ObservableObject, IDisposable
         _device.HostedClientsChanged -= OnHostedClientsChanged;
         _device.ConnectionStateChanged -= OnConnectionStateChanged;
     }
+
+    /// <summary>Re-reads every computed label. Called after a language change; passing a
+    /// null property name is the framework's "all of them" signal.</summary>
+    public void RefreshText() => OnPropertyChanged(new PropertyChangedEventArgs(null));
 }
+

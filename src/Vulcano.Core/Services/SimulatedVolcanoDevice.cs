@@ -85,7 +85,7 @@ public sealed class SimulatedVolcanoDevice : IVolcanoDevice
         if (State == ConnectionState.Connected) return true;
 
         State = ConnectionState.Scanning;
-        _logService.Log("Simulated device: scanning");
+        _logService.Log(Strings.Get("Log.Sim.Scanning"));
 
         try
         {
@@ -98,13 +98,13 @@ public sealed class SimulatedVolcanoDevice : IVolcanoDevice
         }
 
         State = ConnectionState.Connecting;
-        _logService.Log($"Simulated device: connecting to {SerialNumber}");
+        _logService.Log(Strings.Get("Log.Sim.Connecting", SerialNumber));
 
         _cts = new CancellationTokenSource();
         _loop = RunAsync(_cts.Token);
 
         State = ConnectionState.Connected;
-        _logService.Log("Simulated device: connected · firmware V1.63 / BLE V1.35");
+        _logService.Log(Strings.Get("Log.Sim.Connected", "V1.63", "V1.35"));
         return true;
     }
 
@@ -112,7 +112,7 @@ public sealed class SimulatedVolcanoDevice : IVolcanoDevice
     {
         await StopLoopAsync();
         State = ConnectionState.Disconnected;
-        _logService.Log("Simulated device: disconnected");
+        _logService.Log(Strings.Get("Log.Sim.Disconnected"));
     }
 
     /// <summary>
@@ -124,9 +124,9 @@ public sealed class SimulatedVolcanoDevice : IVolcanoDevice
         if (State != ConnectionState.Connected) return;
 
         await StopLoopAsync();
-        _logService.Log("Simulated device: connection lost", LogLevel.Warning);
+        _logService.Log(Strings.Get("Log.Sim.ConnectionLost"), LogLevel.Warning);
         State = ConnectionState.Error;
-        ErrorOccurred?.Invoke(this, "Connection to the device was lost");
+        ErrorOccurred?.Invoke(this, Strings.Get("Error.DeviceConnectionLost"));
     }
 
     public Task SetTargetTemperatureAsync(double celsius)
@@ -245,7 +245,7 @@ public sealed class SimulatedVolcanoDevice : IVolcanoDevice
 
                 if (autoOffFired)
                 {
-                    _logService.Log("Simulated device: auto shut-off switched the heater off");
+                    _logService.Log(Strings.Get("Log.Sim.AutoOff"));
                     RaiseActivity();
                 }
             }

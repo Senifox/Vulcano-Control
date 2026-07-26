@@ -16,7 +16,7 @@
       <Border Classes="card" Padding="18,16,18,0">
         <StackPanel Spacing="10">
           <Grid ColumnDefinitions="*,Auto">
-            <TextBlock Grid.Column="0" Classes="label" Text="CURRENT" />
+            <TextBlock Grid.Column="0" Classes="label" Text="{DynamicResource S.Control.Current}" />
             <Border Grid.Column="1" Classes="chip heat" IsVisible="{Binding IsConnected}">
               <TextBlock Text="{Binding HeatStateText}" />
             </Border>
@@ -38,7 +38,7 @@
           </StackPanel>
 
           <StackPanel Orientation="Horizontal" Spacing="8">
-            <TextBlock Text="Target" Foreground="{DynamicResource Text.Muted}" VerticalAlignment="Center" />
+            <TextBlock Text="{DynamicResource S.Control.Target}" Foreground="{DynamicResource Text.Muted}" VerticalAlignment="Center" />
             <TextBlock Text="{Binding TargetTemperatureText}"
                        FontFamily="{StaticResource Font.Mono}"
                        Foreground="{DynamicResource Text.Sub}"
@@ -68,7 +68,7 @@
                             Command="{Binding ToggleHeaterCommand}"
                             IsEnabled="{Binding IsConnected}" />
             </Grid>
-            <TextBlock Text="Heater" FontSize="{StaticResource Text.CardTitle}" FontWeight="SemiBold" />
+            <TextBlock Text="{DynamicResource S.Control.Heater}" FontSize="{StaticResource Text.CardTitle}" FontWeight="SemiBold" />
             <TextBlock Text="{Binding HeaterDetailText}" Classes="sub" />
           </StackPanel>
         </Border>
@@ -83,7 +83,7 @@
                             Command="{Binding TogglePumpCommand}"
                             IsEnabled="{Binding IsConnected}" />
             </Grid>
-            <TextBlock Text="Pump" FontSize="{StaticResource Text.CardTitle}" FontWeight="SemiBold" />
+            <TextBlock Text="{DynamicResource S.Control.Pump}" FontSize="{StaticResource Text.CardTitle}" FontWeight="SemiBold" />
             <TextBlock Text="{Binding PumpDetailText}" Classes="sub" />
           </StackPanel>
         </Border>
@@ -92,7 +92,7 @@
       <!-- ============ Target temperature ============ -->
       <Border Classes="card">
         <StackPanel Spacing="12">
-          <TextBlock Classes="label" Text="TARGET TEMPERATURE" />
+          <TextBlock Classes="label" Text="{DynamicResource S.Control.TargetTemperature}" />
 
           <Grid ColumnDefinitions="*,10,Auto">
             <c:Stepper Grid.Column="0"
@@ -100,7 +100,7 @@
                        Minimum="40" Maximum="230" Step="1" Unit="°C" />
             <Button Grid.Column="2"
                     Theme="{StaticResource PrimaryButton}"
-                    Content="Set"
+                    Content="{DynamicResource S.Action.Set}"
                     Command="{Binding ApplyTargetCommand}"
                     IsEnabled="{Binding IsConnected}" />
           </Grid>
@@ -129,7 +129,7 @@
       <!-- ============ Auto shut-off ============ -->
       <Border Classes="card">
         <StackPanel Spacing="6">
-          <TextBlock Classes="label" Text="AUTO SHUT-OFF" />
+          <TextBlock Classes="label" Text="{DynamicResource S.Control.AutoShutOff}" />
           <TextBlock Text="{Binding AutoShutOffText}"
                      FontFamily="{StaticResource Font.Mono}"
                      FontSize="{StaticResource Text.Section}"
@@ -150,12 +150,12 @@
             <StackPanel Orientation="Horizontal" Spacing="6">
               <Border Width="14" Height="2" CornerRadius="1" VerticalAlignment="Center"
                       Background="{DynamicResource Info}" />
-              <TextBlock Text="Measured" Classes="sub" />
+              <TextBlock Text="{DynamicResource S.Chart.Measured}" Classes="sub" />
             </StackPanel>
             <StackPanel Orientation="Horizontal" Spacing="6">
               <Border Width="14" Height="2" CornerRadius="1" VerticalAlignment="Center"
                       Background="{DynamicResource Accent}" />
-              <TextBlock Text="Plan" Classes="sub" />
+              <TextBlock Text="{DynamicResource S.Chart.Plan}" Classes="sub" />
             </StackPanel>
           </StackPanel>
 
@@ -171,7 +171,7 @@
                             IsVisible="{Binding Chart.HasData}" />
 
         <TextBlock Grid.Row="1"
-                   Text="Nothing measured yet."
+                   Text="{DynamicResource S.Chart.Empty}"
                    HorizontalAlignment="Center"
                    VerticalAlignment="Center"
                    Foreground="{DynamicResource Text.Faint}"

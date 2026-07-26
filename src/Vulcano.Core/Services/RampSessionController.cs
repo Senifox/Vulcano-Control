@@ -95,9 +95,15 @@ public sealed class RampSessionController : IRampSessionController
         _lastPushedTemperature = double.NaN;
 
         _logService.Log(
-            $"Ramp started: {plan.Points.Count} points / {plan.Duration.TotalMinutes:0} min, " +
-            $"{plan.StartTemperatureCelsius:0} °C to {plan.EndTemperatureCelsius:0} °C" +
-            (plan.HoldDuration > TimeSpan.Zero ? $", hold {plan.HoldDuration.TotalMinutes:0} min" : ""));
+            Strings.Get(
+                "Log.RampStarted",
+                plan.Points.Count,
+                Math.Round(plan.Duration.TotalMinutes),
+                Formatting.Celsius(plan.StartTemperatureCelsius),
+                Formatting.Celsius(plan.EndTemperatureCelsius))
+            + (plan.HoldDuration > TimeSpan.Zero
+                ? Strings.Get("Log.RampStarted.Hold", Math.Round(plan.HoldDuration.TotalMinutes))
+                : ""));
 
         if (!heaterCurrentlyOn)
         {
@@ -122,7 +128,7 @@ public sealed class RampSessionController : IRampSessionController
         _pausedAtUtc = null;
         _pausedByConnectionLoss = false;
         _cts?.Cancel();
-        _logService.Log("Ramp stopped manually");
+        _logService.Log(Strings.Get("Log.RampStoppedManually"));
         Stopped?.Invoke(this, EventArgs.Empty);
     }
 
@@ -132,7 +138,7 @@ public sealed class RampSessionController : IRampSessionController
 
         _pausedAtUtc = DateTime.UtcNow;
         _pausedByConnectionLoss = false;
-        _logService.Log("Ramp paused");
+        _logService.Log(Strings.Get("Log.RampPaused"));
         RaiseCurrentProgress();
     }
 
@@ -148,7 +154,7 @@ public sealed class RampSessionController : IRampSessionController
         _pausedAtUtc = null;
         _pausedByConnectionLoss = false;
 
-        _logService.Log("Ramp resumed");
+        _logService.Log(Strings.Get("Log.RampResumed"));
         RaiseCurrentProgress();
     }
 
@@ -171,14 +177,14 @@ public sealed class RampSessionController : IRampSessionController
                 var segmentEnd = _plan.GetSegmentEnd(segment);
 
                 _startedAtUtc = reference - segmentEnd;
-                _logService.Log($"Segment {segment + 1} of {_plan.SegmentCount} skipped");
+                _logService.Log(Strings.Get("Log.SegmentSkipped", segment + 1, _plan.SegmentCount));
                 break;
             }
 
             case Phase.Holding:
                 // Make the hold look already elapsed; the next tick finishes the ramp.
                 _holdStartedAtUtc = (_pausedAtUtc ?? DateTime.UtcNow) - _plan.HoldDuration;
-                _logService.Log("Hold skipped");
+                _logService.Log(Strings.Get("Log.HoldSkipped"));
                 break;
         }
     }
@@ -200,7 +206,7 @@ public sealed class RampSessionController : IRampSessionController
             _pausedAtUtc = DateTime.UtcNow;
             _pausedByConnectionLoss = true;
             _logService.Log(
-                $"Connection lost during a running ramp - paused at {_lastKnownCurrentTemperature:0} °C",
+                Strings.Get("Log.ConnectionLostDuringRamp", Formatting.Celsius(_lastKnownCurrentTemperature)),
                 LogLevel.Warning);
             RaiseCurrentProgress();
             return;
@@ -208,7 +214,7 @@ public sealed class RampSessionController : IRampSessionController
 
         if (_pausedByConnectionLoss)
         {
-            _logService.Log("Connection restored - continuing the ramp");
+            _logService.Log(Strings.Get("Log.ConnectionRestored"));
             Resume();
         }
     }
@@ -234,7 +240,7 @@ public sealed class RampSessionController : IRampSessionController
         catch (Exception ex)
         {
             _phase = Phase.Idle;
-            var message = $"Ramp aborted: {ex.Message}";
+            var message = Strings.Get("Log.RampAborted", ex.Message);
             _logService.Log(message, LogLevel.Error);
             ErrorOccurred?.Invoke(this, message);
         }
@@ -258,9 +264,7 @@ public sealed class RampSessionController : IRampSessionController
             // The device can auto-shutoff on its own (see the auto-off timer) or otherwise
             // turn the heater off mid-ramp - re-enable it so the ramp keeps running rather
             // than silently stalling at a lower temperature.
-            _logService.Log(
-                "Heater switched off unexpectedly during a running ramp (e.g. auto shut-off) - switching it back on",
-                LogLevel.Warning);
+            _logService.Log(Strings.Get("Log.HeaterReactivated"), LogLevel.Warning);
             await _device.SetHeaterAsync(true);
             _lastKnownHeaterOn = true; // optimistic, avoids resending every tick until the notify confirms it
         }
@@ -276,9 +280,7 @@ public sealed class RampSessionController : IRampSessionController
             _phase = Phase.Ramping;
             _startedAtUtc = DateTime.UtcNow;
             _lastPushedTemperature = _plan.StartTemperatureCelsius;
-            _logService.Log(_skipWarmup
-                ? "Warm-up skipped, ramp is running"
-                : "Start temperature reached, ramp is running");
+            _logService.Log(Strings.Get(_skipWarmup ? "Log.WarmUpSkipped" : "Log.WarmUpReached"));
             _skipWarmup = false;
             WarmupCompleted?.Invoke(this, EventArgs.Empty);
         }
@@ -316,9 +318,10 @@ public sealed class RampSessionController : IRampSessionController
             await _device.SetTargetTemperatureAsync(_plan.EndTemperatureCelsius);
             _phase = Phase.Holding;
             _holdStartedAtUtc = DateTime.UtcNow;
-            _logService.Log(
-                $"Ramp curve finished, holding {_plan.EndTemperatureCelsius:0} °C " +
-                $"for {_plan.HoldDuration.TotalMinutes:0} min");
+            _logService.Log(Strings.Get(
+                "Log.CurveFinished",
+                Formatting.Celsius(_plan.EndTemperatureCelsius),
+                Math.Round(_plan.HoldDuration.TotalMinutes)));
             RaiseHoldProgress(TimeSpan.Zero);
             return true;
         }
@@ -346,7 +349,7 @@ public sealed class RampSessionController : IRampSessionController
 
         await _device.SetTargetTemperatureAsync(idealTarget);
         _lastPushedTemperature = idealTarget;
-        _logService.Log($"Ramp target updated: {idealTarget:0} °C", LogLevel.Debug);
+        _logService.Log(Strings.Get("Log.RampTargetUpdated", Formatting.Celsius(idealTarget)), LogLevel.Debug);
     }
 
     private async Task FinishAsync()
@@ -357,7 +360,7 @@ public sealed class RampSessionController : IRampSessionController
         await _device.SetTargetTemperatureAsync(ResetTemperatureCelsius);
         await _device.SetHeaterAsync(false);
 
-        _logService.Log($"Ramp complete: target reset to {ResetTemperatureCelsius:0} °C, heater switched off");
+        _logService.Log(Strings.Get("Log.RampComplete", Formatting.Celsius(ResetTemperatureCelsius)));
 
         Completed?.Invoke(this, ResetTemperatureCelsius);
     }

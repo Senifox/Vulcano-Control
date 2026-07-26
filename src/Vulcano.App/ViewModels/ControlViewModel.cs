@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using Avalonia.Threading;
@@ -66,9 +67,6 @@ public partial class ControlViewModel : ObservableObject, IDisposable
     private int _remainingAutoOffSeconds;
 
     [ObservableProperty]
-    private string _heaterDetailText = "off";
-
-    [ObservableProperty]
     private bool _isConnected;
 
     /// <summary>True while a ramp is driving the target, which is what the auto shut-off note
@@ -119,18 +117,25 @@ public partial class ControlViewModel : ObservableObject, IDisposable
 
     public string HeatStateText => HeatState switch
     {
-        HeatState.Heating => "heating",
-        HeatState.AtTarget => "at target",
-        HeatState.Cooling => "cooling",
-        _ => "idle",
+        HeatState.Heating => Strings.Get("State.Heating"),
+        HeatState.AtTarget => Strings.Get("State.AtTarget"),
+        HeatState.Cooling => Strings.Get("State.Cooling"),
+        _ => Strings.Get("State.Idle"),
     };
 
-    public string PumpDetailText => IsPumpOn ? "on" : "off";
+    /// <summary>"on · 6:12" once the heater has been on for a while, otherwise just on or off.
+    /// Computed rather than assigned, so it reads correctly before the first device event arrives
+    /// instead of sitting empty next to a pump that already says "off".</summary>
+    public string HeaterDetailText => IsHeaterOn && _heaterOnSince is { } since
+        ? Strings.Get("Control.HeaterFor", Formatting.Duration(DateTime.UtcNow - since))
+        : Strings.Get(IsHeaterOn ? "State.On" : "State.Off");
+
+    public string PumpDetailText => Strings.Get(IsPumpOn ? "State.On" : "State.Off");
 
     public string AutoShutOffText => Formatting.Duration(RemainingAutoOffSeconds);
 
     public string AutoShutOffNote =>
-        IsRampRunning ? "Extended automatically while a ramp is running" : "";
+        IsRampRunning ? Strings.Get("Control.AutoShutOff.Extended") : "";
 
     [RelayCommand]
     private async Task ToggleHeaterAsync() => await _device.SetHeaterAsync(!IsHeaterOn);
@@ -186,7 +191,6 @@ public partial class ControlViewModel : ObservableObject, IDisposable
 
             IsHeaterOn = heaterOn;
             IsPumpOn = (activity & VolcanoUuids.ActivityFlags.PumpEnabled) != 0;
-            UpdateHeaterDetail();
         });
 
     private void OnRemainingAutoOffSecondsChanged(object? sender, int seconds) =>
@@ -195,13 +199,9 @@ public partial class ControlViewModel : ObservableObject, IDisposable
             RemainingAutoOffSeconds = seconds;
             // The heater's "on for 6:12" line has no event of its own; it rides along with the
             // auto shut-off tick, which arrives once a second anyway.
-            UpdateHeaterDetail();
+            OnPropertyChanged(nameof(HeaterDetailText));
         });
 
-    private void UpdateHeaterDetail() =>
-        HeaterDetailText = IsHeaterOn && _heaterOnSince is { } since
-            ? $"on · {Formatting.Duration(DateTime.UtcNow - since)}"
-            : IsHeaterOn ? "on" : "off";
 
     private void OnConnectionStateChanged(object? sender, ConnectionState state) =>
         Dispatcher.UIThread.Post(() =>
@@ -227,4 +227,9 @@ public partial class ControlViewModel : ObservableObject, IDisposable
         _device.RemainingAutoOffSecondsChanged -= OnRemainingAutoOffSecondsChanged;
         _device.ConnectionStateChanged -= OnConnectionStateChanged;
     }
+
+    /// <summary>Re-reads every computed label. Called after a language change; passing a
+    /// null property name is the framework's "all of them" signal.</summary>
+    public void RefreshText() => OnPropertyChanged(new PropertyChangedEventArgs(null));
 }
+

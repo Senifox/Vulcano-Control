@@ -7,4 +7,15 @@
     <RootNamespace>Vulcano.Core</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- No generated designer class: the keys are dotted (Tab.Control), which a generated property
+         name cannot be, and the dots are what makes them line up with the design document. -->
+    <EmbeddedResource Update="Resources\Strings.resx">
+      <Generator></Generator>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\Strings.de.resx">
+      <Generator></Generator>
+    </EmbeddedResource>
+  </ItemGroup>
+
 </Project>

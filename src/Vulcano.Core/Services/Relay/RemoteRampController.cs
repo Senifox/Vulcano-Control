@@ -62,19 +62,19 @@ public sealed class RemoteRampController : IRampSessionController
         _isRunning = false;
         _isPaused = false;
 
-        await SendAsync(RelayMethods.StopRamp, "Could not stop the ramp");
+        await SendAsync(RelayMethods.StopRamp, "Error.CannotStopRamp");
     }
 
-    public async void Pause() => await SendAsync(RelayMethods.PauseRamp, "Could not pause the ramp");
+    public async void Pause() => await SendAsync(RelayMethods.PauseRamp, "Error.CannotPauseRamp");
 
-    public async void Resume() => await SendAsync(RelayMethods.ResumeRamp, "Could not resume the ramp");
+    public async void Resume() => await SendAsync(RelayMethods.ResumeRamp, "Error.CannotResumeRamp");
 
-    public async void SkipSegment() => await SendAsync(RelayMethods.SkipRampSegment, "Could not skip the segment");
+    public async void SkipSegment() => await SendAsync(RelayMethods.SkipRampSegment, "Error.CannotSkipSegment");
 
     /// <summary>Fire-and-forget forwarding for the void control methods. The resulting state change
     /// arrives as a progress event from the host, so there is nothing to await here beyond
     /// surfacing a refusal.</summary>
-    private async Task SendAsync(string method, string failureMessage)
+    private async Task SendAsync(string method, string failureKey)
     {
         try
         {
@@ -86,7 +86,7 @@ public sealed class RemoteRampController : IRampSessionController
         }
         catch (Exception ex)
         {
-            ErrorOccurred?.Invoke(this, $"{failureMessage}: {ex.Message}");
+            ErrorOccurred?.Invoke(this, $"{Strings.Get(failureKey)}: {ex.Message}");
         }
     }
 

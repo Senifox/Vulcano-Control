@@ -48,7 +48,7 @@ public partial class ChartViewModel : ObservableObject, IDisposable
 
         _measuredSeries = new LineSeries<DateTimePoint>
         {
-            Name = "Measured",
+            Name = Strings.Get("Chart.Measured"),
             Values = _measured,
             Fill = null,
             // All three: GeometrySize alone still leaves a marker outline at every sample, and at
@@ -61,7 +61,7 @@ public partial class ChartViewModel : ObservableObject, IDisposable
 
         _planSeries = new LineSeries<DateTimePoint>
         {
-            Name = "Plan",
+            Name = Strings.Get("Chart.Plan"),
             Values = _plan,
             Fill = null,
             // All three: GeometrySize alone still leaves a marker outline at every sample, and at
@@ -105,7 +105,7 @@ public partial class ChartViewModel : ObservableObject, IDisposable
     public Axis[] YAxes { get; }
 
     /// <summary>How far back the chart reaches, so the empty stretch on the left is explained.</summary>
-    public string HistoryNote => $"last {Formatting.Minutes(_settings.HistoryRetentionMinutes)}";
+    public string HistoryNote => Strings.Get("Chart.History", Formatting.Minutes(_settings.HistoryRetentionMinutes));
 
     /// <summary>
     /// False until the first reading arrives. Worth a property of its own: a time axis with no data

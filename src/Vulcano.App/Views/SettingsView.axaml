@@ -15,20 +15,20 @@
 
         <Border Classes="card">
           <StackPanel Spacing="4">
-            <TextBlock Classes="label" Text="APPEARANCE" Margin="0,0,0,6" />
+            <TextBlock Classes="label" Text="{DynamicResource S.Settings.Appearance}" Margin="0,0,0,6" />
 
             <Border Classes="row">
               <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Grid.Column="0" Text="Theme" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="0" Text="{DynamicResource S.Settings.Theme}" VerticalAlignment="Center" />
                 <!-- Three fixed options, written out: a ConverterParameter cannot itself be a
                      binding, so an items template would need a wrapper per option to compare
                      against. Not worth it for three. -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
-                  <ToggleButton Theme="{StaticResource Chip}" Content="System"
+                  <ToggleButton Theme="{StaticResource Chip}" Content="{DynamicResource S.Settings.Theme.System}"
                                 IsChecked="{Binding Theme, Converter={StaticResource EnumToBool}, ConverterParameter=System, Mode=TwoWay}" />
-                  <ToggleButton Theme="{StaticResource Chip}" Content="Dark"
+                  <ToggleButton Theme="{StaticResource Chip}" Content="{DynamicResource S.Settings.Theme.Dark}"
                                 IsChecked="{Binding Theme, Converter={StaticResource EnumToBool}, ConverterParameter=Dark, Mode=TwoWay}" />
-                  <ToggleButton Theme="{StaticResource Chip}" Content="Light"
+                  <ToggleButton Theme="{StaticResource Chip}" Content="{DynamicResource S.Settings.Theme.Light}"
                                 IsChecked="{Binding Theme, Converter={StaticResource EnumToBool}, ConverterParameter=Light, Mode=TwoWay}" />
                 </StackPanel>
               </Grid>
@@ -37,20 +37,26 @@
             <Border Classes="row">
               <Grid ColumnDefinitions="*,Auto">
                 <StackPanel Grid.Column="0" Spacing="2">
-                  <TextBlock Text="Language" />
-                  <TextBlock Text="takes effect on the next start for now" Classes="footnote" />
+                  <TextBlock Text="{DynamicResource S.Settings.Language}" />
+                  <TextBlock Text="{DynamicResource S.Settings.Language.Hint}" Classes="footnote" />
                 </StackPanel>
                 <ComboBox Grid.Column="1" MinWidth="130"
                           ItemsSource="{Binding Languages}"
-                          SelectedItem="{Binding Language, Mode=TwoWay}" />
+                          SelectedItem="{Binding SelectedLanguage, Mode=TwoWay}">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:LanguageOption">
+                      <TextBlock Text="{Binding Name}" />
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
               </Grid>
             </Border>
 
             <Border Classes="row last">
               <Grid ColumnDefinitions="*,Auto">
                 <StackPanel Grid.Column="0" Spacing="2">
-                  <TextBlock Text="Temperature unit" />
-                  <TextBlock Text="°C only for now; the device's own display is left alone"
+                  <TextBlock Text="{DynamicResource S.Settings.Unit}" />
+                  <TextBlock Text="{DynamicResource S.Settings.Unit.Hint}"
                              Classes="footnote" />
                 </StackPanel>
                 <Border Classes="chip" Grid.Column="1">
@@ -63,13 +69,13 @@
 
         <Border Classes="card">
           <StackPanel Spacing="4">
-            <TextBlock Classes="label" Text="CHART AND RAMP" Margin="0,0,0,6" />
+            <TextBlock Classes="label" Text="{DynamicResource S.Settings.ChartAndRamp}" Margin="0,0,0,6" />
 
             <Border Classes="row">
               <Grid ColumnDefinitions="*,Auto">
                 <StackPanel Grid.Column="0" Spacing="2">
-                  <TextBlock Text="Keep history for" />
-                  <TextBlock Text="older points are dropped from the chart" Classes="footnote" />
+                  <TextBlock Text="{DynamicResource S.Settings.KeepHistory}" />
+                  <TextBlock Text="{DynamicResource S.Settings.KeepHistory.Hint}" Classes="footnote" />
                 </StackPanel>
                 <c:Stepper Grid.Column="1" Width="140"
                            Value="{Binding HistoryRetentionMinutes, Mode=TwoWay}"
@@ -80,8 +86,8 @@
             <Border Classes="row">
               <Grid ColumnDefinitions="*,Auto">
                 <StackPanel Grid.Column="0" Spacing="2">
-                  <TextBlock Text="Send ramp step from" />
-                  <TextBlock Text="smaller changes are not written to the device" Classes="footnote" />
+                  <TextBlock Text="{DynamicResource S.Settings.PushThreshold}" />
+                  <TextBlock Text="{DynamicResource S.Settings.PushThreshold.Hint}" Classes="footnote" />
                 </StackPanel>
                 <c:Stepper Grid.Column="1" Width="140"
                            Value="{Binding RampPushThresholdCelsius, Mode=TwoWay}"
@@ -91,7 +97,7 @@
 
             <Border Classes="row last">
               <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Grid.Column="0" Text="Time axis" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="0" Text="{DynamicResource S.Settings.TimeAxis}" VerticalAlignment="Center" />
                 <ComboBox Grid.Column="1" MinWidth="150"
                           ItemsSource="{Binding TimeAxisOptions}"
                           SelectedItem="{Binding SelectedTimeAxis, Mode=TwoWay}">
@@ -109,8 +115,8 @@
         <Border Classes="card">
           <StackPanel Spacing="10">
             <Grid ColumnDefinitions="*,Auto">
-              <TextBlock Grid.Column="0" Classes="label" Text="QUICK TEMPERATURES" />
-              <TextBlock Grid.Column="1" Text="shown next to the target stepper" Classes="footnote" />
+              <TextBlock Grid.Column="0" Classes="label" Text="{DynamicResource S.Settings.QuickTemperatures}" />
+              <TextBlock Grid.Column="1" Text="{DynamicResource S.Settings.QuickTemperatures.Hint}" Classes="footnote" />
             </Grid>
 
             <ItemsControl ItemsSource="{Binding QuickTemperatures}">
@@ -141,7 +147,7 @@
                          Value="{Binding NewQuickTemperature, Mode=TwoWay}"
                          Minimum="40" Maximum="230" Step="5" Unit="°C" />
               <Button Theme="{StaticResource SecondaryButton}"
-                      Content="+ Add"
+                      Content="{DynamicResource S.Action.Add}"
                       Command="{Binding AddQuickTemperatureCommand}" />
             </StackPanel>
           </StackPanel>
@@ -149,11 +155,11 @@
 
         <Border Classes="card">
           <StackPanel Spacing="10">
-            <TextBlock Classes="label" Text="FILES" />
+            <TextBlock Classes="label" Text="{DynamicResource S.Settings.Files}" />
             <TextBlock Text="{Binding SettingsFilePath}" Classes="mono footnote" TextWrapping="Wrap" />
-            <TextBlock Text="settings, ramp profiles and exported logs" Classes="footnote" />
+            <TextBlock Text="{DynamicResource S.Settings.Files.Hint}" Classes="footnote" />
             <Button Theme="{StaticResource SecondaryButton}"
-                    Content="Open folder"
+                    Content="{DynamicResource S.Action.OpenFolder}"
                     HorizontalAlignment="Left"
                     Command="{Binding OpenSettingsFolderCommand}" />
           </StackPanel>
@@ -165,13 +171,13 @@
 
         <Border Classes="card">
           <StackPanel Spacing="4">
-            <TextBlock Classes="label" Text="NOTIFICATIONS" Margin="0,0,0,6" />
+            <TextBlock Classes="label" Text="{DynamicResource S.Settings.Notifications}" Margin="0,0,0,6" />
 
             <Border Classes="row">
               <Grid ColumnDefinitions="*,Auto">
                 <StackPanel Grid.Column="0" Spacing="2">
-                  <TextBlock Text="Sound when target is reached" />
-                  <TextBlock Text="and when a ramp finishes" Classes="footnote" />
+                  <TextBlock Text="{DynamicResource S.Settings.SoundOnTarget}" />
+                  <TextBlock Text="{DynamicResource S.Settings.SoundOnTarget.Hint}" Classes="footnote" />
                 </StackPanel>
                 <ToggleButton Grid.Column="1" Theme="{StaticResource Toggle}"
                               IsChecked="{Binding SoundEnabled, Mode=TwoWay}" />
@@ -181,8 +187,8 @@
             <Border Classes="row last">
               <Grid ColumnDefinitions="*,Auto">
                 <StackPanel Grid.Column="0" Spacing="2">
-                  <TextBlock Text="Desktop notification" />
-                  <TextBlock Text="when the window is minimised" Classes="footnote" />
+                  <TextBlock Text="{DynamicResource S.Settings.DesktopNotification}" />
+                  <TextBlock Text="{DynamicResource S.Settings.DesktopNotification.Hint}" Classes="footnote" />
                 </StackPanel>
                 <ToggleButton Grid.Column="1" Theme="{StaticResource Toggle}"
                               IsChecked="{Binding DesktopNotifications, Mode=TwoWay}" />
@@ -193,20 +199,20 @@
 
         <Border Classes="card">
           <StackPanel Spacing="10">
-            <TextBlock Classes="label" Text="SHARING OVER THE NETWORK" />
-            <TextBlock Text="Port, PIN and hosting live in the Network tab, next to the list of who is connected."
+            <TextBlock Classes="label" Text="{DynamicResource S.Settings.Sharing}" />
+            <TextBlock Text="{DynamicResource S.Settings.Sharing.Hint}"
                        Classes="sub" TextWrapping="Wrap" />
           </StackPanel>
         </Border>
 
         <Border Classes="card">
           <StackPanel Spacing="10">
-            <TextBlock Classes="label" Text="ABOUT" />
+            <TextBlock Classes="label" Text="{DynamicResource S.Settings.About}" />
 
             <StackPanel Orientation="Horizontal" Spacing="12">
               <Border Width="38" Height="38" CornerRadius="9" Background="{DynamicResource Accent}" />
               <StackPanel Spacing="3" VerticalAlignment="Center">
-                <TextBlock Text="Vulcano Control" FontWeight="SemiBold" />
+                <TextBlock Text="{DynamicResource S.Settings.AppName}" FontWeight="SemiBold" />
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <TextBlock Text="{Binding Version, StringFormat='v {0}'}" Classes="mono footnote" />
                   <TextBlock Text="{Binding BuildNote}" Classes="footnote" />
@@ -214,7 +220,7 @@
               </StackPanel>
             </StackPanel>
 
-            <TextBlock Text="Automatic updates are switched off in this build. They come back together with the Linux packaging, so both platforms get the same behaviour rather than one silently different one."
+            <TextBlock Text="{DynamicResource S.Settings.UpdatesOff}"
                        Classes="footnote" TextWrapping="Wrap" />
           </StackPanel>
         </Border>

@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Threading.Tasks;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -63,7 +64,7 @@ public partial class DeviceViewModel : ObservableObject, IDisposable
     /// </summary>
     public bool IsRemote => _device.IsRemote;
 
-    public string RemoteNote => IsRemote ? "host only" : "";
+    public string RemoteNote => IsRemote ? Strings.Get("Relay.HostOnly") : "";
 
     [RelayCommand]
     private async Task ReloadAsync()
@@ -124,7 +125,7 @@ public partial class DeviceViewModel : ObservableObject, IDisposable
         }
         catch (Exception ex)
         {
-            _log.Log($"Writing a device setting failed: {ex.Message}", LogLevel.Warning);
+            _log.Log(Strings.Get("Log.DeviceSettingFailed", ex.Message), LogLevel.Warning);
         }
     }
 
@@ -149,4 +150,9 @@ public partial class DeviceViewModel : ObservableObject, IDisposable
         });
 
     public void Dispose() => _device.ConnectionStateChanged -= OnConnectionStateChanged;
+
+    /// <summary>Re-reads every computed label. Called after a language change; passing a
+    /// null property name is the framework's "all of them" signal.</summary>
+    public void RefreshText() => OnPropertyChanged(new PropertyChangedEventArgs(null));
 }
+

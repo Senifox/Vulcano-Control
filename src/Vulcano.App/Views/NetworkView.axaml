@@ -9,46 +9,46 @@
 
       <!-- ============ Hosting ============ -->
       <StackPanel Grid.Column="0" Spacing="12">
-        <TextBlock Text="Share this device" FontSize="{StaticResource Text.Section}" FontWeight="SemiBold" />
-        <TextBlock Text="One machine keeps the Bluetooth connection; the others steer it over the network."
+        <TextBlock Text="{DynamicResource S.Network.Share.Title}" FontSize="{StaticResource Text.Section}" FontWeight="SemiBold" />
+        <TextBlock Text="{DynamicResource S.Network.Share.Hint}"
                    Classes="sub" TextWrapping="Wrap" />
 
         <Border Classes="card" IsEnabled="{Binding CanHost}">
           <StackPanel Spacing="12">
             <Grid ColumnDefinitions="*,Auto">
-              <TextBlock Grid.Column="0" Classes="label" Text="SHARING" />
+              <TextBlock Grid.Column="0" Classes="label" Text="{DynamicResource S.Network.Sharing}" />
               <Border Grid.Column="1" Classes="chip success" IsVisible="{Binding IsHosting}">
-                <TextBlock Text="hosting" />
+                <TextBlock Text="{DynamicResource S.Network.Hosting}" />
               </Border>
             </Grid>
 
             <StackPanel Spacing="4">
-              <TextBlock Text="This machine" Classes="sub" />
+              <TextBlock Text="{DynamicResource S.Network.ThisMachine}" Classes="sub" />
               <TextBlock Text="{Binding HostAddressText}" Classes="value" TextWrapping="Wrap" />
             </StackPanel>
 
             <Grid ColumnDefinitions="*,12,*">
               <StackPanel Grid.Column="0" Spacing="5">
-                <TextBlock Text="Port" Classes="sub" />
+                <TextBlock Text="{DynamicResource S.Network.Port}" Classes="sub" />
                 <TextBox Text="{Binding Port, Mode=TwoWay}" FontFamily="{StaticResource Font.Mono}" />
               </StackPanel>
               <StackPanel Grid.Column="2" Spacing="5">
-                <TextBlock Text="PIN" Classes="sub" />
+                <TextBlock Text="{DynamicResource S.Network.Pin}" Classes="sub" />
                 <Grid ColumnDefinitions="*,6,Auto">
                   <TextBox Grid.Column="0" Text="{Binding Pin, Mode=TwoWay}"
                            FontFamily="{StaticResource Font.Mono}" />
                   <Button Grid.Column="2" Theme="{StaticResource SecondaryButton}"
-                          Content="New" Command="{Binding NewPinCommand}" />
+                          Content="{DynamicResource S.Action.New}" Command="{Binding NewPinCommand}" />
                 </Grid>
               </StackPanel>
             </Grid>
 
-            <TextBlock Text="The PIN is stored as plain text and is a door latch for a home network, not security."
+            <TextBlock Text="{DynamicResource S.Network.Pin.Hint}"
                        Classes="footnote" TextWrapping="Wrap" />
 
             <Border Classes="row last">
               <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Grid.Column="0" Text="Host on start" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="0" Text="{DynamicResource S.Network.HostOnStart}" VerticalAlignment="Center" />
                 <ToggleButton Grid.Column="1" Theme="{StaticResource Toggle}"
                               IsChecked="{Binding HostOnStart, Mode=TwoWay}" />
               </Grid>
@@ -56,11 +56,11 @@
 
             <StackPanel Orientation="Horizontal" Spacing="10">
               <Button Theme="{StaticResource PrimaryButton}"
-                      Content="Start hosting"
+                      Content="{DynamicResource S.Action.StartHosting}"
                       Command="{Binding StartHostingCommand}"
                       IsVisible="{Binding !IsHosting}" />
               <Button Theme="{StaticResource SecondaryButton}"
-                      Content="Stop hosting"
+                      Content="{DynamicResource S.Action.StopHosting}"
                       Command="{Binding StopHostingCommand}"
                       IsVisible="{Binding IsHosting}" />
             </StackPanel>
@@ -86,7 +86,7 @@
                         <TextBlock Text="{Binding Role}" />
                       </Border>
                       <Button Grid.Column="3" Theme="{StaticResource SecondaryButton}"
-                              Content="Revoke"
+                              Content="{DynamicResource S.Action.Revoke}"
                               Command="{Binding $parent[ItemsControl].((vm:NetworkViewModel)DataContext).RevokeCommand}"
                               CommandParameter="{Binding}" />
                     </Grid>
@@ -95,7 +95,7 @@
               </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <TextBlock Text="No one has joined yet."
+            <TextBlock Text="{DynamicResource S.Network.Clients.Empty}"
                        Classes="sub"
                        IsVisible="{Binding !HasClients}" />
           </StackPanel>
@@ -104,17 +104,17 @@
 
       <!-- ============ Joining ============ -->
       <StackPanel Grid.Column="2" Spacing="12">
-        <TextBlock Text="Use another machine's device" FontSize="{StaticResource Text.Section}"
+        <TextBlock Text="{DynamicResource S.Network.Join.Title}" FontSize="{StaticResource Text.Section}"
                    FontWeight="SemiBold" />
-        <TextBlock Text="Join a machine that is sharing its device. Its ramp keeps running even if this window closes."
+        <TextBlock Text="{DynamicResource S.Network.Join.Hint}"
                    Classes="sub" TextWrapping="Wrap" />
 
         <Border Classes="card">
           <StackPanel Spacing="12">
-            <TextBlock Classes="label" Text="JOIN" />
+            <TextBlock Classes="label" Text="{DynamicResource S.Network.Join}" />
 
             <StackPanel Spacing="5">
-              <TextBlock Text="Host address" Classes="sub" />
+              <TextBlock Text="{DynamicResource S.Network.Join.Address}" Classes="sub" />
               <TextBox Text="{Binding JoinAddress, Mode=TwoWay}"
                        Watermark="192.168.1.42"
                        FontFamily="{StaticResource Font.Mono}"
@@ -123,13 +123,13 @@
 
             <Grid ColumnDefinitions="*,12,*">
               <StackPanel Grid.Column="0" Spacing="5">
-                <TextBlock Text="Port" Classes="sub" />
+                <TextBlock Text="{DynamicResource S.Network.Port}" Classes="sub" />
                 <TextBox Text="{Binding JoinPort, Mode=TwoWay}"
                          FontFamily="{StaticResource Font.Mono}"
                          IsEnabled="{Binding !IsRemote}" />
               </StackPanel>
               <StackPanel Grid.Column="2" Spacing="5">
-                <TextBlock Text="PIN" Classes="sub" />
+                <TextBlock Text="{DynamicResource S.Network.Pin}" Classes="sub" />
                 <TextBox Text="{Binding JoinPin, Mode=TwoWay}"
                          FontFamily="{StaticResource Font.Mono}"
                          Classes.invalid="{Binding JoinError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
@@ -140,10 +140,10 @@
             <Border Classes="row last">
               <Grid ColumnDefinitions="*,Auto">
                 <StackPanel Grid.Column="0" Spacing="2">
-                  <TextBlock Text="Join to watch only" />
+                  <TextBlock Text="{DynamicResource S.Network.Join.WatchOnly}" />
                   <!-- Says plainly what it is: the host refuses writes from a watcher, but the PIN
                        is still the only gate. -->
-                  <TextBlock Text="the host refuses any change from this machine"
+                  <TextBlock Text="{DynamicResource S.Network.Join.WatchOnly.Hint}"
                              Classes="footnote" TextWrapping="Wrap" />
                 </StackPanel>
                 <ToggleButton Grid.Column="1" Theme="{StaticResource Toggle}"
@@ -157,12 +157,12 @@
 
             <StackPanel Orientation="Horizontal" Spacing="10">
               <Button Theme="{StaticResource PrimaryButton}"
-                      Content="Connect"
+                      Content="{DynamicResource S.Action.Connect}"
                       Command="{Binding JoinCommand}"
                       IsVisible="{Binding !IsRemote}"
                       IsEnabled="{Binding !IsJoining}" />
               <Button Theme="{StaticResource SecondaryButton}"
-                      Content="Leave"
+                      Content="{DynamicResource S.Action.Leave}"
                       Command="{Binding LeaveCommand}"
                       IsVisible="{Binding IsRemote}" />
             </StackPanel>
@@ -177,7 +177,7 @@
           </StackPanel>
         </Border>
 
-        <TextBlock Text="On the first start the firewall asks whether to allow the port. Under Linux it has to be opened in firewalld or ufw."
+        <TextBlock Text="{DynamicResource S.Network.Firewall.Hint}"
                    Classes="footnote" TextWrapping="Wrap" />
       </StackPanel>
     </Grid>

@@ -1,0 +1,754 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Tab.Control" xml:space="preserve">
+    <value>Control</value>
+  </data>
+  <data name="Tab.Ramp" xml:space="preserve">
+    <value>Ramp</value>
+  </data>
+  <data name="Tab.Run" xml:space="preserve">
+    <value>Run</value>
+  </data>
+  <data name="Tab.Device" xml:space="preserve">
+    <value>Device</value>
+  </data>
+  <data name="Tab.Network" xml:space="preserve">
+    <value>Network</value>
+  </data>
+  <data name="Tab.Log" xml:space="preserve">
+    <value>Log</value>
+  </data>
+  <data name="Tab.Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Action.Connect" xml:space="preserve">
+    <value>Connect</value>
+  </data>
+  <data name="Action.Disconnect" xml:space="preserve">
+    <value>Disconnect</value>
+  </data>
+  <data name="Action.Leave" xml:space="preserve">
+    <value>Leave</value>
+  </data>
+  <data name="Action.StartRamp" xml:space="preserve">
+    <value>Start ramp</value>
+  </data>
+  <data name="Action.StopRamp" xml:space="preserve">
+    <value>Stop ramp</value>
+  </data>
+  <data name="Action.Pause" xml:space="preserve">
+    <value>Pause</value>
+  </data>
+  <data name="Action.Resume" xml:space="preserve">
+    <value>Resume</value>
+  </data>
+  <data name="Action.SkipSegment" xml:space="preserve">
+    <value>Skip segment</value>
+  </data>
+  <data name="Action.SaveProfile" xml:space="preserve">
+    <value>Save profile</value>
+  </data>
+  <data name="Action.AddPoint" xml:space="preserve">
+    <value>Add point</value>
+  </data>
+  <data name="Action.Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="Action.Export" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="Action.Compact" xml:space="preserve">
+    <value>Compact</value>
+  </data>
+  <data name="Action.AlwaysOnTop" xml:space="preserve">
+    <value>Always on top</value>
+  </data>
+  <data name="Action.Set" xml:space="preserve">
+    <value>Set</value>
+  </data>
+  <data name="Action.Add" xml:space="preserve">
+    <value>+ Add</value>
+  </data>
+  <data name="Action.New" xml:space="preserve">
+    <value>New</value>
+  </data>
+  <data name="Action.OpenFolder" xml:space="preserve">
+    <value>Open folder</value>
+  </data>
+  <data name="Action.SearchForDevice" xml:space="preserve">
+    <value>Search for device</value>
+  </data>
+  <data name="Action.ReloadFromDevice" xml:space="preserve">
+    <value>Reload from device</value>
+  </data>
+  <data name="Action.StartHosting" xml:space="preserve">
+    <value>Start hosting</value>
+  </data>
+  <data name="Action.StopHosting" xml:space="preserve">
+    <value>Stop hosting</value>
+  </data>
+  <data name="Action.Revoke" xml:space="preserve">
+    <value>Revoke</value>
+  </data>
+  <data name="State.Connected" xml:space="preserve">
+    <value>Connected</value>
+  </data>
+  <data name="State.NotConnected" xml:space="preserve">
+    <value>Not connected</value>
+  </data>
+  <data name="State.Connecting" xml:space="preserve">
+    <value>Connecting…</value>
+  </data>
+  <data name="State.Searching" xml:space="preserve">
+    <value>Searching for device…</value>
+  </data>
+  <data name="State.ConnectionLost" xml:space="preserve">
+    <value>Connection lost</value>
+  </data>
+  <data name="State.Heating" xml:space="preserve">
+    <value>heating</value>
+  </data>
+  <data name="State.AtTarget" xml:space="preserve">
+    <value>at target</value>
+  </data>
+  <data name="State.Cooling" xml:space="preserve">
+    <value>cooling</value>
+  </data>
+  <data name="State.Idle" xml:space="preserve">
+    <value>idle</value>
+  </data>
+  <data name="State.On" xml:space="preserve">
+    <value>on</value>
+  </data>
+  <data name="State.Off" xml:space="preserve">
+    <value>off</value>
+  </data>
+  <data name="State.Paused" xml:space="preserve">
+    <value>paused</value>
+  </data>
+  <data name="State.Running" xml:space="preserve">
+    <value>running</value>
+  </data>
+  <data name="State.WarmingUp" xml:space="preserve">
+    <value>warming up</value>
+  </data>
+  <data name="State.Holding" xml:space="preserve">
+    <value>holding</value>
+  </data>
+  <data name="Connection.NotConnected.Hint" xml:space="preserve">
+    <value>Switch the device on and make sure Bluetooth is enabled.</value>
+  </data>
+  <data name="Connection.Searching.Hint" xml:space="preserve">
+    <value>Looking for a device in range.</value>
+  </data>
+  <data name="Connection.Lost.Hint" xml:space="preserve">
+    <value>The device stopped answering.</value>
+  </data>
+  <data name="Connection.Lost.RampPaused" xml:space="preserve">
+    <value>The ramp is paused at {0} and continues when the connection is back.</value>
+  </data>
+  <data name="Control.Current" xml:space="preserve">
+    <value>CURRENT</value>
+  </data>
+  <data name="Control.Target" xml:space="preserve">
+    <value>Target</value>
+  </data>
+  <data name="Control.TargetTemperature" xml:space="preserve">
+    <value>TARGET TEMPERATURE</value>
+  </data>
+  <data name="Control.Heater" xml:space="preserve">
+    <value>Heater</value>
+  </data>
+  <data name="Control.Pump" xml:space="preserve">
+    <value>Pump</value>
+  </data>
+  <data name="Control.AutoShutOff" xml:space="preserve">
+    <value>AUTO SHUT-OFF</value>
+  </data>
+  <data name="Control.AutoShutOff.Extended" xml:space="preserve">
+    <value>Extended automatically while a ramp is running</value>
+  </data>
+  <data name="Control.HeaterFor" xml:space="preserve">
+    <value>on · {0}</value>
+  </data>
+  <data name="Chart.Measured" xml:space="preserve">
+    <value>Measured</value>
+  </data>
+  <data name="Chart.Plan" xml:space="preserve">
+    <value>Plan</value>
+  </data>
+  <data name="Chart.History" xml:space="preserve">
+    <value>last {0}</value>
+  </data>
+  <data name="Chart.Empty" xml:space="preserve">
+    <value>Nothing measured yet.</value>
+  </data>
+  <data name="Ramp.Title" xml:space="preserve">
+    <value>Ramp</value>
+  </data>
+  <data name="Ramp.Point" xml:space="preserve">
+    <value>#</value>
+  </data>
+  <data name="Ramp.Time" xml:space="preserve">
+    <value>TIME</value>
+  </data>
+  <data name="Ramp.Temp" xml:space="preserve">
+    <value>TEMP</value>
+  </data>
+  <data name="Ramp.CurveToNext" xml:space="preserve">
+    <value>CURVE TO NEXT</value>
+  </data>
+  <data name="Ramp.Hold" xml:space="preserve">
+    <value>HOLD AFTER LAST POINT</value>
+  </data>
+  <data name="Ramp.Segment" xml:space="preserve">
+    <value>SEGMENT {0} → {1}</value>
+  </data>
+  <data name="Ramp.SegmentEmpty" xml:space="preserve">
+    <value>SEGMENT</value>
+  </data>
+  <data name="Ramp.Curve.Linear" xml:space="preserve">
+    <value>linear</value>
+  </data>
+  <data name="Ramp.Curve.Exponential" xml:space="preserve">
+    <value>exponential</value>
+  </data>
+  <data name="Ramp.Curve.Steep" xml:space="preserve">
+    <value>steep</value>
+  </data>
+  <data name="Ramp.Curve.EaseInOut" xml:space="preserve">
+    <value>ease-in-out</value>
+  </data>
+  <data name="Ramp.EditHint" xml:space="preserve">
+    <value>Click the curve to add a point, drag a point to move it.</value>
+  </data>
+  <data name="Ramp.HoldSuffix" xml:space="preserve">
+    <value>{0} + {1} hold</value>
+  </data>
+  <data name="Ramp.Invalid.TooFewPoints" xml:space="preserve">
+    <value>A ramp needs at least two points.</value>
+  </data>
+  <data name="Ramp.Invalid.FirstPointNotAtZero" xml:space="preserve">
+    <value>The first point has to be at minute 0.</value>
+  </data>
+  <data name="Ramp.Invalid.TimeNotIncreasing" xml:space="preserve">
+    <value>Each point has to come after the one before it.</value>
+  </data>
+  <data name="Ramp.Invalid.TemperatureOutOfRange" xml:space="preserve">
+    <value>must be between 40 and 230 °C</value>
+  </data>
+  <data name="Ramp.Invalid.NegativeHold" xml:space="preserve">
+    <value>The hold cannot be negative.</value>
+  </data>
+  <data name="Ramp.WarmUp.Needed" xml:space="preserve">
+    <value>Warm-up to {0} takes about {1} from {2} - it runs before the ramp and is not counted in it.</value>
+  </data>
+  <data name="Ramp.WarmUp.AlreadyThere" xml:space="preserve">
+    <value>The device is already at {0}, so the ramp starts right away.</value>
+  </data>
+  <data name="Run.Measured" xml:space="preserve">
+    <value>MEASURED</value>
+  </data>
+  <data name="Run.PlanNow" xml:space="preserve">
+    <value>PLAN NOW</value>
+  </data>
+  <data name="Run.TimeLeft" xml:space="preserve">
+    <value>TIME LEFT</value>
+  </data>
+  <data name="Run.EndsAt" xml:space="preserve">
+    <value>ends {0}</value>
+  </data>
+  <data name="Run.Segment" xml:space="preserve">
+    <value>SEGMENT</value>
+  </data>
+  <data name="Run.Progress" xml:space="preserve">
+    <value>PROGRESS</value>
+  </data>
+  <data name="Run.WarmUp" xml:space="preserve">
+    <value>Warm-up</value>
+  </data>
+  <data name="Run.HoldFor" xml:space="preserve">
+    <value>hold {0}</value>
+  </data>
+  <data name="Run.HeaterOn" xml:space="preserve">
+    <value>Heater on</value>
+  </data>
+  <data name="Run.HeaterOff" xml:space="preserve">
+    <value>Heater off</value>
+  </data>
+  <data name="Run.PumpOn" xml:space="preserve">
+    <value>Pump on</value>
+  </data>
+  <data name="Run.PumpOff" xml:space="preserve">
+    <value>Pump off</value>
+  </data>
+  <data name="Run.AutoShutOffHeld" xml:space="preserve">
+    <value>Auto shut-off is held off while the ramp runs</value>
+  </data>
+  <data name="Device.Title" xml:space="preserve">
+    <value>Device</value>
+  </data>
+  <data name="Device.Hint" xml:space="preserve">
+    <value>Changes go straight to the device - there is nothing to confirm.</value>
+  </data>
+  <data name="Device.Identity" xml:space="preserve">
+    <value>IDENTITY</value>
+  </data>
+  <data name="Device.Serial" xml:space="preserve">
+    <value>Serial number</value>
+  </data>
+  <data name="Device.HoursOfHeating" xml:space="preserve">
+    <value>Hours of heating</value>
+  </data>
+  <data name="Device.Firmware" xml:space="preserve">
+    <value>Firmware</value>
+  </data>
+  <data name="Device.BleFirmware" xml:space="preserve">
+    <value>Bluetooth firmware</value>
+  </data>
+  <data name="Device.DisplayAndTimers" xml:space="preserve">
+    <value>DISPLAY AND TIMERS</value>
+  </data>
+  <data name="Device.Brightness" xml:space="preserve">
+    <value>LED display brightness</value>
+  </data>
+  <data name="Device.Brightness.Hint" xml:space="preserve">
+    <value>how bright the device&apos;s own display is</value>
+  </data>
+  <data name="Device.AutoOff" xml:space="preserve">
+    <value>Auto shut-off timer</value>
+  </data>
+  <data name="Device.AutoOff.Hint" xml:space="preserve">
+    <value>held off while a ramp is running</value>
+  </data>
+  <data name="Device.Vibration" xml:space="preserve">
+    <value>Fan vibration alarm</value>
+  </data>
+  <data name="Device.Vibration.Hint" xml:space="preserve">
+    <value>the device buzzes when the pump stops</value>
+  </data>
+  <data name="Device.ShowTempWhileCooling" xml:space="preserve">
+    <value>Show temp while cooling</value>
+  </data>
+  <data name="Device.ShowTempWhileCooling.Hint" xml:space="preserve">
+    <value>keeps the display on as it cools down</value>
+  </data>
+  <data name="Device.UnitDeferred" xml:space="preserve">
+    <value>The temperature unit on the device is not offered yet - the app works in °C throughout, and switching the device&apos;s own display needs checking against real hardware first.</value>
+  </data>
+  <data name="Relay.HostOnly" xml:space="preserve">
+    <value>host only</value>
+  </data>
+  <data name="Network.Share.Title" xml:space="preserve">
+    <value>Share this device</value>
+  </data>
+  <data name="Network.Share.Hint" xml:space="preserve">
+    <value>One machine keeps the Bluetooth connection; the others steer it over the network.</value>
+  </data>
+  <data name="Network.Sharing" xml:space="preserve">
+    <value>SHARING</value>
+  </data>
+  <data name="Network.Hosting" xml:space="preserve">
+    <value>hosting</value>
+  </data>
+  <data name="Network.ThisMachine" xml:space="preserve">
+    <value>This machine</value>
+  </data>
+  <data name="Network.Port" xml:space="preserve">
+    <value>Port</value>
+  </data>
+  <data name="Network.Pin" xml:space="preserve">
+    <value>PIN</value>
+  </data>
+  <data name="Network.Pin.Hint" xml:space="preserve">
+    <value>The PIN is stored as plain text and is a door latch for a home network, not security.</value>
+  </data>
+  <data name="Network.HostOnStart" xml:space="preserve">
+    <value>Host on start</value>
+  </data>
+  <data name="Network.Clients" xml:space="preserve">
+    <value>CONNECTED CLIENTS · {0}</value>
+  </data>
+  <data name="Network.Clients.Empty" xml:space="preserve">
+    <value>No one has joined yet.</value>
+  </data>
+  <data name="Network.Client.Since" xml:space="preserve">
+    <value>since {0} · {1}</value>
+  </data>
+  <data name="Network.Role.Controlling" xml:space="preserve">
+    <value>controlling</value>
+  </data>
+  <data name="Network.Role.Watching" xml:space="preserve">
+    <value>watching</value>
+  </data>
+  <data name="Network.Join.Title" xml:space="preserve">
+    <value>Use another machine&apos;s device</value>
+  </data>
+  <data name="Network.Join.Hint" xml:space="preserve">
+    <value>Join a machine that is sharing its device. Its ramp keeps running even if this window closes.</value>
+  </data>
+  <data name="Network.Join" xml:space="preserve">
+    <value>JOIN</value>
+  </data>
+  <data name="Network.Join.Address" xml:space="preserve">
+    <value>Host address</value>
+  </data>
+  <data name="Network.Join.WatchOnly" xml:space="preserve">
+    <value>Join to watch only</value>
+  </data>
+  <data name="Network.Join.WatchOnly.Hint" xml:space="preserve">
+    <value>the host refuses any change from this machine</value>
+  </data>
+  <data name="Network.Join.Failed" xml:space="preserve">
+    <value>Could not join - check the address, the port and the PIN.</value>
+  </data>
+  <data name="Network.RemoteBanner" xml:space="preserve">
+    <value>Connected through {0}. The device is paired with that machine.</value>
+  </data>
+  <data name="Network.Firewall.Hint" xml:space="preserve">
+    <value>On the first start the firewall asks whether to allow the port. Under Linux it has to be opened in firewalld or ufw.</value>
+  </data>
+  <data name="Log.Title" xml:space="preserve">
+    <value>Log</value>
+  </data>
+  <data name="Log.All" xml:space="preserve">
+    <value>all {0}</value>
+  </data>
+  <data name="Log.Time" xml:space="preserve">
+    <value>TIME</value>
+  </data>
+  <data name="Log.Level" xml:space="preserve">
+    <value>LEVEL</value>
+  </data>
+  <data name="Log.Message" xml:space="preserve">
+    <value>MESSAGE</value>
+  </data>
+  <data name="Log.Exported" xml:space="preserve">
+    <value>Exported to {0}</value>
+  </data>
+  <data name="Log.ExportFailed" xml:space="preserve">
+    <value>Export failed: {0}</value>
+  </data>
+  <data name="Settings.Appearance" xml:space="preserve">
+    <value>APPEARANCE</value>
+  </data>
+  <data name="Settings.Theme" xml:space="preserve">
+    <value>Theme</value>
+  </data>
+  <data name="Settings.Theme.System" xml:space="preserve">
+    <value>System</value>
+  </data>
+  <data name="Settings.Theme.Dark" xml:space="preserve">
+    <value>Dark</value>
+  </data>
+  <data name="Settings.Theme.Light" xml:space="preserve">
+    <value>Light</value>
+  </data>
+  <data name="Settings.Language" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="Settings.Language.Hint" xml:space="preserve">
+    <value>takes effect immediately</value>
+  </data>
+  <data name="Settings.Unit" xml:space="preserve">
+    <value>Temperature unit</value>
+  </data>
+  <data name="Settings.Unit.Hint" xml:space="preserve">
+    <value>°C only for now; the device&apos;s own display is left alone</value>
+  </data>
+  <data name="Settings.ChartAndRamp" xml:space="preserve">
+    <value>CHART AND RAMP</value>
+  </data>
+  <data name="Settings.KeepHistory" xml:space="preserve">
+    <value>Keep history for</value>
+  </data>
+  <data name="Settings.KeepHistory.Hint" xml:space="preserve">
+    <value>older points are dropped from the chart</value>
+  </data>
+  <data name="Settings.PushThreshold" xml:space="preserve">
+    <value>Send ramp step from</value>
+  </data>
+  <data name="Settings.PushThreshold.Hint" xml:space="preserve">
+    <value>smaller changes are not written to the device</value>
+  </data>
+  <data name="Settings.TimeAxis" xml:space="preserve">
+    <value>Time axis</value>
+  </data>
+  <data name="Settings.TimeAxis.FollowRun" xml:space="preserve">
+    <value>Follow run</value>
+  </data>
+  <data name="Settings.TimeAxis.Fixed15" xml:space="preserve">
+    <value>15 min</value>
+  </data>
+  <data name="Settings.TimeAxis.Fixed60" xml:space="preserve">
+    <value>1 h</value>
+  </data>
+  <data name="Settings.TimeAxis.Session" xml:space="preserve">
+    <value>Whole session</value>
+  </data>
+  <data name="Settings.QuickTemperatures" xml:space="preserve">
+    <value>QUICK TEMPERATURES</value>
+  </data>
+  <data name="Settings.QuickTemperatures.Hint" xml:space="preserve">
+    <value>shown next to the target stepper</value>
+  </data>
+  <data name="Settings.Notifications" xml:space="preserve">
+    <value>NOTIFICATIONS</value>
+  </data>
+  <data name="Settings.SoundOnTarget" xml:space="preserve">
+    <value>Sound when target is reached</value>
+  </data>
+  <data name="Settings.SoundOnTarget.Hint" xml:space="preserve">
+    <value>and when a ramp finishes</value>
+  </data>
+  <data name="Settings.DesktopNotification" xml:space="preserve">
+    <value>Desktop notification</value>
+  </data>
+  <data name="Settings.DesktopNotification.Hint" xml:space="preserve">
+    <value>when the window is minimised</value>
+  </data>
+  <data name="Settings.Sharing" xml:space="preserve">
+    <value>SHARING OVER THE NETWORK</value>
+  </data>
+  <data name="Settings.Sharing.Hint" xml:space="preserve">
+    <value>Port, PIN and hosting live in the Network tab, next to the list of who is connected.</value>
+  </data>
+  <data name="Settings.Files" xml:space="preserve">
+    <value>FILES</value>
+  </data>
+  <data name="Settings.Files.Hint" xml:space="preserve">
+    <value>settings, ramp profiles and exported logs</value>
+  </data>
+  <data name="Settings.About" xml:space="preserve">
+    <value>ABOUT</value>
+  </data>
+  <data name="Settings.AppName" xml:space="preserve">
+    <value>Vulcano Control</value>
+  </data>
+  <data name="Settings.UpdatesOff" xml:space="preserve">
+    <value>Automatic updates are switched off in this build. They come back together with the Linux packaging, so both platforms get the same behaviour rather than one silently different one.</value>
+  </data>
+  <data name="Compact.Title" xml:space="preserve">
+    <value>Vulcano</value>
+  </data>
+  <data name="Compact.BackToFull" xml:space="preserve">
+    <value>Back to the full window</value>
+  </data>
+  <data name="Compact.WithRamp" xml:space="preserve">
+    <value>plan {0} · {1} left</value>
+  </data>
+  <data name="Compact.WithoutRamp" xml:space="preserve">
+    <value>target {0} · auto-off {1}</value>
+  </data>
+  <data name="Log.AppStarted" xml:space="preserve">
+    <value>Application started</value>
+  </data>
+  <data name="Log.NoAdapter" xml:space="preserve">
+    <value>No Bluetooth adapter available yet - running against the simulated device</value>
+  </data>
+  <data name="Log.ShuttingDown" xml:space="preserve">
+    <value>Shutting down</value>
+  </data>
+  <data name="Log.RampStarted" xml:space="preserve">
+    <value>Ramp started: {0} points / {1} min, {2} to {3}</value>
+  </data>
+  <data name="Log.RampStarted.Hold" xml:space="preserve">
+    <value>, hold {0} min</value>
+  </data>
+  <data name="Log.RampStoppedManually" xml:space="preserve">
+    <value>Ramp stopped manually</value>
+  </data>
+  <data name="Log.RampPaused" xml:space="preserve">
+    <value>Ramp paused</value>
+  </data>
+  <data name="Log.RampResumed" xml:space="preserve">
+    <value>Ramp resumed</value>
+  </data>
+  <data name="Log.WarmUpReached" xml:space="preserve">
+    <value>Start temperature reached, ramp is running</value>
+  </data>
+  <data name="Log.WarmUpSkipped" xml:space="preserve">
+    <value>Warm-up skipped, ramp is running</value>
+  </data>
+  <data name="Log.SegmentSkipped" xml:space="preserve">
+    <value>Segment {0} of {1} skipped</value>
+  </data>
+  <data name="Log.HoldSkipped" xml:space="preserve">
+    <value>Hold skipped</value>
+  </data>
+  <data name="Log.HeaterReactivated" xml:space="preserve">
+    <value>Heater switched off unexpectedly during a running ramp (e.g. auto shut-off) - switching it back on</value>
+  </data>
+  <data name="Log.CurveFinished" xml:space="preserve">
+    <value>Ramp curve finished, holding {0} for {1} min</value>
+  </data>
+  <data name="Log.RampTargetUpdated" xml:space="preserve">
+    <value>Ramp target updated: {0}</value>
+  </data>
+  <data name="Log.RampComplete" xml:space="preserve">
+    <value>Ramp complete: target reset to {0}, heater switched off</value>
+  </data>
+  <data name="Log.RampAborted" xml:space="preserve">
+    <value>Ramp aborted: {0}</value>
+  </data>
+  <data name="Log.ConnectionLostDuringRamp" xml:space="preserve">
+    <value>Connection lost during a running ramp - paused at {0}</value>
+  </data>
+  <data name="Log.ConnectionRestored" xml:space="preserve">
+    <value>Connection restored - continuing the ramp</value>
+  </data>
+  <data name="Log.LogExported" xml:space="preserve">
+    <value>Log exported to {0}</value>
+  </data>
+  <data name="Log.DeviceSettingFailed" xml:space="preserve">
+    <value>Writing a device setting failed: {0}</value>
+  </data>
+  <data name="Log.HostingFailed" xml:space="preserve">
+    <value>Could not start hosting: {0}</value>
+  </data>
+  <data name="Log.LanServerStarted" xml:space="preserve">
+    <value>LAN server started on port {0}</value>
+  </data>
+  <data name="Log.LanServerStopped" xml:space="preserve">
+    <value>LAN server stopped</value>
+  </data>
+  <data name="Log.ClientConnected" xml:space="preserve">
+    <value>LAN client {0} connected ({1})</value>
+  </data>
+  <data name="Log.ClientDisconnected" xml:space="preserve">
+    <value>LAN client {0} disconnected</value>
+  </data>
+  <data name="Log.ClientRevoked" xml:space="preserve">
+    <value>LAN client {0} revoked</value>
+  </data>
+  <data name="Log.ClientRejected" xml:space="preserve">
+    <value>LAN client {0} rejected: wrong PIN</value>
+  </data>
+  <data name="Log.WatcherRefused" xml:space="preserve">
+    <value>LAN client {0} tried to call {1} while watching - refused</value>
+  </data>
+  <data name="Log.JoinedHost" xml:space="preserve">
+    <value>Connected to LAN host {0}:{1} ({2})</value>
+  </data>
+  <data name="Log.Sound.Skipped" xml:space="preserve">
+    <value>Sound skipped, sounds are switched off: {0}</value>
+  </data>
+  <data name="Log.Sound.Playing" xml:space="preserve">
+    <value>Playing sound: {0}</value>
+  </data>
+  <data name="Log.Sim.Scanning" xml:space="preserve">
+    <value>Simulated device: scanning</value>
+  </data>
+  <data name="Log.Sim.Connecting" xml:space="preserve">
+    <value>Simulated device: connecting to {0}</value>
+  </data>
+  <data name="Log.Sim.Connected" xml:space="preserve">
+    <value>Simulated device: connected · firmware {0} / BLE {1}</value>
+  </data>
+  <data name="Log.Sim.Disconnected" xml:space="preserve">
+    <value>Simulated device: disconnected</value>
+  </data>
+  <data name="Log.Sim.ConnectionLost" xml:space="preserve">
+    <value>Simulated device: connection lost</value>
+  </data>
+  <data name="Log.Sim.AutoOff" xml:space="preserve">
+    <value>Simulated device: auto shut-off switched the heater off</value>
+  </data>
+  <data name="Error.HostUnreachable" xml:space="preserve">
+    <value>Host unreachable: {0}</value>
+  </data>
+  <data name="Error.ConnectToHostFailed" xml:space="preserve">
+    <value>Could not connect to the host: {0}</value>
+  </data>
+  <data name="Error.ConnectionToHostLost" xml:space="preserve">
+    <value>Connection to host lost</value>
+  </data>
+  <data name="Error.DeviceConnectionLost" xml:space="preserve">
+    <value>Connection to the device was lost</value>
+  </data>
+  <data name="Error.WrongPin" xml:space="preserve">
+    <value>Wrong PIN</value>
+  </data>
+  <data name="Error.WatcherRefused" xml:space="preserve">
+    <value>This client joined to watch and cannot change the device.</value>
+  </data>
+  <data name="Error.CannotStopRamp" xml:space="preserve">
+    <value>Could not stop the ramp</value>
+  </data>
+  <data name="Error.CannotPauseRamp" xml:space="preserve">
+    <value>Could not pause the ramp</value>
+  </data>
+  <data name="Error.CannotResumeRamp" xml:space="preserve">
+    <value>Could not resume the ramp</value>
+  </data>
+  <data name="Error.CannotSkipSegment" xml:space="preserve">
+    <value>Could not skip the segment</value>
+  </data>
+  <data name="Error.InvalidRamp" xml:space="preserve">
+    <value>Invalid ramp: {0}</value>
+  </data>
+  <data name="Error.HostWhileRemote" xml:space="preserve">
+    <value>Cannot host while connected to someone else&apos;s host.</value>
+  </data>
+  <data name="Error.JoinWhileHosting" xml:space="preserve">
+    <value>Cannot join a host while hosting.</value>
+  </data>
+</root>

@@ -11,7 +11,7 @@
     <!-- ============ Header ============ -->
     <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*,Auto,Auto" Margin="0,0,0,12">
       <TextBlock Grid.Column="0"
-                 Text="Ramp"
+                 Text="{DynamicResource S.Ramp.Title}"
                  FontSize="{StaticResource Text.Section}"
                  FontWeight="SemiBold"
                  VerticalAlignment="Center"
@@ -38,13 +38,13 @@
 
       <Button Grid.Column="3"
               Theme="{StaticResource SecondaryButton}"
-              Content="Save profile"
+              Content="{DynamicResource S.Action.SaveProfile}"
               Command="{Binding SaveProfileCommand}"
               Margin="0,0,8,0" />
 
       <Button Grid.Column="4"
               Theme="{StaticResource PrimaryButton}"
-              Content="Start ramp"
+              Content="{DynamicResource S.Action.StartRamp}"
               Command="{Binding StartRampCommand}" />
     </Grid>
 
@@ -61,10 +61,10 @@
       <Border Grid.Column="0" Classes="card flush">
         <DockPanel>
           <Grid DockPanel.Dock="Top" ColumnDefinitions="28,76,76,*" Margin="14,12,14,8">
-            <TextBlock Grid.Column="0" Classes="label" Text="#" />
-            <TextBlock Grid.Column="1" Classes="label" Text="TIME" />
-            <TextBlock Grid.Column="2" Classes="label" Text="TEMP" />
-            <TextBlock Grid.Column="3" Classes="label" Text="CURVE TO NEXT" />
+            <TextBlock Grid.Column="0" Classes="label" Text="{DynamicResource S.Ramp.Point}" />
+            <TextBlock Grid.Column="1" Classes="label" Text="{DynamicResource S.Ramp.Time}" />
+            <TextBlock Grid.Column="2" Classes="label" Text="{DynamicResource S.Ramp.Temp}" />
+            <TextBlock Grid.Column="3" Classes="label" Text="{DynamicResource S.Ramp.CurveToNext}" />
           </Grid>
 
           <ListBox Classes="rows"
@@ -138,16 +138,16 @@
 
           <StackPanel Orientation="Horizontal" Spacing="8">
             <Button Theme="{StaticResource SecondaryButton}"
-                    Content="Add point"
+                    Content="{DynamicResource S.Action.AddPoint}"
                     Command="{Binding AddPointCommand}" />
             <Button Theme="{StaticResource SecondaryButton}"
-                    Content="Remove"
+                    Content="{DynamicResource S.Action.Remove}"
                     Command="{Binding RemovePointCommand}" />
           </StackPanel>
 
           <Rectangle Height="1" Fill="{DynamicResource Border.Faint}" />
 
-          <TextBlock Classes="label" Text="HOLD AFTER LAST POINT" />
+          <TextBlock Classes="label" Text="{DynamicResource S.Ramp.Hold}" />
           <c:Stepper Value="{Binding HoldMinutes, Mode=TwoWay}"
                      Minimum="0" Maximum="120" Step="1" Unit="min" />
 
@@ -160,7 +160,7 @@
                      TextWrapping="Wrap"
                      IsVisible="{Binding WarmUpNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
 
-          <TextBlock Text="Click the curve to add a point, drag a point to move it."
+          <TextBlock Text="{DynamicResource S.Ramp.EditHint}"
                      Classes="sub"
                      TextWrapping="Wrap" />
         </StackPanel>

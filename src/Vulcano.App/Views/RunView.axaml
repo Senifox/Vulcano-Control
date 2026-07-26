@@ -12,7 +12,7 @@
 
       <Border Grid.Column="0" Classes="card">
         <StackPanel Spacing="6">
-          <TextBlock Classes="label" Text="MEASURED" />
+          <TextBlock Classes="label" Text="{DynamicResource S.Run.Measured}" />
           <StackPanel Orientation="Horizontal" Spacing="4">
             <TextBlock Text="{Binding MeasuredText}" Classes="big" />
             <TextBlock Text="°C" Classes="unit" />
@@ -22,7 +22,7 @@
 
       <Border Grid.Column="2" Classes="card">
         <StackPanel Spacing="6">
-          <TextBlock Classes="label" Text="PLAN NOW" />
+          <TextBlock Classes="label" Text="{DynamicResource S.Run.PlanNow}" />
           <StackPanel Orientation="Horizontal" Spacing="8">
             <TextBlock Text="{Binding PlanNowText}" Classes="big" />
             <Border Classes="chip" VerticalAlignment="Center">
@@ -34,7 +34,7 @@
 
       <Border Grid.Column="4" Classes="card">
         <StackPanel Spacing="6">
-          <TextBlock Classes="label" Text="TIME LEFT" />
+          <TextBlock Classes="label" Text="{DynamicResource S.Run.TimeLeft}" />
           <TextBlock Text="{Binding TimeLeftText}" Classes="big" />
           <TextBlock Text="{Binding EndsAtText}" Classes="sub" />
         </StackPanel>
@@ -42,7 +42,7 @@
 
       <Border Grid.Column="6" Classes="card">
         <StackPanel Spacing="6">
-          <TextBlock Classes="label" Text="SEGMENT" />
+          <TextBlock Classes="label" Text="{DynamicResource S.Run.Segment}" />
           <TextBlock Text="{Binding SegmentText}" Classes="big" />
           <TextBlock Text="{Binding SegmentDetail}" Classes="sub" />
         </StackPanel>
@@ -53,7 +53,7 @@
     <Border Grid.Row="1" Classes="card" Margin="0,12,0,0">
       <StackPanel Spacing="10">
         <Grid ColumnDefinitions="Auto,*,Auto">
-          <TextBlock Grid.Column="0" Classes="label" Text="PROGRESS" />
+          <TextBlock Grid.Column="0" Classes="label" Text="{DynamicResource S.Run.Progress}" />
           <TextBlock Grid.Column="2" Text="{Binding PhaseText}" Classes="sub" />
         </Grid>
 
@@ -87,19 +87,19 @@
           <c:Icon Data="{StaticResource Icon.Flame}"
                   Foreground="{DynamicResource Heat}"
                   IsVisible="{Binding IsHeaterOn}" />
-          <TextBlock Text="Heater on" IsVisible="{Binding IsHeaterOn}" VerticalAlignment="Center" />
-          <TextBlock Text="Heater off" Classes="sub" IsVisible="{Binding !IsHeaterOn}" VerticalAlignment="Center" />
+          <TextBlock Text="{DynamicResource S.Run.HeaterOn}" IsVisible="{Binding IsHeaterOn}" VerticalAlignment="Center" />
+          <TextBlock Text="{DynamicResource S.Run.HeaterOff}" Classes="sub" IsVisible="{Binding !IsHeaterOn}" VerticalAlignment="Center" />
         </StackPanel>
 
         <StackPanel Orientation="Horizontal" Spacing="8">
           <c:Icon Data="{StaticResource Icon.Fan}"
                   Foreground="{DynamicResource Text.Muted}"
                   IsVisible="{Binding IsPumpOn}" />
-          <TextBlock Text="Pump on" IsVisible="{Binding IsPumpOn}" VerticalAlignment="Center" />
-          <TextBlock Text="Pump off" Classes="sub" IsVisible="{Binding !IsPumpOn}" VerticalAlignment="Center" />
+          <TextBlock Text="{DynamicResource S.Run.PumpOn}" IsVisible="{Binding IsPumpOn}" VerticalAlignment="Center" />
+          <TextBlock Text="{DynamicResource S.Run.PumpOff}" Classes="sub" IsVisible="{Binding !IsPumpOn}" VerticalAlignment="Center" />
         </StackPanel>
 
-        <TextBlock Text="Auto shut-off is held off while the ramp runs" Classes="sub" VerticalAlignment="Center" />
+        <TextBlock Text="{DynamicResource S.Run.AutoShutOffHeld}" Classes="sub" VerticalAlignment="Center" />
       </StackPanel>
     </Border>
 
@@ -109,10 +109,10 @@
               Content="{Binding PauseLabel}"
               Command="{Binding TogglePauseCommand}" />
       <Button Theme="{StaticResource SecondaryButton}"
-              Content="Skip segment"
+              Content="{DynamicResource S.Action.SkipSegment}"
               Command="{Binding SkipSegmentCommand}" />
       <Button Theme="{StaticResource PrimaryButton}"
-              Content="Stop ramp"
+              Content="{DynamicResource S.Action.StopRamp}"
               Command="{Binding StopRampCommand}" />
     </StackPanel>
   </Grid>

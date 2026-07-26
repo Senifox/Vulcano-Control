@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -145,14 +146,19 @@ public partial class LogViewModel : ObservableObject, IDisposable
             }
 
             File.WriteAllText(path, text.ToString());
-            ExportNote = $"Exported to {path}";
-            _log.Log($"Log exported to {path}");
+            ExportNote = Strings.Get("Log.Exported", path);
+            _log.Log(Strings.Get("Log.LogExported", path));
         }
         catch (Exception ex)
         {
-            ExportNote = $"Export failed: {ex.Message}";
+            ExportNote = Strings.Get("Log.ExportFailed", ex.Message);
         }
     }
 
     public void Dispose() => _log.EntryAdded -= OnEntryAdded;
+
+    /// <summary>Re-reads every computed label. Called after a language change; passing a
+    /// null property name is the framework's "all of them" signal.</summary>
+    public void RefreshText() => OnPropertyChanged(new PropertyChangedEventArgs(null));
 }
+

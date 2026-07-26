@@ -51,11 +51,11 @@ public sealed class SoundService
     {
         if (!SoundEnabled)
         {
-            _logService.Log($"Sound skipped, sounds are switched off: {sound}", LogLevel.Debug);
+            _logService.Log(Strings.Get("Log.Sound.Skipped", sound), LogLevel.Debug);
             return;
         }
 
-        _logService.Log($"Playing sound: {sound}", LogLevel.Debug);
+        _logService.Log(Strings.Get("Log.Sound.Playing", sound), LogLevel.Debug);
         _player.Play(sound);
     }
 }

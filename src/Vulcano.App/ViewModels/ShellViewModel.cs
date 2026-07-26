@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Threading.Tasks;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -89,10 +90,29 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
         Control.PropertyChanged += (_, _) => OnPropertyChanged(nameof(CompactDetailText));
         Run.PropertyChanged += (_, _) => OnPropertyChanged(nameof(CompactDetailText));
 
+        Loc.LanguageChanged += OnLanguageChanged;
+
         _device.ConnectionStateChanged += OnConnectionStateChanged;
         _device.ProgressChanged += OnRampProgressChanged;
         _device.Completed += OnRampEnded;
         _device.Stopped += OnRampEnded;
+    }
+
+    /// <summary>
+    /// Nudges every view model to re-read its computed labels. The tabs and static text follow the
+    /// resource swap on their own; a sentence a view model built - "Connection lost", "the ramp is
+    /// paused at 205 °C" - was assembled in the old language and has to be asked again.
+    /// </summary>
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        RefreshText();
+        Control.RefreshText();
+        Ramp.RefreshText();
+        Run.RefreshText();
+        Device.RefreshText();
+        Network.RefreshText();
+        Log.RefreshText();
+        Settings.RefreshText();
     }
 
     /// <summary>The cockpit. Owns everything about live temperature, heater, pump and target.</summary>
@@ -127,16 +147,16 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
     public string? HostName => _device.HostName;
 
     /// <summary>A remote client leaves the relay; it does not disconnect a Bluetooth link it never had.</summary>
-    public string DisconnectLabel => IsRemote ? "Leave" : "Disconnect";
+    public string DisconnectLabel => Strings.Get(IsRemote ? "Action.Leave" : "Action.Disconnect");
 
-    public string ConnectionText => ConnectionState switch
+    public string ConnectionText => Strings.Get(ConnectionState switch
     {
-        ConnectionState.Connected => "Connected",
-        ConnectionState.Scanning => "Searching for device…",
-        ConnectionState.Connecting => "Connecting…",
-        ConnectionState.Error => "Connection lost",
-        _ => "Not connected",
-    };
+        ConnectionState.Connected => "State.Connected",
+        ConnectionState.Scanning => "State.Searching",
+        ConnectionState.Connecting => "State.Connecting",
+        ConnectionState.Error => "State.ConnectionLost",
+        _ => "State.NotConnected",
+    });
 
     /// <summary>The Run tab is only offered while there is a run to look at.</summary>
     public bool IsRunTabVisible => IsRampRunning;
@@ -152,11 +172,11 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
 
     public string ConnectionDetail => ConnectionState switch
     {
-        ConnectionState.Scanning => "Looking for a device in range.",
+        ConnectionState.Scanning => Strings.Get("Connection.Searching.Hint"),
         ConnectionState.Error => IsRampRunning
-            ? $"The ramp is paused at {Formatting.Celsius(Control.CurrentTemperature)} and continues when the connection is back."
-            : "The device stopped answering.",
-        _ => "Switch the device on and make sure Bluetooth is enabled.",
+            ? Strings.Get("Connection.Lost.RampPaused", Formatting.Celsius(Control.CurrentTemperature))
+            : Strings.Get("Connection.Lost.Hint"),
+        _ => Strings.Get("Connection.NotConnected.Hint"),
     };
 
     [RelayCommand(CanExecute = nameof(CanConnect))]
@@ -203,8 +223,8 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
     /// you glanced over for.
     /// </summary>
     public string CompactDetailText => IsRampRunning
-        ? $"plan {Formatting.Celsius(Run.PlanNow)} · {Run.TimeLeftText} left"
-        : $"target {Formatting.Celsius(Control.TargetTemperature)} · auto-off {Control.AutoShutOffText}";
+        ? Strings.Get("Compact.WithRamp", Formatting.Celsius(Run.PlanNow), Run.TimeLeftText)
+        : Strings.Get("Compact.WithoutRamp", Formatting.Celsius(Control.TargetTemperature), Control.AutoShutOffText);
 
     // --- Device events, all arriving off the UI thread ---
 
@@ -246,6 +266,7 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        Loc.LanguageChanged -= OnLanguageChanged;
         _device.ConnectionStateChanged -= OnConnectionStateChanged;
         _device.ProgressChanged -= OnRampProgressChanged;
         _device.Completed -= OnRampEnded;
@@ -257,8 +278,13 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
         Network.Dispose();
         Log.Dispose();
 
-        _log.Log("Shutting down");
+        _log.Log(Strings.Get("Log.ShuttingDown"));
         _device.Dispose();
         await _device.DisposeAsync();
     }
+
+    /// <summary>Re-reads every computed label. Called after a language change; passing a
+    /// null property name is the framework's "all of them" signal.</summary>
+    public void RefreshText() => OnPropertyChanged(new PropertyChangedEventArgs(null));
 }
+

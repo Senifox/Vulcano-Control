@@ -91,7 +91,7 @@ public sealed class VolcanoRelayServer : IAsyncDisposable
         _acceptCts = new CancellationTokenSource();
         _acceptLoop = RunAcceptLoopAsync(_acceptCts.Token);
 
-        _logService.Log($"LAN server started on port {Port}");
+        _logService.Log(Strings.Get("Log.LanServerStarted", Port));
     }
 
     public async Task StopAsync()
@@ -131,7 +131,7 @@ public sealed class VolcanoRelayServer : IAsyncDisposable
         _acceptLoop = null;
         Port = 0;
 
-        _logService.Log("LAN server stopped");
+        _logService.Log(Strings.Get("Log.LanServerStopped"));
     }
 
     /// <summary>Drops one client. Its own read loop notices the closed socket and cleans up the
@@ -146,7 +146,7 @@ public sealed class VolcanoRelayServer : IAsyncDisposable
 
         if (session is null) return;
 
-        _logService.Log($"LAN client {session.Info.Name} revoked");
+        _logService.Log(Strings.Get("Log.ClientRevoked", session.Info.Name));
         await session.Connection.DisposeAsync();
     }
 
@@ -193,11 +193,11 @@ public sealed class VolcanoRelayServer : IAsyncDisposable
                 {
                     Id = hello.Id,
                     Kind = RelayMessageKind.Response,
-                    Error = "Wrong PIN",
+                    Error = Strings.Get("Error.WrongPin"),
                 });
                 // Give the writer pump a chance to flush the rejection before the socket closes.
                 await Task.Delay(TimeSpan.FromMilliseconds(200), CancellationToken.None);
-                _logService.Log($"LAN client {address} rejected: wrong PIN", LogLevel.Warning);
+                _logService.Log(Strings.Get("Log.ClientRejected", address), LogLevel.Warning);
                 return;
             }
 
@@ -225,7 +225,7 @@ public sealed class VolcanoRelayServer : IAsyncDisposable
             }
             ClientsChanged?.Invoke(this, EventArgs.Empty);
 
-            _logService.Log($"LAN client {session.Info.Name} connected ({session.Info.Role})");
+            _logService.Log(Strings.Get("Log.ClientConnected", session.Info.Name, session.Info.Role));
             SendSnapshot(connection);
 
             while (true)
@@ -250,7 +250,7 @@ public sealed class VolcanoRelayServer : IAsyncDisposable
                     _clients.Remove(session);
                 }
                 ClientsChanged?.Invoke(this, EventArgs.Empty);
-                _logService.Log($"LAN client {session.Info.Name} disconnected");
+                _logService.Log(Strings.Get("Log.ClientDisconnected", session.Info.Name));
             }
 
             await connection.DisposeAsync();
@@ -286,10 +286,8 @@ public sealed class VolcanoRelayServer : IAsyncDisposable
             request.Method is { } method &&
             RelayMethods.MutatingMethods.Contains(method))
         {
-            _logService.Log(
-                $"LAN client {session.Info.Name} tried to call {method} while watching - refused",
-                LogLevel.Warning);
-            return (null, "This client joined to watch and cannot change the device.");
+            _logService.Log(Strings.Get("Log.WatcherRefused", session.Info.Name, method), LogLevel.Warning);
+            return (null, Strings.Get("Error.WatcherRefused"));
         }
 
         switch (request.Method)
@@ -350,7 +348,7 @@ public sealed class VolcanoRelayServer : IAsyncDisposable
                 var args = RequireArgs<StartRampArgs>(request);
                 if (!TemperatureRampPlan.TryCreate(args.Points, args.HoldDuration, out var plan, out var errors))
                 {
-                    return (null, $"Invalid ramp: {string.Join(", ", errors.Select(e => e.Issue))}");
+                    return (null, Strings.Get("Error.InvalidRamp", string.Join(", ", errors.Select(e => e.Issue))));
                 }
 
                 await _ramp.StartAsync(plan!, args.HeaterCurrentlyOn);

@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
@@ -13,6 +14,13 @@ namespace Vulcano.App.ViewModels;
 
 /// <summary>A time-axis mode plus the name it goes by in the interface.</summary>
 public sealed record TimeAxisOption(TimeAxisMode Mode, string Name);
+
+/// <summary>
+/// A language and its own name for itself. Deliberately not translated: a list that reads
+/// "English / Deutsch" is legible to both readers, while "Englisch / Deutsch" is only legible to
+/// one of them - and someone looking for their language is looking for the word they would use.
+/// </summary>
+public sealed record LanguageOption(AppLanguage Language, string Name);
 
 /// <summary>
 /// The Settings tab. No OK, no Cancel: every change writes through to settings.json as it is made,
@@ -81,16 +89,31 @@ public partial class SettingsViewModel : ObservableObject
 
     public ObservableCollection<int> QuickTemperatures { get; }
 
-    public AppLanguage[] Languages { get; } = [AppLanguage.English, AppLanguage.German];
+    public LanguageOption[] Languages { get; } =
+    [
+        new(AppLanguage.English, "English"),
+        new(AppLanguage.German, "Deutsch"),
+    ];
+
+    /// <summary>The option object the combo box binds to; writing it sets <see cref="Language"/>.</summary>
+    public LanguageOption? SelectedLanguage
+    {
+        get => Languages.FirstOrDefault(o => o.Language == Language);
+        set
+        {
+            if (value is not null) Language = value.Language;
+        }
+    }
 
     /// <summary>The time-axis choices with the names the design uses - the enum spells them
-    /// "Fixed15", which is not something to put in front of anyone.</summary>
-    public TimeAxisOption[] TimeAxisOptions { get; } =
+    /// "Fixed15", which is not something to put in front of anyone. Rebuilt per read so a language
+    /// change takes them along.</summary>
+    public TimeAxisOption[] TimeAxisOptions =>
     [
-        new(TimeAxisMode.FollowRun, "Follow run"),
-        new(TimeAxisMode.Fixed15, "15 min"),
-        new(TimeAxisMode.Fixed60, "1 h"),
-        new(TimeAxisMode.Session, "Whole session"),
+        new(TimeAxisMode.FollowRun, Strings.Get("Settings.TimeAxis.FollowRun")),
+        new(TimeAxisMode.Fixed15, Strings.Get("Settings.TimeAxis.Fixed15")),
+        new(TimeAxisMode.Fixed60, Strings.Get("Settings.TimeAxis.Fixed60")),
+        new(TimeAxisMode.Session, Strings.Get("Settings.TimeAxis.Session")),
     ];
 
     /// <summary>The option object the combo box binds to; writing it sets <see cref="TimeAxisMode"/>.</summary>
@@ -119,7 +142,21 @@ public partial class SettingsViewModel : ObservableObject
         Save();
     }
 
-    partial void OnLanguageChanged(AppLanguage value) => Persist(() => _settings.Language = value);
+    partial void OnLanguageChanged(AppLanguage value)
+    {
+        if (_loading) return;
+
+        // Rewrites every entry in the application's resources, which the labels are bound to
+        // dynamically - so the interface changes language without a restart.
+        Loc.Apply(value);
+        _settings.Language = value;
+        Save();
+
+        // The combo box shows the names of these, and those names are themselves translated.
+        OnPropertyChanged(nameof(TimeAxisOptions));
+        OnPropertyChanged(nameof(SelectedTimeAxis));
+        OnPropertyChanged(nameof(SelectedLanguage));
+    }
 
     partial void OnHistoryRetentionMinutesChanged(int value) =>
         Persist(() => _settings.HistoryRetentionMinutes = value);
@@ -188,4 +225,9 @@ public partial class SettingsViewModel : ObservableObject
     }
 
     private void Save() => _settingsService.Save(_settings);
+
+    /// <summary>Re-reads every computed label. Called after a language change; passing a
+    /// null property name is the framework's "all of them" signal.</summary>
+    public void RefreshText() => OnPropertyChanged(new PropertyChangedEventArgs(null));
 }
+

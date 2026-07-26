@@ -33,7 +33,7 @@ public sealed class LogService
             // Best-effort; failing to reset the log file should not crash the app.
         }
 
-        Log("Application started");
+        Log(Strings.Get("Log.AppStarted"));
     }
 
     public string LogFilePath => _logFilePath;
