@@ -1,0 +1,213 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:Vulcano.App.Controls"
+             xmlns:vm="clr-namespace:Vulcano.App.ViewModels"
+             xmlns:models="clr-namespace:Vulcano.Core.Models;assembly=Vulcano.Core"
+             x:Class="Vulcano.App.Views.RampView"
+             x:DataType="vm:RampViewModel">
+
+  <Grid RowDefinitions="Auto,290,*" Margin="14">
+
+    <!-- ============ Header ============ -->
+    <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*,Auto,Auto" Margin="0,0,0,12">
+      <TextBlock Grid.Column="0"
+                 Text="Ramp"
+                 FontSize="{StaticResource Text.Section}"
+                 FontWeight="SemiBold"
+                 VerticalAlignment="Center"
+                 Margin="0,0,14,0" />
+
+      <ComboBox Grid.Column="1"
+                ItemsSource="{Binding Profiles}"
+                SelectedItem="{Binding SelectedProfile}"
+                MinWidth="180"
+                VerticalAlignment="Center">
+        <ComboBox.ItemTemplate>
+          <DataTemplate x:DataType="models:RampProfile">
+            <TextBlock Text="{Binding Name}" />
+          </DataTemplate>
+        </ComboBox.ItemTemplate>
+      </ComboBox>
+
+      <TextBlock Grid.Column="2"
+                 Text="{Binding TotalDurationText}"
+                 Classes="sub"
+                 FontFamily="{StaticResource Font.Mono}"
+                 VerticalAlignment="Center"
+                 Margin="14,0,0,0" />
+
+      <Button Grid.Column="3"
+              Theme="{StaticResource SecondaryButton}"
+              Content="Save profile"
+              Command="{Binding SaveProfileCommand}"
+              Margin="0,0,8,0" />
+
+      <Button Grid.Column="4"
+              Theme="{StaticResource PrimaryButton}"
+              Content="Start ramp"
+              Command="{Binding StartRampCommand}" />
+    </Grid>
+
+    <!-- ============ Curve ============ -->
+    <Border Grid.Row="1" Classes="card" Background="{DynamicResource Bg.Deep}" Padding="6">
+      <c:RampCurveEditor Points="{Binding Points}"
+                         HoldMinutes="{Binding HoldMinutes}"
+                         SelectedIndex="{Binding SelectedIndex, Mode=TwoWay}" />
+    </Border>
+
+    <!-- ============ Table · Inspector ============ -->
+    <Grid Grid.Row="2" ColumnDefinitions="*,12,300" Margin="0,12,0,0">
+
+      <Border Grid.Column="0" Classes="card" Padding="0">
+        <DockPanel>
+          <Grid DockPanel.Dock="Top" ColumnDefinitions="28,76,76,*" Margin="14,12,14,8">
+            <TextBlock Grid.Column="0" Classes="label" Text="#" />
+            <TextBlock Grid.Column="1" Classes="label" Text="TIME" />
+            <TextBlock Grid.Column="2" Classes="label" Text="TEMP" />
+            <TextBlock Grid.Column="3" Classes="label" Text="CURVE TO NEXT" />
+          </Grid>
+
+          <ListBox ItemsSource="{Binding Points}"
+                   SelectedIndex="{Binding SelectedIndex, Mode=TwoWay}"
+                   Background="Transparent"
+                   BorderThickness="0"
+                   Padding="0">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:RampPointViewModel">
+                <Grid ColumnDefinitions="28,76,76,*" Height="34">
+                  <TextBlock Grid.Column="0"
+                             Text="{Binding Number}"
+                             FontFamily="{StaticResource Font.Mono}"
+                             Foreground="{DynamicResource Text.Dim}"
+                             VerticalAlignment="Center" />
+                  <!-- The selected row turns into fields, so a value can be typed exactly rather
+                       than only dragged into place. -->
+                  <TextBlock Grid.Column="1"
+                             Text="{Binding TimeText}"
+                             FontFamily="{StaticResource Font.Mono}"
+                             IsVisible="{Binding !IsSelected}"
+                             VerticalAlignment="Center" />
+                  <TextBox Grid.Column="1"
+                           Theme="{StaticResource InlineField}"
+                           Text="{Binding TimeMinutes, Mode=TwoWay}"
+                           IsVisible="{Binding IsSelected}"
+                           IsEnabled="{Binding Number, Converter={StaticResource IsNotFirstPoint}}" />
+
+                  <TextBlock Grid.Column="2"
+                             Text="{Binding TemperatureText}"
+                             FontFamily="{StaticResource Font.Mono}"
+                             Classes.invalid="{Binding HasError}"
+                             IsVisible="{Binding !IsSelected}"
+                             VerticalAlignment="Center" />
+                  <TextBox Grid.Column="2"
+                           Theme="{StaticResource InlineField}"
+                           Text="{Binding Celsius, Mode=TwoWay}"
+                           Classes.invalid="{Binding HasError}"
+                           IsVisible="{Binding IsSelected}" />
+                  <TextBlock Grid.Column="3"
+                             Text="{Binding CurveText}"
+                             Foreground="{DynamicResource Text.Muted}"
+                             IsVisible="{Binding !IsLast}"
+                             VerticalAlignment="Center" />
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </DockPanel>
+      </Border>
+
+      <Border Grid.Column="2" Classes="card">
+        <StackPanel Spacing="12">
+          <TextBlock Classes="label" Text="{Binding SegmentTitle}" />
+
+          <ItemsControl ItemsSource="{Binding Curves}" IsEnabled="{Binding HasSegment}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:CurveOptionViewModel">
+                <ToggleButton Theme="{StaticResource Chip}"
+                              Content="{Binding Name}"
+                              IsChecked="{Binding IsSelected, Mode=OneWay}"
+                              Margin="0,0,6,6"
+                              Command="{Binding $parent[ItemsControl].((vm:RampViewModel)DataContext).SetCurveCommand}"
+                              CommandParameter="{Binding}" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Theme="{StaticResource SecondaryButton}"
+                    Content="Add point"
+                    Command="{Binding AddPointCommand}" />
+            <Button Theme="{StaticResource SecondaryButton}"
+                    Content="Remove"
+                    Command="{Binding RemovePointCommand}" />
+          </StackPanel>
+
+          <Rectangle Height="1" Fill="{DynamicResource Border.Faint}" />
+
+          <TextBlock Classes="label" Text="HOLD AFTER LAST POINT" />
+          <c:Stepper Value="{Binding HoldMinutes, Mode=TwoWay}"
+                     Minimum="0" Maximum="120" Step="1" Unit="min" />
+
+          <TextBlock Text="{Binding ValidationMessage}"
+                     Foreground="{DynamicResource Error.Text}"
+                     FontSize="{StaticResource Text.Small}"
+                     TextWrapping="Wrap"
+                     IsVisible="{Binding ValidationMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+          <TextBlock Text="{Binding WarmUpNote}"
+                     Classes="sub"
+                     TextWrapping="Wrap"
+                     IsVisible="{Binding WarmUpNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+          <TextBlock Text="Click the curve to add a point, drag a point to move it."
+                     Classes="sub"
+                     TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+    </Grid>
+  </Grid>
+
+  <UserControl.Styles>
+    <Style Selector="Border.card">
+      <Setter Property="Padding" Value="14" />
+      <Setter Property="CornerRadius" Value="{StaticResource Radius.Card}" />
+      <Setter Property="Background" Value="{DynamicResource Bg.Panel}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Border}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <Style Selector="TextBlock.label">
+      <Setter Property="FontFamily" Value="{StaticResource Font.Mono}" />
+      <Setter Property="FontSize" Value="{StaticResource Text.Label}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource Text.Dim}" />
+    </Style>
+
+    <Style Selector="TextBlock.sub">
+      <Setter Property="FontSize" Value="{StaticResource Text.Small}" />
+      <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+    </Style>
+
+    <Style Selector="TextBlock.invalid">
+      <Setter Property="Foreground" Value="{DynamicResource Error.Text}" />
+    </Style>
+
+    <!-- The selected row is a tinted band rather than a highlight bar; the design keeps the
+         accent for the point itself. -->
+    <Style Selector="ListBoxItem">
+      <Setter Property="Padding" Value="14,0" />
+      <Setter Property="MinHeight" Value="34" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="CornerRadius" Value="0" />
+    </Style>
+    <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Surface.Accent}" />
+    </Style>
+  </UserControl.Styles>
+
+</UserControl>

@@ -54,12 +54,17 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
     [ObservableProperty]
     private bool _isAlwaysOnTop;
 
-    public ShellViewModel(VolcanoDeviceOrchestrator device, AppSettings settings, LogService log)
+    public ShellViewModel(
+        VolcanoDeviceOrchestrator device,
+        SettingsService settingsService,
+        AppSettings settings,
+        LogService log)
     {
         _device = device;
         _log = log;
 
         Control = new ControlViewModel(device, settings);
+        Ramp = new RampViewModel(device, settingsService, settings);
 
         _device.ConnectionStateChanged += OnConnectionStateChanged;
         _device.ProgressChanged += OnRampProgressChanged;
@@ -69,6 +74,9 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
 
     /// <summary>The cockpit. Owns everything about live temperature, heater, pump and target.</summary>
     public ControlViewModel Control { get; }
+
+    /// <summary>The ramp editor and its saved profiles.</summary>
+    public RampViewModel Ramp { get; }
 
     public bool IsConnected => ConnectionState == ConnectionState.Connected;
 
@@ -148,6 +156,7 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
 
             IsRampRunning = true;
             Control.IsRampRunning = true;
+            Ramp.IsRampRunning = true;
             // A ramp that starts anywhere - here, or on another machine through the relay - brings
             // the Run tab up by itself.
             SelectedTab = AppTab.Run;
@@ -162,6 +171,7 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
         {
             IsRampRunning = false;
             Control.IsRampRunning = false;
+            Ramp.IsRampRunning = false;
             if (SelectedTab == AppTab.Run) SelectedTab = AppTab.Control;
         });
 
@@ -172,6 +182,7 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
         _device.Completed -= OnRampEnded;
         _device.Stopped -= OnRampEnded;
         Control.Dispose();
+        Ramp.Dispose();
 
         _log.Log("Shutting down");
         _device.Dispose();

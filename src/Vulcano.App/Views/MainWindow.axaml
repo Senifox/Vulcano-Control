@@ -194,8 +194,8 @@
       <views:ControlView DataContext="{Binding Control}"
                          IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).SelectedTab, Converter={StaticResource EnumToBool}, ConverterParameter=Control}" />
 
-      <TextBlock Text="Ramp" Classes="placeholder"
-                 IsVisible="{Binding SelectedTab, Converter={StaticResource EnumToBool}, ConverterParameter=Ramp}" />
+      <views:RampView DataContext="{Binding Ramp}"
+                      IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).SelectedTab, Converter={StaticResource EnumToBool}, ConverterParameter=Ramp}" />
       <TextBlock Text="Run" Classes="placeholder"
                  IsVisible="{Binding SelectedTab, Converter={StaticResource EnumToBool}, ConverterParameter=Run}" />
       <TextBlock Text="Device" Classes="placeholder"

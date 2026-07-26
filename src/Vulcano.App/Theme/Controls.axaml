@@ -13,6 +13,7 @@
        resources along with everything else, so views can use them too. -->
   <conv:EnumToBoolConverter x:Key="EnumToBool" />
   <conv:WholeNumberConverter x:Key="WholeNumber" />
+  <conv:IsNotFirstPointConverter x:Key="IsNotFirstPoint" />
 
   <ControlTheme x:Key="{x:Type controls:Icon}" TargetType="controls:Icon">
     <Setter Property="Width" Value="16" />
@@ -99,6 +100,22 @@
         </Border>
       </ControlTemplate>
     </Setter>
+  </ControlTheme>
+
+  <!-- The editable cell in the ramp table: a field only where the row is active, sized to sit
+       inside a 34 px row without pushing it around. -->
+  <ControlTheme x:Key="InlineField" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+    <Setter Property="Height" Value="26" />
+    <Setter Property="MinHeight" Value="26" />
+    <Setter Property="Margin" Value="0,0,10,0" />
+    <Setter Property="Padding" Value="7,0" />
+    <Setter Property="FontFamily" Value="{StaticResource Font.Mono}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+    <Setter Property="Background" Value="{DynamicResource Bg.Field}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Style Selector="^.invalid">
+      <Setter Property="BorderBrush" Value="{DynamicResource Error}" />
+    </Style>
   </ControlTheme>
 
   <ControlTheme x:Key="StepperButton" TargetType="Button">
