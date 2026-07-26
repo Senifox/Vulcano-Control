@@ -11,10 +11,11 @@ live temperature control, scripted temperature ramps with a live chart, device s
 
 - **Live control** — connect over Bluetooth LE, read the current temperature, and set a target
   temperature; toggle the heater and the pump.
-- **Temperature ramps** — define a start temperature, an end temperature, a duration, and an
-  interpolation curve (linear, exponential, steep exponential, or ease-in/out), plus an optional
-  hold ("Nachlaufzeit") once the ramp finishes. The app automatically re-enables the heater if the
-  Volcano's own auto-shutoff timer cuts it before the ramp completes.
+- **Temperature ramps** — draw a ramp as a curve of as many points as you like, each segment with
+  its own shape (linear, exponential, steep, or ease-in/out), plus an optional hold once the ramp
+  finishes. Ramps are saved as named profiles. The app re-enables the heater if the Volcano's own
+  auto-shutoff timer cuts it before the ramp completes, and says so when a segment asks for more
+  than the device can physically do.
 - **Live ramp chart** — plots the planned (Soll) curve against the measured (Ist) history on a
   sliding "now" timeline, with a locked temperature axis, a capped ±24h time zoom range, and a
   one-click view reset.
@@ -30,8 +31,9 @@ live temperature control, scripted temperature ramps with a live chart, device s
 - **Built-in protocol log** — a dedicated log window with Debug/Info/Warning/Error severity levels
   and per-level filtering, covering both the BLE connection lifecycle and every command sent to the
   device.
-- **Automatic updates** — checks this repository's GitHub Releases on startup (and on demand via
-  *Hilfe → Nach Updates suchen*) and installs updates via [Velopack](https://velopack.io).
+Updating in place is not back yet: 1.x checked GitHub Releases on startup and installed updates
+itself, and 2.0 does not do this. Until it does, a new version means downloading the installer and
+running it — it keeps your settings and ramp profiles.
 
 ## Requirements
 
@@ -42,8 +44,10 @@ live temperature control, scripted temperature ramps with a live chart, device s
 ## Installation
 
 Grab the latest installer from the [Releases page](https://github.com/Senifox/Vulcano-Control/releases) —
-download and run `Vulcano-Control-win-Setup.exe`. The app will keep itself up to date automatically
-from there on.
+download and run `Vulcano-Control-win-Setup.exe`.
+
+Settings and ramp profiles live in `%AppData%\Vulcano-Control`, which no installer touches, so
+reinstalling or updating keeps them.
 
 ## Building from source
 
@@ -51,10 +55,26 @@ from there on.
 dotnet build
 ```
 
-Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download) with Windows desktop workloads.
-The project targets `net10.0-windows10.0.19041.0` and uses WPF + [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet)
-for MVVM, [OxyPlot](https://github.com/oxyplot/oxyplot) for the ramp chart, and
-[Velopack](https://velopack.io) for packaging/updates.
+Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download). The app is built on
+[Avalonia](https://avaloniaui.net) with [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet)
+for MVVM, [LiveCharts](https://livecharts.dev) for the ramp chart, and
+[Velopack](https://velopack.io) for packaging.
+
+The solution is laid out as:
+
+| | |
+|---|---|
+| `src/Vulcano.Core` | device protocol, ramp engine, settings, LAN relay — no UI, no Windows API |
+| `src/Vulcano.App` | the Avalonia app: views, view models, theming |
+| `src/Vulcano.Bluetooth.Windows` | the WinRT Bluetooth LE adapter |
+| `tests/` | 223 tests across the core and the view models |
+| `tools/Vulcano.Measure` | records heating and cooling from a real device; not shipped |
+
+`Vulcano.Core` targets plain `net10.0` so the parts that are not Windows-specific stay that way; the
+app and the Bluetooth adapter target `net10.0-windows10.0.19041.0`.
+
+Versions 1.x were a WPF app. It was replaced wholesale in 2.0 and its source is no longer in the
+tree — `git show v1.0.8` still has it.
 
 ### Cutting a release
 
