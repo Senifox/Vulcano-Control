@@ -287,14 +287,16 @@ public partial class RampViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>
-    /// Whole minutes, or seconds below one. The estimate comes from a table measured on one device
-    /// in one room, so "about 55 min" is the honest amount of precision - "54:10" would claim to
-    /// know the ten seconds.
+    /// Whole minutes, rounded up. The estimate comes from a table measured on one device in one
+    /// room, so "about 55 min" is the honest amount of precision - "54:10" would claim to know the
+    /// ten seconds.
+    ///
+    /// Up rather than to nearest, because the ramp's own times are whole minutes: rounding to
+    /// nearest let a segment that needs 1.2 minutes against 1 allowed report "about 1 min instead of
+    /// 1 min". Rounding up cannot produce the same number twice.
     /// </summary>
     private static string RoughMinutes(TimeSpan value) =>
-        value.TotalMinutes < 1
-            ? Formatting.WithUnit(((int)Math.Round(value.TotalSeconds)).ToString(), "s")
-            : Formatting.Minutes((int)Math.Round(value.TotalMinutes));
+        Formatting.Minutes((int)Math.Ceiling(value.TotalMinutes));
 
     /// <summary>Raised whenever the curve itself changed, so the editor can redraw.</summary>
     public event EventHandler? PlanChanged;

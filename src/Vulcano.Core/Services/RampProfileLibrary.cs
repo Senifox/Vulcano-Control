@@ -91,6 +91,10 @@ public static class RampProfileLibrary
     /// <summary>
     /// A name nothing else is using: "Ramp", then "Ramp 2", "Ramp 3". Counting from 2 because the
     /// first one has no number and "Ramp 1" beside a plain "Ramp" reads like a different scheme.
+    ///
+    /// A name that already ends in a number counts on from it rather than growing another one, so
+    /// copying "Ramp 2" gives "Ramp 3". Appending blindly is how somebody ended up with
+    /// "Imported 2 2 2" after three copies.
     /// </summary>
     public static string MakeUnique(IEnumerable<RampProfile> profiles, string desired, RampProfile? exclude)
     {
@@ -100,11 +104,30 @@ public static class RampProfileLibrary
 
         if (!taken.Any(n => Matches(n, trimmed))) return trimmed;
 
-        for (var i = 2; ; i++)
+        var (stem, next) = SplitTrailingNumber(trimmed);
+
+        for (var i = next; ; i++)
         {
-            var candidate = $"{trimmed} {i}";
+            var candidate = $"{stem} {i}";
             if (!taken.Any(n => Matches(n, candidate))) return candidate;
         }
+    }
+
+    /// <summary>
+    /// Splits "Ramp 2" into "Ramp" and the number to try next. A name without a trailing number
+    /// keeps all of itself and starts at 2. The space is required, so "Mix2" stays "Mix2" - a digit
+    /// stuck to a word is part of the word.
+    /// </summary>
+    private static (string Stem, int Next) SplitTrailingNumber(string name)
+    {
+        var space = name.LastIndexOf(' ');
+        if (space <= 0) return (name, 2);
+
+        var tail = name[(space + 1)..];
+
+        return int.TryParse(tail, out var number) && number > 0
+            ? (name[..space], number + 1)
+            : (name, 2);
     }
 
     /// <summary>Names are compared the way a person would compare them: case and surrounding space

@@ -35,6 +35,40 @@ public class RampProfileLibraryTests
         Assert.Equal("Ramp 3", third.Name);
     }
 
+    /// <summary>
+    /// Copying a copy counts on instead of growing another number. Reported from a real session as
+    /// "Imported 2 2 2" after three copies, which is what appending blindly produces.
+    /// </summary>
+    [Fact]
+    public void Copying_a_copy_counts_on_rather_than_appending_again()
+    {
+        var profiles = Library("Imported");
+
+        var second = RampProfileLibrary.Add(profiles, "Imported");
+        var third = RampProfileLibrary.Add(profiles, second.Name);
+        var fourth = RampProfileLibrary.Add(profiles, third.Name);
+
+        Assert.Equal(["Imported", "Imported 2", "Imported 3", "Imported 4"], profiles.Select(p => p.Name));
+        Assert.Equal("Imported 4", fourth.Name);
+    }
+
+    [Fact]
+    public void A_number_that_is_part_of_the_word_is_left_alone()
+    {
+        // "Mix2" is a name, not a numbered copy - the space is what makes it a number.
+        var profiles = Library("Mix2");
+
+        Assert.Equal("Mix2 2", RampProfileLibrary.Add(profiles, "Mix2").Name);
+    }
+
+    [Fact]
+    public void Counting_on_skips_the_numbers_already_taken()
+    {
+        var profiles = Library("Evening", "Evening 2", "Evening 3");
+
+        Assert.Equal("Evening 4", RampProfileLibrary.Add(profiles, "Evening 2").Name);
+    }
+
     [Fact]
     public void Copying_takes_the_points_and_the_hold_but_not_the_name()
     {

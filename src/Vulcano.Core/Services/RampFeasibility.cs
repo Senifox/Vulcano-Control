@@ -35,9 +35,16 @@ public static class RampFeasibility
 {
     /// <summary>
     /// A segment is only worth mentioning when it is properly out of reach rather than a few seconds
-    /// short. Ten per cent over is within the spread of the measurements themselves.
+    /// short - fifteen per cent over is within the spread of the measurements themselves.
     /// </summary>
-    private const double Tolerance = 1.1;
+    private const double Tolerance = 1.15;
+
+    /// <summary>
+    /// And it has to be short by something worth saying out loud. Without this a one-minute segment
+    /// twelve seconds beyond the device produced "would need about 1 min instead of 1 min", which is
+    /// both nonsense to read and not worth interrupting anybody for.
+    /// </summary>
+    private static readonly TimeSpan WorthMentioning = TimeSpan.FromSeconds(30);
 
     public static IReadOnlyList<SegmentFeasibility> Check(TemperatureRampPlan plan)
     {
@@ -61,5 +68,7 @@ public static class RampFeasibility
 
     /// <summary>The segments worth warning about, in the order they run.</summary>
     public static IReadOnlyList<SegmentFeasibility> OutOfReach(TemperatureRampPlan plan) =>
-        Check(plan).Where(s => s.Needed > s.Allowed * Tolerance).ToArray();
+        Check(plan)
+            .Where(s => s.Needed > s.Allowed * Tolerance && s.Needed - s.Allowed >= WorthMentioning)
+            .ToArray();
 }

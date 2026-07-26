@@ -105,13 +105,46 @@ public class DevicePerformanceTests
     [Fact]
     public void A_segment_that_is_only_just_short_is_left_alone()
     {
-        // Ten per cent over is inside the spread of the measurements; warning about it would train
-        // people to ignore the warning.
+        // Fifteen per cent over is inside the spread of the measurements; warning about it would
+        // train people to ignore the warning.
         RampPoint[] points = [new(0, 100, CurveKind.Linear), new(1, 220, CurveKind.Linear)];
         var plan = new TemperatureRampPlan(points, TimeSpan.Zero);
 
         var check = Assert.Single(RampFeasibility.Check(plan));
         Assert.InRange(check.Needed.TotalSeconds, 30, 60);
+        Assert.Empty(RampFeasibility.OutOfReach(plan));
+    }
+
+    /// <summary>
+    /// Reported from a real session: cooling 224 °C to 192 °C in a minute needs about 1:20, and the
+    /// warning read "would need about 1 min instead of 1 min". A third over is past the proportional
+    /// rule, so only the absolute one silences this - twenty seconds is not worth interrupting
+    /// anybody for, and a sentence naming the same figure twice is worse than no sentence.
+    /// </summary>
+    [Fact]
+    public void Being_short_by_a_few_seconds_is_not_worth_a_sentence()
+    {
+        RampPoint[] points = [new(0, 224, CurveKind.Linear), new(1, 192, CurveKind.Linear)];
+        var plan = new TemperatureRampPlan(points, TimeSpan.Zero);
+
+        var check = Assert.Single(RampFeasibility.Check(plan));
+        Assert.True(check.Needed > check.Allowed * 1.15, "proportionally this is well over");
+        Assert.Empty(RampFeasibility.OutOfReach(plan));
+    }
+
+    /// <summary>
+    /// The other way round, and the reason both rules exist: cooling 230 °C to 108 °C in eleven
+    /// minutes is nearly a minute short in absolute terms but only eight per cent over. Thirty
+    /// seconds off a minute is everything; thirty seconds off eleven is nothing.
+    /// </summary>
+    [Fact]
+    public void Being_short_by_a_small_fraction_is_not_worth_a_sentence_either()
+    {
+        RampPoint[] points = [new(0, 230, CurveKind.Linear), new(11, 108, CurveKind.Linear)];
+        var plan = new TemperatureRampPlan(points, TimeSpan.Zero);
+
+        var check = Assert.Single(RampFeasibility.Check(plan));
+        Assert.True(check.Needed - check.Allowed > TimeSpan.FromSeconds(30), "absolutely it is short");
         Assert.Empty(RampFeasibility.OutOfReach(plan));
     }
 
