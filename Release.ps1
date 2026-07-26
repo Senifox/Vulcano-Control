@@ -7,16 +7,15 @@
     (installer + update feed) under .\Releases. With -Publish, also uploads the result
     straight to a new GitHub Release.
 
-    Two apps live in this repository while the rewrite is finished:
+    This packs under 'Vulcano-Control', the id the WPF app used to hold. During the rewrite the
+    Avalonia app was published as 'Vulcano-Control-Preview' so that Velopack would treat it as a
+    separate application and leave the working WPF install alone; with the WPF app retired, that
+    separation has done its job and the rewrite takes the real id back. Anyone still on the WPF app
+    sees this as an update to it, which is the intent.
 
-      -App avalonia  (default)  the Avalonia rewrite, packId Vulcano-Control-Preview
-      -App wpf                  the original WPF app, packId Vulcano-Control
-
-    The pack ids are deliberately different. Velopack treats a package with the same id as an
-    update of an existing install, so publishing the rewrite under 'Vulcano-Control' would replace
-    the WPF app on everyone's machine - including on this one, where it is still the app that can
-    actually talk to a Volcano. At the cutover the rewrite takes over the 'Vulcano-Control' id and
-    the preview id is retired.
+    Releases packed under the old preview id are moved to .\Releases\preview-archive: vpk reads the
+    feed in the output directory to work out what came before, and two ids in one folder is not a
+    question it should have to answer.
 
     The rewrite does not check for updates yet; the installer and its shortcuts work regardless.
 
@@ -28,19 +27,16 @@
     then restart PowerShell.
 
 .EXAMPLE
-    .\Release.ps1 -Version 2.0.0-preview.1
-    Packs the rewrite locally only.
+    .\Release.ps1 -Version 2.0.0
+    Packs locally only.
 
 .EXAMPLE
-    .\Release.ps1 -App wpf -Version 1.5.1 -Publish
-    Packs the WPF app and publishes it as a GitHub Release (tag v1.5.1).
+    .\Release.ps1 -Version 2.0.0 -Publish
+    Packs and publishes it as a GitHub Release (tag v2.0.0).
 #>
 param(
     [Parameter(Mandatory = $true)]
     [string]$Version,
-
-    [ValidateSet("avalonia", "wpf")]
-    [string]$App = "avalonia",
 
     [switch]$Publish,
 
@@ -54,40 +50,40 @@ $releasesDir = Join-Path $root "Releases"
 $publishDir = Join-Path $root "publish"
 $repoUrl = "https://github.com/Senifox/Vulcano-Control"
 
-$settings = switch ($App) {
-    "avalonia" {
-        @{
-            Project = Join-Path $root "src\Vulcano.App\Vulcano.App.csproj"
-            PackId  = "Vulcano-Control-Preview"
-            Title   = "Vulcano Control (Preview)"
-            MainExe = "vulcano-control.exe"
-            Icon    = Join-Path $root "src\Vulcano.App\Assets\Icons\vulcano-control.ico"
-        }
-    }
-    "wpf" {
-        @{
-            Project = Join-Path $root "Vulcano-Control\Vulcano-Control.csproj"
-            PackId  = "Vulcano-Control"
-            Title   = "Vulcano Control"
-            MainExe = "Vulcano-Control.exe"
-            Icon    = Join-Path $root "Vulcano-Control\Icon.ico"
-        }
-    }
-}
+$project = Join-Path $root "src\Vulcano.App\Vulcano.App.csproj"
+$packId = "Vulcano-Control"
+$packTitle = "Vulcano Control"
+$mainExe = "vulcano-control.exe"
+$icon = Join-Path $root "src\Vulcano.App\Assets\Icons\vulcano-control.ico"
 
-Write-Host "Building $App as $($settings.PackId) v$Version"
+Write-Host "Building $packId v$Version"
+
+# Anything left over from the preview id would be read as this app's history, which it is not.
+$strays = Get-ChildItem $releasesDir -File -ErrorAction SilentlyContinue |
+          Where-Object { $_.Name -like "Vulcano-Control-Preview*" }
+if ($strays) {
+    $archive = Join-Path $releasesDir "preview-archive"
+    New-Item -ItemType Directory -Force $archive | Out-Null
+    $strays | ForEach-Object { Move-Item $_.FullName (Join-Path $archive $_.Name) -Force }
+
+    # The feed files name the packages they describe, so they belong with them.
+    Get-ChildItem $releasesDir -File | Where-Object { $_.Name -in @("RELEASES", "releases.win.json", "assets.win.json") } |
+        ForEach-Object { Move-Item $_.FullName (Join-Path $archive $_.Name) -Force }
+
+    Write-Host "Moved $($strays.Count) package(s) from the preview id into: $archive"
+}
 
 if (Test-Path $publishDir) { Remove-Item $publishDir -Recurse -Force }
 
-dotnet publish $settings.Project -c Release -r win-x64 --self-contained true -o $publishDir
+dotnet publish $project -c Release -r win-x64 --self-contained true -o $publishDir
 
 vpk pack `
-    --packId $settings.PackId `
-    --packTitle $settings.Title `
+    --packId $packId `
+    --packTitle $packTitle `
     --packVersion $Version `
     --packDir $publishDir `
-    --mainExe $settings.MainExe `
-    --icon $settings.Icon `
+    --mainExe $mainExe `
+    --icon $icon `
     --outputDir $releasesDir
 
 Write-Host ""

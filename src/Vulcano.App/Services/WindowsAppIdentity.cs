@@ -15,8 +15,11 @@ namespace Vulcano.App.Services;
 /// Windows attributes a toast to an AppUserModelID, and for an app that was not installed from a
 /// package that id only counts if a Start menu shortcut carries it. Velopack's installer creates
 /// exactly such a shortcut, and it carries the pack id - so the pack id is the identity, discovered
-/// from the install layout rather than written down here, where it would go stale at the cutover from
-/// the preview id to the real one.
+/// from the install layout rather than written down here.
+///
+/// That has already paid for itself: the app shipped as Vulcano-Control-Preview while the WPF
+/// version was still in use and took the Vulcano-Control id back afterwards, and the identity
+/// followed on its own. A constant would have had to be remembered.
 ///
 /// A build running out of bin has no shortcut and therefore no identity. That is not worked around:
 /// asking for a toast without one is accepted, drawn nowhere, and reported as a success, so the only
