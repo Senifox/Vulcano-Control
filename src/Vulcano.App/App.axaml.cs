@@ -15,6 +15,7 @@ public partial class App : Application
 {
     private ShellViewModel? _shell;
     private ThemeManager? _themeManager;
+    private WindowsSoundPlayer? _sound;
 
     public override void Initialize() => AvaloniaXamlLoader.Load(this);
 
@@ -43,12 +44,18 @@ public partial class App : Application
                 PushThresholdCelsius = settings.RampPushThresholdCelsius,
             };
 
-            _shell = new ShellViewModel(orchestrator, settingsService, _themeManager, settings, log);
+            _sound = new WindowsSoundPlayer(log);
+            var sounds = new SoundService(_sound, log) { SoundEnabled = settings.SoundEnabled };
+            var notifier = new WindowsToastNotifier(log) { Enabled = settings.DesktopNotifications };
+
+            _shell = new ShellViewModel(
+                orchestrator, settingsService, _themeManager, settings, log, sounds, notifier, simulate);
             desktop.MainWindow = new MainWindow { DataContext = _shell };
 
             desktop.ShutdownRequested += async (_, _) =>
             {
                 if (_shell is not null) await _shell.DisposeAsync();
+                _sound?.Dispose();
             };
         }
 

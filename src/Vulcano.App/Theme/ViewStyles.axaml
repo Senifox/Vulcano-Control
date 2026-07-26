@@ -122,6 +122,16 @@
     <Setter Property="Foreground" Value="{DynamicResource Info}" />
   </Style>
 
+  <Style Selector="Border.chip.warn">
+    <Setter Property="Background" Value="{DynamicResource Surface.Warn}" />
+  </Style>
+  <!-- The one chip that is a warning rather than a label, so it carries a little more weight than
+       the others - the amber alone reads softly against a light background. -->
+  <Style Selector="Border.chip.warn > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource Warn}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
   <!-- A row that reads as one line of a list: label left, control right, hairline underneath. -->
   <Style Selector="Border.row">
     <Setter Property="BorderBrush" Value="{DynamicResource Border.Faint}" />

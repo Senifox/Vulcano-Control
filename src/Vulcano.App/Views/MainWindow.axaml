@@ -48,12 +48,12 @@
                    Foreground="{DynamicResource Text}"
                    VerticalAlignment="Center" />
 
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Left">
+
         <!-- Status pill: dot, state, serial. The serial is mono because it is an identifier,
              not prose. -->
-        <Border Grid.Column="2"
-                Margin="14,0,0,0"
+        <Border Margin="14,0,0,0"
                 Padding="9,3"
-                HorizontalAlignment="Left"
                 VerticalAlignment="Center"
                 CornerRadius="{StaticResource Radius.Pill}"
                 Background="{DynamicResource Bg.Field}"
@@ -78,6 +78,13 @@
                        IsVisible="{Binding SerialNumber, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
           </StackPanel>
         </Border>
+
+          <!-- Says so when nothing here came off a real device. -->
+          <Border Classes="chip warn" IsVisible="{Binding IsSimulated}"
+                  ToolTip.Tip="{DynamicResource S.Simulation.Tip}">
+            <TextBlock Text="{DynamicResource S.Simulation}" />
+          </Border>
+        </StackPanel>
 
         <StackPanel Grid.Column="3" Orientation="Horizontal">
           <Button Theme="{StaticResource GhostButton}"
@@ -242,6 +249,47 @@
                           IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).SelectedTab, Converter={StaticResource EnumToBool}, ConverterParameter=Settings}" />
     </Panel>
   </Grid>
+
+  <!-- ============ Notice ============
+       What a notification turns into when Windows will not show one: the same card and text styles
+       as everything else, bottom right, gone after eight seconds or one click. It sits in the outer
+       Panel so it floats over whichever view is showing, compact mode included. -->
+  <Border IsVisible="{Binding IsNoticeVisible}"
+          HorizontalAlignment="Right" VerticalAlignment="Bottom"
+          Margin="0,0,16,16"
+          MaxWidth="360"
+          Padding="14,12"
+          CornerRadius="{StaticResource Radius.Card}"
+          Background="{DynamicResource Bg.Panel}"
+          BorderBrush="{DynamicResource Border.Strong}"
+          BorderThickness="1">
+    <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto">
+      <c:Icon Grid.Row="0" Grid.Column="0"
+              Data="{StaticResource Icon.Flame}"
+              Foreground="{DynamicResource Heat}"
+              Width="15" Height="15" Margin="0,1,9,0" VerticalAlignment="Top" />
+
+      <TextBlock Grid.Row="0" Grid.Column="1"
+                 Text="{Binding NoticeTitle}"
+                 FontSize="{StaticResource Text.CardTitle}"
+                 FontWeight="SemiBold"
+                 TextWrapping="Wrap" />
+
+      <Button Grid.Row="0" Grid.Column="2"
+              Theme="{StaticResource GhostButton}"
+              Command="{Binding DismissNoticeCommand}"
+              Padding="4"
+              VerticalAlignment="Top">
+        <c:Icon Data="{StaticResource Icon.X}" Width="11" Height="11" />
+      </Button>
+
+      <TextBlock Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
+                 Text="{Binding NoticeMessage}"
+                 Classes="sub"
+                 Margin="0,4,0,0"
+                 TextWrapping="Wrap" />
+    </Grid>
+  </Border>
 
   </Panel>
 

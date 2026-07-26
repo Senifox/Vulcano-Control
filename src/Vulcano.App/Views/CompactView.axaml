@@ -20,6 +20,14 @@
         <TextBlock Grid.Column="1" Text="{DynamicResource S.Compact.Title}" FontSize="10.5"
                    Foreground="{DynamicResource Text.Dim}" VerticalAlignment="Center" />
 
+        <!-- No room for the full chip in a 26 px bar, but the warning has to survive the switch to
+             compact - that is the mode most likely to be left running unattended. -->
+        <TextBlock Grid.Column="2" Text="{DynamicResource S.Simulation.Short}"
+                   Margin="7,0,0,0" FontSize="9.5" FontWeight="SemiBold"
+                   Foreground="{DynamicResource Warn}" VerticalAlignment="Center"
+                   IsVisible="{Binding IsSimulated}"
+                   ToolTip.Tip="{DynamicResource S.Simulation.Tip}" />
+
         <!-- Same button as in the full window's title bar, pointing the other way. -->
         <Button Grid.Column="3" Theme="{StaticResource CompactWindowButton}"
                 Command="{Binding ToggleCompactCommand}"

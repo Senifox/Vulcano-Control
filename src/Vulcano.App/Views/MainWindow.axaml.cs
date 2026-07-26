@@ -1,7 +1,11 @@
+using System;
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
+using Vulcano.Core.Services;
 using Vulcano.App.ViewModels;
 
 namespace Vulcano.App.Views;
@@ -31,15 +35,65 @@ public partial class MainWindow : Window
 
         DataContextChanged += (_, _) =>
         {
-            if (_shell is not null) _shell.PropertyChanged -= OnShellPropertyChanged;
+            if (_shell is not null)
+            {
+                _shell.PropertyChanged -= OnShellPropertyChanged;
+                if (_shell.Notifier is { } previous) previous.FellBackToWindow -= OnNotificationFellBack;
+            }
 
             _shell = DataContext as ShellViewModel;
             if (_shell is not null)
             {
                 _shell.PropertyChanged += OnShellPropertyChanged;
+                if (_shell.Notifier is { } notifier) notifier.FellBackToWindow += OnNotificationFellBack;
                 ApplyCompact(_shell.IsCompact);
             }
         };
+    }
+
+    /// <summary>
+    /// Windows would not take the notification. The card in the corner is the view model's business;
+    /// this is the half that only a window can do - flashing the taskbar button, which is what gets
+    /// noticed when the app is behind something else. Which is the entire situation being solved.
+    /// </summary>
+    private void OnNotificationFellBack(object? sender, NotificationRequest request) =>
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (!IsActive) FlashTaskbarButton();
+        });
+
+    private const uint FlashTray = 0x00000002;
+    private const uint FlashUntilForeground = 0x0000000C;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct FlashInfo
+    {
+        public uint Size;
+        public IntPtr Window;
+        public uint Flags;
+        public uint Count;
+        public uint TimeoutMs;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern bool FlashWindowEx(ref FlashInfo info);
+
+    /// <summary>Keeps flashing until the window is brought to the front, which is the behaviour of
+    /// every other app that wants attention without stealing focus.</summary>
+    private void FlashTaskbarButton()
+    {
+        if (TryGetPlatformHandle()?.Handle is not { } handle || handle == IntPtr.Zero) return;
+
+        var info = new FlashInfo
+        {
+            Size = (uint)Marshal.SizeOf<FlashInfo>(),
+            Window = handle,
+            Flags = FlashTray | FlashUntilForeground,
+            Count = uint.MaxValue,
+            TimeoutMs = 0,
+        };
+
+        FlashWindowEx(ref info);
     }
 
     private void OnShellPropertyChanged(object? sender, PropertyChangedEventArgs e)

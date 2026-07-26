@@ -34,6 +34,11 @@ public partial class ControlViewModel : ObservableObject, IDisposable
     private const double AtTargetToleranceCelsius = 1.5;
 
     private readonly VolcanoDeviceOrchestrator _device;
+    private readonly SoundService? _sound;
+
+    /// <summary>The target the user last asked for and has not been told about reaching yet, or NaN.
+    /// Only set by the two commands below, so a ramp pushing targets every degree cannot arm it.</summary>
+    private double _awaitingTargetCelsius = double.NaN;
 
     private DateTime? _heaterOnSince;
     private double _previousTemperature = double.NaN;
@@ -97,9 +102,10 @@ public partial class ControlViewModel : ObservableObject, IDisposable
     [NotifyPropertyChangedFor(nameof(AutoShutOffNote))]
     private bool _isRampRunning;
 
-    public ControlViewModel(VolcanoDeviceOrchestrator device, AppSettings settings)
+    public ControlViewModel(VolcanoDeviceOrchestrator device, AppSettings settings, SoundService? sound = null)
     {
         _device = device;
+        _sound = sound;
 
         Chart = new ChartViewModel(device, settings);
         QuickTemperatures = new ObservableCollection<int>(settings.PredefinedTemperatures);
@@ -198,12 +204,17 @@ public partial class ControlViewModel : ObservableObject, IDisposable
 
     /// <summary>Writes whatever the stepper or a quick chip left in <see cref="TargetTemperature"/>.</summary>
     [RelayCommand]
-    private async Task ApplyTargetAsync() => await _device.SetTargetTemperatureAsync(TargetTemperature);
+    private async Task ApplyTargetAsync()
+    {
+        _awaitingTargetCelsius = TargetTemperature;
+        await _device.SetTargetTemperatureAsync(TargetTemperature);
+    }
 
     [RelayCommand]
     private async Task SelectQuickTemperatureAsync(int celsius)
     {
         TargetTemperature = celsius;
+        _awaitingTargetCelsius = celsius;
         await _device.SetTargetTemperatureAsync(celsius);
     }
 
@@ -216,6 +227,14 @@ public partial class ControlViewModel : ObservableObject, IDisposable
             _isFalling = !double.IsNaN(_previousTemperature) && celsius < _previousTemperature - 0.05;
             _previousTemperature = celsius;
             UpdateHeatState();
+
+            // Once, for a target the user asked for by hand. A ramp's own arrival is announced when
+            // its warm-up finishes, which is a different moment and a different piece of code.
+            if (!double.IsNaN(_awaitingTargetCelsius) && celsius >= _awaitingTargetCelsius)
+            {
+                _awaitingTargetCelsius = double.NaN;
+                _sound?.PlayHeatReached();
+            }
         });
 
     /// <summary>
@@ -245,6 +264,10 @@ public partial class ControlViewModel : ObservableObject, IDisposable
         Dispatcher.UIThread.Post(() =>
         {
             var heaterOn = (activity & VolcanoUuids.ActivityFlags.HeatingEnabled) != 0;
+
+            // The device switching itself off is the thing worth hearing from another room - which is
+            // the same signal whether it was the auto shut-off or somebody's hand.
+            if (IsHeaterOn && !heaterOn) _sound?.PlayShutdown();
 
             if (heaterOn && !IsHeaterOn) _heaterOnSince = DateTime.UtcNow;
             if (!heaterOn) _heaterOnSince = null;

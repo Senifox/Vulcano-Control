@@ -129,6 +129,7 @@
   <SolidColorBrush x:Key="Surface.Success" Color="#5FC77A" Opacity="0.12" />
   <SolidColorBrush x:Key="Surface.Error" Color="#E05B4B" Opacity="0.14" />
   <SolidColorBrush x:Key="Surface.Info" Color="#8FC5F5" Opacity="0.12" />
+  <SolidColorBrush x:Key="Surface.Warn" Color="#E8C06A" Opacity="0.16" />
 
   <!-- Radii. Window card 12, card 10-11, field/button 7, chip 999, icon tile 8-9. -->
   <CornerRadius x:Key="Radius.Window">12</CornerRadius>

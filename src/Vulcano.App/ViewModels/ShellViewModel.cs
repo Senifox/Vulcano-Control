@@ -34,6 +34,8 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
 {
     private readonly VolcanoDeviceOrchestrator _device;
     private readonly LogService _log;
+    private readonly SoundService? _sound;
+    private readonly INotifier? _notifier;
 
     [ObservableProperty]
     private AppTab _selectedTab = AppTab.Control;
@@ -67,23 +69,88 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
     [ObservableProperty]
     private bool _isCompact;
 
+    /// <summary>
+    /// True when the numbers on screen come from <see cref="SimulatedVolcanoDevice"/> rather than a
+    /// Volcano. Worth saying out loud in the title bar: the simulator is convincing enough that a
+    /// screenshot of it is indistinguishable from the real thing, which is fine while building the
+    /// interface and misleading anywhere else.
+    /// </summary>
+    public bool IsSimulated { get; }
+
+    /// <summary>Exposed so the window can flash its taskbar button when a notification could not go
+    /// to the operating system.</summary>
+    public INotifier? Notifier => _notifier;
+
+    // --- The notice in the corner, for when Windows would not show a notification ---
+
+    [ObservableProperty]
+    private bool _isNoticeVisible;
+
+    [ObservableProperty]
+    private string _noticeTitle = "";
+
+    [ObservableProperty]
+    private string _noticeMessage = "";
+
+    private DispatcherTimer? _noticeTimer;
+
+    /// <summary>
+    /// Shows the notification in the window itself, built from the app's own card and text styles
+    /// rather than the toolkit's notification control - which never drew anything here, and would
+    /// have looked like a visitor from another application if it had.
+    /// </summary>
+    private void ShowNotice(NotificationRequest request) =>
+        Dispatcher.UIThread.Post(() =>
+        {
+            NoticeTitle = request.Title;
+            NoticeMessage = request.Message;
+            IsNoticeVisible = true;
+
+            _noticeTimer ??= new DispatcherTimer { Interval = TimeSpan.FromSeconds(8) };
+            _noticeTimer.Tick -= OnNoticeExpired;
+            _noticeTimer.Tick += OnNoticeExpired;
+
+            // Restarted rather than left running, so a second notice gets its own eight seconds.
+            _noticeTimer.Stop();
+            _noticeTimer.Start();
+        });
+
+    private void OnNoticeExpired(object? sender, EventArgs e)
+    {
+        _noticeTimer?.Stop();
+        IsNoticeVisible = false;
+    }
+
+    [RelayCommand]
+    private void DismissNotice()
+    {
+        _noticeTimer?.Stop();
+        IsNoticeVisible = false;
+    }
+
     public ShellViewModel(
         VolcanoDeviceOrchestrator device,
         SettingsService settingsService,
         ThemeManager themeManager,
         AppSettings settings,
-        LogService log)
+        LogService log,
+        SoundService? sound = null,
+        INotifier? notifier = null,
+        bool isSimulated = false)
     {
         _device = device;
         _log = log;
+        _sound = sound;
+        _notifier = notifier;
+        IsSimulated = isSimulated;
 
-        Control = new ControlViewModel(device, settings);
+        Control = new ControlViewModel(device, settings, sound);
         Ramp = new RampViewModel(device, settingsService, settings);
         Run = new RunViewModel(device);
         Device = new DeviceViewModel(device, log);
         Network = new NetworkViewModel(device, settingsService, settings, log);
         Log = new LogViewModel(log);
-        Settings = new SettingsViewModel(settingsService, settings, themeManager, device);
+        Settings = new SettingsViewModel(settingsService, settings, themeManager, device, sound, notifier);
 
         // The compact line is stitched together from both, so it follows either of them changing.
         // Cheap enough to refresh on any of their properties - it is one short string.
@@ -96,6 +163,7 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
         _device.ProgressChanged += OnRampProgressChanged;
         _device.Completed += OnRampEnded;
         _device.Stopped += OnRampEnded;
+        _device.WarmupCompleted += OnRampWarmupCompleted;
 
         // Somebody has to listen to these. The error channel runs from the device through the
         // orchestrator to here and nothing was plugged in at this end, so a refused or failed write
@@ -103,7 +171,11 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
         // Both interfaces declare ErrorOccurred, hence the casts to say which one is meant.
         ((IVolcanoDevice)_device).ErrorOccurred += OnDeviceErrorOccurred;
         ((IRampSessionController)_device).ErrorOccurred += OnRampErrorOccurred;
+
+        if (_notifier is not null) _notifier.FellBackToWindow += OnNotificationFellBack;
     }
+
+    private void OnNotificationFellBack(object? sender, NotificationRequest request) => ShowNotice(request);
 
     private void OnDeviceErrorOccurred(object? sender, string message) =>
         _log.Log(message, LogLevel.Warning);
@@ -244,10 +316,20 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
     private void OnConnectionStateChanged(object? sender, ConnectionState state) =>
         Dispatcher.UIThread.Post(() =>
         {
+            var wasRunning = IsRampRunning;
             ConnectionState = state;
             OnPropertyChanged(nameof(IsRemote));
             OnPropertyChanged(nameof(HostName));
             OnPropertyChanged(nameof(DisconnectLabel));
+
+            // Losing the device mid-ramp is the other thing worth interrupting somebody for: the ramp
+            // pauses itself and waits, so a run they thought was finishing is now standing still.
+            if (wasRunning && state == ConnectionState.Error)
+            {
+                _notifier?.Notify(
+                    Strings.Get("Notify.ConnectionLost"),
+                    Strings.Get("Notify.ConnectionLost.Body"));
+            }
         });
 
     private void OnRampProgressChanged(object? sender, RampProgressEventArgs e) =>
@@ -263,9 +345,31 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
             SelectedTab = AppTab.Run;
         });
 
+    /// <summary>The device has arrived at the ramp's first point and the clock has started - the one
+    /// moment in a run worth waiting for, and the reason the sound exists.</summary>
+    private void OnRampWarmupCompleted(object? sender, EventArgs e)
+    {
+        _sound?.PlayHeatReached();
+        _notifier?.Notify(
+            Strings.Get("Notify.WarmupReached"),
+            Strings.Get("Notify.WarmupReached.Body", Formatting.Celsius(Control.CurrentTemperature)));
+    }
+
+    /// <summary>Somebody stopped it, so they are already looking at the window. No notification.</summary>
     private void OnRampEnded(object? sender, EventArgs e) => HandleRampEnded();
 
-    private void OnRampEnded(object? sender, double resetTemperatureCelsius) => HandleRampEnded();
+    private void OnRampEnded(object? sender, double resetTemperatureCelsius)
+    {
+        // A finished ramp, as opposed to one somebody stopped: the same sound the device's own
+        // shut-off makes, because from across the room it means the same thing. And half an hour
+        // after the click that started it, this is the notification the feature exists for.
+        _sound?.PlayShutdown();
+        _notifier?.Notify(
+            Strings.Get("Notify.RampFinished"),
+            Strings.Get("Notify.RampFinished.Body", Formatting.Celsius(resetTemperatureCelsius)));
+
+        HandleRampEnded();
+    }
 
     private void HandleRampEnded() =>
         Dispatcher.UIThread.Post(() =>
@@ -284,8 +388,11 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
         _device.ProgressChanged -= OnRampProgressChanged;
         _device.Completed -= OnRampEnded;
         _device.Stopped -= OnRampEnded;
+        _device.WarmupCompleted -= OnRampWarmupCompleted;
         ((IVolcanoDevice)_device).ErrorOccurred -= OnDeviceErrorOccurred;
         ((IRampSessionController)_device).ErrorOccurred -= OnRampErrorOccurred;
+        if (_notifier is not null) _notifier.FellBackToWindow -= OnNotificationFellBack;
+        _noticeTimer?.Stop();
         Control.Dispose();
         Ramp.Dispose();
         Run.Dispose();

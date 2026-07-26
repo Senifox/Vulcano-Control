@@ -121,6 +121,15 @@
   <data name="Action.AlwaysOnTop" xml:space="preserve">
     <value>Always on top</value>
   </data>
+  <data name="Simulation" xml:space="preserve">
+    <value>Simulation</value>
+  </data>
+  <data name="Simulation.Short" xml:space="preserve">
+    <value>SIM</value>
+  </data>
+  <data name="Simulation.Tip" xml:space="preserve">
+    <value>These readings come from the built-in simulator, not from a device.</value>
+  </data>
   <data name="Action.Set" xml:space="preserve">
     <value>Set</value>
   </data>
@@ -690,6 +699,42 @@
   </data>
   <data name="Log.Sound.Skipped" xml:space="preserve">
     <value>Sound skipped, sounds are switched off: {0}</value>
+  </data>
+  <data name="Log.Sound.LoadFailed" xml:space="preserve">
+    <value>Sound could not be loaded ({0}): {1}</value>
+  </data>
+  <data name="Log.Sound.Echo" xml:space="preserve">
+    <value>Sound skipped, same one again straight away: {0}</value>
+  </data>
+  <data name="Log.Notify" xml:space="preserve">
+    <value>Notification: {0}</value>
+  </data>
+  <data name="Log.Notify.Nowhere" xml:space="preserve">
+    <value>Notification had nowhere to go: {0}</value>
+  </data>
+  <data name="Log.Notify.NoIdentity" xml:space="preserve">
+    <value>No Windows notification identity registered for "{0}"; notifications go to the window instead.</value>
+  </data>
+  <data name="Log.Notify.NoToasts" xml:space="preserve">
+    <value>Windows would not show a notification ({0}); using the window instead. Installed copies get system notifications.</value>
+  </data>
+  <data name="Notify.WarmupReached" xml:space="preserve">
+    <value>Start temperature reached</value>
+  </data>
+  <data name="Notify.WarmupReached.Body" xml:space="preserve">
+    <value>The ramp is running from {0}.</value>
+  </data>
+  <data name="Notify.RampFinished" xml:space="preserve">
+    <value>Ramp finished</value>
+  </data>
+  <data name="Notify.RampFinished.Body" xml:space="preserve">
+    <value>The device is back at {0}.</value>
+  </data>
+  <data name="Notify.ConnectionLost" xml:space="preserve">
+    <value>Connection lost</value>
+  </data>
+  <data name="Notify.ConnectionLost.Body" xml:space="preserve">
+    <value>The ramp is paused and continues by itself once the device is back.</value>
   </data>
   <data name="Log.Sound.Playing" xml:space="preserve">
     <value>Playing sound: {0}</value>

@@ -32,6 +32,8 @@ public partial class SettingsViewModel : ObservableObject
     private readonly AppSettings _settings;
     private readonly ThemeManager _themeManager;
     private readonly VolcanoDeviceOrchestrator _device;
+    private readonly SoundService? _sound;
+    private readonly INotifier? _notifier;
 
     /// <summary>True while the constructor is filling properties from the loaded settings, so
     /// they do not each save the file on the way in.</summary>
@@ -65,7 +67,9 @@ public partial class SettingsViewModel : ObservableObject
         SettingsService settingsService,
         AppSettings settings,
         ThemeManager themeManager,
-        VolcanoDeviceOrchestrator device)
+        VolcanoDeviceOrchestrator device,
+        SoundService? sound = null,
+        INotifier? notifier = null)
     {
         _loading = true;
 
@@ -73,6 +77,8 @@ public partial class SettingsViewModel : ObservableObject
         _settings = settings;
         _themeManager = themeManager;
         _device = device;
+        _sound = sound;
+        _notifier = notifier;
 
         _theme = settings.Theme;
         _language = settings.Language;
@@ -175,10 +181,19 @@ public partial class SettingsViewModel : ObservableObject
         Persist(() => _settings.TimeAxisMode = value);
     }
 
-    partial void OnSoundEnabledChanged(bool value) => Persist(() => _settings.SoundEnabled = value);
+    // Both switches take effect at once rather than at the next launch, which is what a switch
+    // labelled with what it does implies. They used to only write a settings file.
+    partial void OnSoundEnabledChanged(bool value)
+    {
+        if (_sound is not null) _sound.SoundEnabled = value;
+        Persist(() => _settings.SoundEnabled = value);
+    }
 
-    partial void OnDesktopNotificationsChanged(bool value) =>
+    partial void OnDesktopNotificationsChanged(bool value)
+    {
+        if (_notifier is not null) _notifier.Enabled = value;
         Persist(() => _settings.DesktopNotifications = value);
+    }
 
     [RelayCommand]
     private void AddQuickTemperature()

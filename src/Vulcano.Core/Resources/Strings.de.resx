@@ -121,6 +121,15 @@
   <data name="Action.AlwaysOnTop" xml:space="preserve">
     <value>Immer im Vordergrund</value>
   </data>
+  <data name="Simulation" xml:space="preserve">
+    <value>Simulation</value>
+  </data>
+  <data name="Simulation.Short" xml:space="preserve">
+    <value>SIM</value>
+  </data>
+  <data name="Simulation.Tip" xml:space="preserve">
+    <value>Die Werte kommen aus dem eingebauten Simulator, nicht von einem Gerät.</value>
+  </data>
   <data name="Action.Set" xml:space="preserve">
     <value>Setzen</value>
   </data>
@@ -690,6 +699,42 @@
   </data>
   <data name="Log.Sound.Skipped" xml:space="preserve">
     <value>Ton übersprungen, Töne sind aus: {0}</value>
+  </data>
+  <data name="Log.Sound.LoadFailed" xml:space="preserve">
+    <value>Ton konnte nicht geladen werden ({0}): {1}</value>
+  </data>
+  <data name="Log.Sound.Echo" xml:space="preserve">
+    <value>Ton übersprungen, derselbe direkt nochmal: {0}</value>
+  </data>
+  <data name="Log.Notify" xml:space="preserve">
+    <value>Benachrichtigung: {0}</value>
+  </data>
+  <data name="Log.Notify.Nowhere" xml:space="preserve">
+    <value>Benachrichtigung konnte nirgends angezeigt werden: {0}</value>
+  </data>
+  <data name="Log.Notify.NoIdentity" xml:space="preserve">
+    <value>Für „{0}" ist keine Windows-Benachrichtigungs-Identität registriert; Benachrichtigungen laufen über das Fenster.</value>
+  </data>
+  <data name="Log.Notify.NoToasts" xml:space="preserve">
+    <value>Windows wollte keine Benachrichtigung anzeigen ({0}); stattdessen über das Fenster. Installierte Kopien bekommen System-Benachrichtigungen.</value>
+  </data>
+  <data name="Notify.WarmupReached" xml:space="preserve">
+    <value>Starttemperatur erreicht</value>
+  </data>
+  <data name="Notify.WarmupReached.Body" xml:space="preserve">
+    <value>Die Rampe läuft ab {0}.</value>
+  </data>
+  <data name="Notify.RampFinished" xml:space="preserve">
+    <value>Rampe fertig</value>
+  </data>
+  <data name="Notify.RampFinished.Body" xml:space="preserve">
+    <value>Das Gerät steht wieder bei {0}.</value>
+  </data>
+  <data name="Notify.ConnectionLost" xml:space="preserve">
+    <value>Verbindung verloren</value>
+  </data>
+  <data name="Notify.ConnectionLost.Body" xml:space="preserve">
+    <value>Die Rampe ist angehalten und läuft von selbst weiter, sobald das Gerät wieder da ist.</value>
   </data>
   <data name="Log.Sound.Playing" xml:space="preserve">
     <value>Ton wird abgespielt: {0}</value>
