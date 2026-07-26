@@ -1,0 +1,191 @@
+using System;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Linq;
+using System.Reflection;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Vulcano.App.Services;
+using Vulcano.Core.Models;
+using Vulcano.Core.Services;
+
+namespace Vulcano.App.ViewModels;
+
+/// <summary>A time-axis mode plus the name it goes by in the interface.</summary>
+public sealed record TimeAxisOption(TimeAxisMode Mode, string Name);
+
+/// <summary>
+/// The Settings tab. No OK, no Cancel: every change writes through to settings.json as it is made,
+/// which is the whole reason this stopped being a dialog.
+/// </summary>
+public partial class SettingsViewModel : ObservableObject
+{
+    private readonly SettingsService _settingsService;
+    private readonly AppSettings _settings;
+    private readonly ThemeManager _themeManager;
+    private readonly VolcanoDeviceOrchestrator _device;
+
+    /// <summary>True while the constructor is filling properties from the loaded settings, so
+    /// they do not each save the file on the way in.</summary>
+    private readonly bool _loading;
+
+    [ObservableProperty]
+    private AppTheme _theme;
+
+    [ObservableProperty]
+    private AppLanguage _language;
+
+    [ObservableProperty]
+    private int _historyRetentionMinutes;
+
+    [ObservableProperty]
+    private int _rampPushThresholdCelsius;
+
+    [ObservableProperty]
+    private TimeAxisMode _timeAxisMode;
+
+    [ObservableProperty]
+    private bool _soundEnabled;
+
+    [ObservableProperty]
+    private bool _desktopNotifications;
+
+    [ObservableProperty]
+    private int _newQuickTemperature = 195;
+
+    public SettingsViewModel(
+        SettingsService settingsService,
+        AppSettings settings,
+        ThemeManager themeManager,
+        VolcanoDeviceOrchestrator device)
+    {
+        _loading = true;
+
+        _settingsService = settingsService;
+        _settings = settings;
+        _themeManager = themeManager;
+        _device = device;
+
+        _theme = settings.Theme;
+        _language = settings.Language;
+        _historyRetentionMinutes = settings.HistoryRetentionMinutes;
+        _rampPushThresholdCelsius = settings.RampPushThresholdCelsius;
+        _timeAxisMode = settings.TimeAxisMode;
+        _soundEnabled = settings.SoundEnabled;
+        _desktopNotifications = settings.DesktopNotifications;
+
+        QuickTemperatures = new ObservableCollection<int>(settings.PredefinedTemperatures);
+
+        _loading = false;
+    }
+
+    public ObservableCollection<int> QuickTemperatures { get; }
+
+    public AppLanguage[] Languages { get; } = [AppLanguage.English, AppLanguage.German];
+
+    /// <summary>The time-axis choices with the names the design uses - the enum spells them
+    /// "Fixed15", which is not something to put in front of anyone.</summary>
+    public TimeAxisOption[] TimeAxisOptions { get; } =
+    [
+        new(TimeAxisMode.FollowRun, "Follow run"),
+        new(TimeAxisMode.Fixed15, "15 min"),
+        new(TimeAxisMode.Fixed60, "1 h"),
+        new(TimeAxisMode.Session, "Whole session"),
+    ];
+
+    /// <summary>The option object the combo box binds to; writing it sets <see cref="TimeAxisMode"/>.</summary>
+    public TimeAxisOption? SelectedTimeAxis
+    {
+        get => TimeAxisOptions.FirstOrDefault(o => o.Mode == TimeAxisMode);
+        set
+        {
+            if (value is not null) TimeAxisMode = value.Mode;
+        }
+    }
+
+    public string SettingsFilePath => _settingsService.SettingsFilePath;
+
+    public string Version =>
+        Assembly.GetEntryAssembly()?.GetName().Version?.ToString(3) ?? "0.0.0";
+
+    public string BuildNote => "Avalonia 11 · net10.0";
+
+    partial void OnThemeChanged(AppTheme value)
+    {
+        if (_loading) return;
+
+        _themeManager.Apply(value);
+        _settings.Theme = value;
+        Save();
+    }
+
+    partial void OnLanguageChanged(AppLanguage value) => Persist(() => _settings.Language = value);
+
+    partial void OnHistoryRetentionMinutesChanged(int value) =>
+        Persist(() => _settings.HistoryRetentionMinutes = value);
+
+    partial void OnRampPushThresholdCelsiusChanged(int value) =>
+        Persist(() =>
+        {
+            _settings.RampPushThresholdCelsius = value;
+            // Takes effect on the running ramp too, not just the next one.
+            _device.PushThresholdCelsius = value;
+        });
+
+    partial void OnTimeAxisModeChanged(TimeAxisMode value)
+    {
+        OnPropertyChanged(nameof(SelectedTimeAxis));
+        Persist(() => _settings.TimeAxisMode = value);
+    }
+
+    partial void OnSoundEnabledChanged(bool value) => Persist(() => _settings.SoundEnabled = value);
+
+    partial void OnDesktopNotificationsChanged(bool value) =>
+        Persist(() => _settings.DesktopNotifications = value);
+
+    [RelayCommand]
+    private void AddQuickTemperature()
+    {
+        var value = Math.Clamp(NewQuickTemperature, (int)RampValidation.MinCelsius, (int)RampValidation.MaxCelsius);
+        if (QuickTemperatures.Contains(value)) return;
+
+        var index = QuickTemperatures.Count(t => t < value);
+        QuickTemperatures.Insert(index, value);
+        PersistQuickTemperatures();
+    }
+
+    [RelayCommand]
+    private void RemoveQuickTemperature(int celsius)
+    {
+        QuickTemperatures.Remove(celsius);
+        PersistQuickTemperatures();
+    }
+
+    /// <summary>Opens the folder the settings live in, so "where is my configuration" has an
+    /// answer that does not involve reading a path out loud.</summary>
+    [RelayCommand]
+    private void OpenSettingsFolder()
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo(AppPaths.DataDirectory) { UseShellExecute = true });
+        }
+        catch
+        {
+            // Nothing sensible to do if the shell refuses; the path is on screen anyway.
+        }
+    }
+
+    private void PersistQuickTemperatures() =>
+        Persist(() => _settings.PredefinedTemperatures = QuickTemperatures.ToList());
+
+    private void Persist(Action apply)
+    {
+        if (_loading) return;
+
+        apply();
+        Save();
+    }
+
+    private void Save() => _settingsService.Save(_settings);
+}

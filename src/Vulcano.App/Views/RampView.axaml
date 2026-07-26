@@ -58,7 +58,7 @@
     <!-- ============ Table · Inspector ============ -->
     <Grid Grid.Row="2" ColumnDefinitions="*,12,300" Margin="0,12,0,0">
 
-      <Border Grid.Column="0" Classes="card" Padding="0">
+      <Border Grid.Column="0" Classes="card flush">
         <DockPanel>
           <Grid DockPanel.Dock="Top" ColumnDefinitions="28,76,76,*" Margin="14,12,14,8">
             <TextBlock Grid.Column="0" Classes="label" Text="#" />
@@ -67,11 +67,9 @@
             <TextBlock Grid.Column="3" Classes="label" Text="CURVE TO NEXT" />
           </Grid>
 
-          <ListBox ItemsSource="{Binding Points}"
-                   SelectedIndex="{Binding SelectedIndex, Mode=TwoWay}"
-                   Background="Transparent"
-                   BorderThickness="0"
-                   Padding="0">
+          <ListBox Classes="rows"
+                   ItemsSource="{Binding Points}"
+                   SelectedIndex="{Binding SelectedIndex, Mode=TwoWay}">
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="vm:RampPointViewModel">
                 <Grid ColumnDefinitions="28,76,76,*" Height="34">
@@ -154,9 +152,7 @@
                      Minimum="0" Maximum="120" Step="1" Unit="min" />
 
           <TextBlock Text="{Binding ValidationMessage}"
-                     Foreground="{DynamicResource Error.Text}"
-                     FontSize="{StaticResource Text.Small}"
-                     TextWrapping="Wrap"
+                     Classes="error"
                      IsVisible="{Binding ValidationMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
 
           <TextBlock Text="{Binding WarmUpNote}"
@@ -172,42 +168,5 @@
     </Grid>
   </Grid>
 
-  <UserControl.Styles>
-    <Style Selector="Border.card">
-      <Setter Property="Padding" Value="14" />
-      <Setter Property="CornerRadius" Value="{StaticResource Radius.Card}" />
-      <Setter Property="Background" Value="{DynamicResource Bg.Panel}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource Border}" />
-      <Setter Property="BorderThickness" Value="1" />
-    </Style>
-
-    <Style Selector="TextBlock.label">
-      <Setter Property="FontFamily" Value="{StaticResource Font.Mono}" />
-      <Setter Property="FontSize" Value="{StaticResource Text.Label}" />
-      <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="Foreground" Value="{DynamicResource Text.Dim}" />
-    </Style>
-
-    <Style Selector="TextBlock.sub">
-      <Setter Property="FontSize" Value="{StaticResource Text.Small}" />
-      <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
-    </Style>
-
-    <Style Selector="TextBlock.invalid">
-      <Setter Property="Foreground" Value="{DynamicResource Error.Text}" />
-    </Style>
-
-    <!-- The selected row is a tinted band rather than a highlight bar; the design keeps the
-         accent for the point itself. -->
-    <Style Selector="ListBoxItem">
-      <Setter Property="Padding" Value="14,0" />
-      <Setter Property="MinHeight" Value="34" />
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="CornerRadius" Value="0" />
-    </Style>
-    <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
-      <Setter Property="Background" Value="{DynamicResource Surface.Accent}" />
-    </Style>
-  </UserControl.Styles>
 
 </UserControl>

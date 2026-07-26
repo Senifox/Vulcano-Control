@@ -167,60 +167,18 @@
                             Series="{Binding Chart.Series}"
                             XAxes="{Binding Chart.XAxes}"
                             YAxes="{Binding Chart.YAxes}"
-                            TooltipPosition="Hidden" />
+                            TooltipPosition="Hidden"
+                            IsVisible="{Binding Chart.HasData}" />
+
+        <TextBlock Grid.Row="1"
+                   Text="Nothing measured yet."
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   Foreground="{DynamicResource Text.Faint}"
+                   IsVisible="{Binding !Chart.HasData}" />
       </Grid>
     </Border>
   </Grid>
 
-  <UserControl.Styles>
-    <Style Selector="Border.card">
-      <Setter Property="Padding" Value="18,16" />
-      <Setter Property="CornerRadius" Value="{StaticResource Radius.Card}" />
-      <Setter Property="Background" Value="{DynamicResource Bg.Panel}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource Border}" />
-      <Setter Property="BorderThickness" Value="1" />
-    </Style>
-
-    <!-- The heater tile turns warm when it is on: tinted surface, tinted border. -->
-    <Style Selector="Border.tile.active">
-      <Setter Property="Background" Value="{DynamicResource Surface.Heat}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource Heat}" />
-    </Style>
-
-    <Style Selector="TextBlock.label">
-      <Setter Property="FontFamily" Value="{StaticResource Font.Mono}" />
-      <Setter Property="FontSize" Value="{StaticResource Text.Label}" />
-      <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="Foreground" Value="{DynamicResource Text.Dim}" />
-    </Style>
-
-    <Style Selector="TextBlock.sub">
-      <Setter Property="FontSize" Value="{StaticResource Text.Small}" />
-      <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
-    </Style>
-
-    <Style Selector="Border.chip">
-      <Setter Property="Padding" Value="8,3" />
-      <Setter Property="CornerRadius" Value="{StaticResource Radius.Pill}" />
-      <Setter Property="VerticalAlignment" Value="Center" />
-    </Style>
-    <Style Selector="Border.chip > TextBlock">
-      <Setter Property="FontSize" Value="{StaticResource Text.Footnote}" />
-    </Style>
-
-    <Style Selector="Border.chip.heat">
-      <Setter Property="Background" Value="{DynamicResource Surface.Heat}" />
-    </Style>
-    <Style Selector="Border.chip.heat > TextBlock">
-      <Setter Property="Foreground" Value="{DynamicResource Heat}" />
-    </Style>
-
-    <Style Selector="Border.chip.accent">
-      <Setter Property="Background" Value="{DynamicResource Surface.Accent}" />
-    </Style>
-    <Style Selector="Border.chip.accent > TextBlock">
-      <Setter Property="Foreground" Value="{DynamicResource Accent.Text}" />
-    </Style>
-  </UserControl.Styles>
 
 </UserControl>

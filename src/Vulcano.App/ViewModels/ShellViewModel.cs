@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Vulcano.App.Services;
 using Vulcano.Core.Models;
 using Vulcano.Core.Services;
 
@@ -40,6 +41,9 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
     [NotifyPropertyChangedFor(nameof(IsConnected))]
     [NotifyPropertyChangedFor(nameof(IsBusy))]
     [NotifyPropertyChangedFor(nameof(ConnectionText))]
+    [NotifyPropertyChangedFor(nameof(ConnectionDetail))]
+    [NotifyPropertyChangedFor(nameof(ShowConnectionBanner))]
+    [NotifyPropertyChangedFor(nameof(IsConnectionLost))]
     [NotifyCanExecuteChangedFor(nameof(ConnectCommand))]
     [NotifyCanExecuteChangedFor(nameof(DisconnectCommand))]
     private ConnectionState _connectionState = ConnectionState.Disconnected;
@@ -57,6 +61,7 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
     public ShellViewModel(
         VolcanoDeviceOrchestrator device,
         SettingsService settingsService,
+        ThemeManager themeManager,
         AppSettings settings,
         LogService log)
     {
@@ -66,6 +71,10 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
         Control = new ControlViewModel(device, settings);
         Ramp = new RampViewModel(device, settingsService, settings);
         Run = new RunViewModel(device);
+        Device = new DeviceViewModel(device, log);
+        Network = new NetworkViewModel(device, settingsService, settings, log);
+        Log = new LogViewModel(log);
+        Settings = new SettingsViewModel(settingsService, settings, themeManager, device);
 
         _device.ConnectionStateChanged += OnConnectionStateChanged;
         _device.ProgressChanged += OnRampProgressChanged;
@@ -81,6 +90,18 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
 
     /// <summary>The running ramp, while one is running.</summary>
     public RunViewModel Run { get; }
+
+    /// <summary>The device's own settings, written straight through.</summary>
+    public DeviceViewModel Device { get; }
+
+    /// <summary>Hosting and joining the LAN relay.</summary>
+    public NetworkViewModel Network { get; }
+
+    /// <summary>The log, filtered by level.</summary>
+    public LogViewModel Log { get; }
+
+    /// <summary>Application settings; every change saves itself.</summary>
+    public SettingsViewModel Settings { get; }
 
     public bool IsConnected => ConnectionState == ConnectionState.Connected;
 
@@ -106,6 +127,24 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
 
     /// <summary>The Run tab is only offered while there is a run to look at.</summary>
     public bool IsRunTabVisible => IsRampRunning;
+
+    /// <summary>
+    /// The band under the toolbar that says why nothing is happening. The WPF version had no such
+    /// thing: it just sat there with an empty readout, which looks the same whether the device is
+    /// off, out of range or simply not connected yet.
+    /// </summary>
+    public bool ShowConnectionBanner => !IsConnected && ConnectionState != ConnectionState.Connecting;
+
+    public bool IsConnectionLost => ConnectionState == ConnectionState.Error;
+
+    public string ConnectionDetail => ConnectionState switch
+    {
+        ConnectionState.Scanning => "Looking for a device in range.",
+        ConnectionState.Error => IsRampRunning
+            ? $"The ramp is paused at {Formatting.Celsius(Control.CurrentTemperature)} and continues when the connection is back."
+            : "The device stopped answering.",
+        _ => "Switch the device on and make sure Bluetooth is enabled.",
+    };
 
     [RelayCommand(CanExecute = nameof(CanConnect))]
     private async Task ConnectAsync()
@@ -189,6 +228,9 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
         Control.Dispose();
         Ramp.Dispose();
         Run.Dispose();
+        Device.Dispose();
+        Network.Dispose();
+        Log.Dispose();
 
         _log.Log("Shutting down");
         _device.Dispose();

@@ -17,7 +17,7 @@
         ExtendClientAreaChromeHints="NoChrome"
         ExtendClientAreaTitleBarHeightHint="-1">
 
-  <Grid RowDefinitions="Auto,Auto,*">
+  <Grid RowDefinitions="Auto,Auto,Auto,*">
 
     <!-- ============ Title bar · 40 ============ -->
     <Border Grid.Row="0"
@@ -188,8 +188,35 @@
       </Grid>
     </Border>
 
+    <!-- ============ Why nothing is happening ============ -->
+    <Border Grid.Row="2"
+            Padding="14,11"
+            Background="{DynamicResource Bg.Chrome}"
+            BorderBrush="{DynamicResource Border}"
+            BorderThickness="0,0,0,1"
+            IsVisible="{Binding ShowConnectionBanner}">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <Ellipse Grid.Column="0" Width="7" Height="7" Margin="0,0,10,0" VerticalAlignment="Center"
+                 Fill="{DynamicResource Error}"
+                 IsVisible="{Binding IsConnectionLost}" />
+        <Ellipse Grid.Column="0" Width="7" Height="7" Margin="0,0,10,0" VerticalAlignment="Center"
+                 Fill="{DynamicResource Text.Faint}"
+                 IsVisible="{Binding !IsConnectionLost}" />
+
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+          <TextBlock Text="{Binding ConnectionText}" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <TextBlock Text="{Binding ConnectionDetail}" Classes="sub" VerticalAlignment="Center" />
+        </StackPanel>
+
+        <Button Grid.Column="2"
+                Theme="{StaticResource SecondaryButton}"
+                Content="Search for device"
+                Command="{Binding ConnectCommand}" />
+      </Grid>
+    </Border>
+
     <!-- ============ Content ============ -->
-    <Panel Grid.Row="2">
+    <Panel Grid.Row="3">
 
       <views:ControlView DataContext="{Binding Control}"
                          IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).SelectedTab, Converter={StaticResource EnumToBool}, ConverterParameter=Control}" />
@@ -198,24 +225,15 @@
                       IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).SelectedTab, Converter={StaticResource EnumToBool}, ConverterParameter=Ramp}" />
       <views:RunView DataContext="{Binding Run}"
                      IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).SelectedTab, Converter={StaticResource EnumToBool}, ConverterParameter=Run}" />
-      <TextBlock Text="Device" Classes="placeholder"
-                 IsVisible="{Binding SelectedTab, Converter={StaticResource EnumToBool}, ConverterParameter=Device}" />
-      <TextBlock Text="Network" Classes="placeholder"
-                 IsVisible="{Binding SelectedTab, Converter={StaticResource EnumToBool}, ConverterParameter=Network}" />
-      <TextBlock Text="Log" Classes="placeholder"
-                 IsVisible="{Binding SelectedTab, Converter={StaticResource EnumToBool}, ConverterParameter=Log}" />
-      <TextBlock Text="Settings" Classes="placeholder"
-                 IsVisible="{Binding SelectedTab, Converter={StaticResource EnumToBool}, ConverterParameter=Settings}" />
+      <views:DeviceView DataContext="{Binding Device}"
+                        IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).SelectedTab, Converter={StaticResource EnumToBool}, ConverterParameter=Device}" />
+      <views:NetworkView DataContext="{Binding Network}"
+                         IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).SelectedTab, Converter={StaticResource EnumToBool}, ConverterParameter=Network}" />
+      <views:LogView DataContext="{Binding Log}"
+                     IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).SelectedTab, Converter={StaticResource EnumToBool}, ConverterParameter=Log}" />
+      <views:SettingsView DataContext="{Binding Settings}"
+                          IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).SelectedTab, Converter={StaticResource EnumToBool}, ConverterParameter=Settings}" />
     </Panel>
   </Grid>
-
-  <Window.Styles>
-    <Style Selector="TextBlock.placeholder">
-      <Setter Property="HorizontalAlignment" Value="Center" />
-      <Setter Property="VerticalAlignment" Value="Center" />
-      <Setter Property="FontSize" Value="{StaticResource Text.Section}" />
-      <Setter Property="Foreground" Value="{DynamicResource Text.Faint}" />
-    </Style>
-  </Window.Styles>
 
 </Window>

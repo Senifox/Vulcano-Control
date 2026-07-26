@@ -1,0 +1,225 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:Vulcano.App.Controls"
+             xmlns:vm="clr-namespace:Vulcano.App.ViewModels"
+             xmlns:models="clr-namespace:Vulcano.Core.Models;assembly=Vulcano.Core"
+             xmlns:sys="clr-namespace:System;assembly=System.Runtime"
+             x:Class="Vulcano.App.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+
+  <ScrollViewer>
+    <Grid ColumnDefinitions="*,16,*" Margin="14">
+
+      <!-- ============ Left ============ -->
+      <StackPanel Grid.Column="0" Spacing="12">
+
+        <Border Classes="card">
+          <StackPanel Spacing="4">
+            <TextBlock Classes="label" Text="APPEARANCE" Margin="0,0,0,6" />
+
+            <Border Classes="row">
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Grid.Column="0" Text="Theme" VerticalAlignment="Center" />
+                <!-- Three fixed options, written out: a ConverterParameter cannot itself be a
+                     binding, so an items template would need a wrapper per option to compare
+                     against. Not worth it for three. -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                  <ToggleButton Theme="{StaticResource Chip}" Content="System"
+                                IsChecked="{Binding Theme, Converter={StaticResource EnumToBool}, ConverterParameter=System, Mode=TwoWay}" />
+                  <ToggleButton Theme="{StaticResource Chip}" Content="Dark"
+                                IsChecked="{Binding Theme, Converter={StaticResource EnumToBool}, ConverterParameter=Dark, Mode=TwoWay}" />
+                  <ToggleButton Theme="{StaticResource Chip}" Content="Light"
+                                IsChecked="{Binding Theme, Converter={StaticResource EnumToBool}, ConverterParameter=Light, Mode=TwoWay}" />
+                </StackPanel>
+              </Grid>
+            </Border>
+
+            <Border Classes="row">
+              <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" Spacing="2">
+                  <TextBlock Text="Language" />
+                  <TextBlock Text="takes effect on the next start for now" Classes="footnote" />
+                </StackPanel>
+                <ComboBox Grid.Column="1" MinWidth="130"
+                          ItemsSource="{Binding Languages}"
+                          SelectedItem="{Binding Language, Mode=TwoWay}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="row last">
+              <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" Spacing="2">
+                  <TextBlock Text="Temperature unit" />
+                  <TextBlock Text="°C only for now; the device's own display is left alone"
+                             Classes="footnote" />
+                </StackPanel>
+                <Border Classes="chip" Grid.Column="1">
+                  <TextBlock Text="°C" />
+                </Border>
+              </Grid>
+            </Border>
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card">
+          <StackPanel Spacing="4">
+            <TextBlock Classes="label" Text="CHART AND RAMP" Margin="0,0,0,6" />
+
+            <Border Classes="row">
+              <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" Spacing="2">
+                  <TextBlock Text="Keep history for" />
+                  <TextBlock Text="older points are dropped from the chart" Classes="footnote" />
+                </StackPanel>
+                <c:Stepper Grid.Column="1" Width="140"
+                           Value="{Binding HistoryRetentionMinutes, Mode=TwoWay}"
+                           Minimum="10" Maximum="720" Step="10" Unit="min" />
+              </Grid>
+            </Border>
+
+            <Border Classes="row">
+              <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" Spacing="2">
+                  <TextBlock Text="Send ramp step from" />
+                  <TextBlock Text="smaller changes are not written to the device" Classes="footnote" />
+                </StackPanel>
+                <c:Stepper Grid.Column="1" Width="140"
+                           Value="{Binding RampPushThresholdCelsius, Mode=TwoWay}"
+                           Minimum="1" Maximum="10" Step="1" Unit="K" />
+              </Grid>
+            </Border>
+
+            <Border Classes="row last">
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Grid.Column="0" Text="Time axis" VerticalAlignment="Center" />
+                <ComboBox Grid.Column="1" MinWidth="150"
+                          ItemsSource="{Binding TimeAxisOptions}"
+                          SelectedItem="{Binding SelectedTimeAxis, Mode=TwoWay}">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:TimeAxisOption">
+                      <TextBlock Text="{Binding Name}" />
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+              </Grid>
+            </Border>
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card">
+          <StackPanel Spacing="10">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Grid.Column="0" Classes="label" Text="QUICK TEMPERATURES" />
+              <TextBlock Grid.Column="1" Text="shown next to the target stepper" Classes="footnote" />
+            </Grid>
+
+            <ItemsControl ItemsSource="{Binding QuickTemperatures}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="sys:Int32">
+                  <Border Classes="chip" Margin="0,0,6,6" Padding="10,4">
+                    <StackPanel Orientation="Horizontal" Spacing="7">
+                      <TextBlock Text="{Binding}" Classes="mono" />
+                      <Button Theme="{StaticResource GhostButton}"
+                              Content="✕"
+                              Height="16" Padding="2,0"
+                              FontSize="10"
+                              Command="{Binding $parent[ItemsControl].((vm:SettingsViewModel)DataContext).RemoveQuickTemperatureCommand}"
+                              CommandParameter="{Binding}" />
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <c:Stepper Width="140"
+                         Value="{Binding NewQuickTemperature, Mode=TwoWay}"
+                         Minimum="40" Maximum="230" Step="5" Unit="°C" />
+              <Button Theme="{StaticResource SecondaryButton}"
+                      Content="+ Add"
+                      Command="{Binding AddQuickTemperatureCommand}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card">
+          <StackPanel Spacing="10">
+            <TextBlock Classes="label" Text="FILES" />
+            <TextBlock Text="{Binding SettingsFilePath}" Classes="mono footnote" TextWrapping="Wrap" />
+            <TextBlock Text="settings, ramp profiles and exported logs" Classes="footnote" />
+            <Button Theme="{StaticResource SecondaryButton}"
+                    Content="Open folder"
+                    HorizontalAlignment="Left"
+                    Command="{Binding OpenSettingsFolderCommand}" />
+          </StackPanel>
+        </Border>
+      </StackPanel>
+
+      <!-- ============ Right ============ -->
+      <StackPanel Grid.Column="2" Spacing="12">
+
+        <Border Classes="card">
+          <StackPanel Spacing="4">
+            <TextBlock Classes="label" Text="NOTIFICATIONS" Margin="0,0,0,6" />
+
+            <Border Classes="row">
+              <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" Spacing="2">
+                  <TextBlock Text="Sound when target is reached" />
+                  <TextBlock Text="and when a ramp finishes" Classes="footnote" />
+                </StackPanel>
+                <ToggleButton Grid.Column="1" Theme="{StaticResource Toggle}"
+                              IsChecked="{Binding SoundEnabled, Mode=TwoWay}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="row last">
+              <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" Spacing="2">
+                  <TextBlock Text="Desktop notification" />
+                  <TextBlock Text="when the window is minimised" Classes="footnote" />
+                </StackPanel>
+                <ToggleButton Grid.Column="1" Theme="{StaticResource Toggle}"
+                              IsChecked="{Binding DesktopNotifications, Mode=TwoWay}" />
+              </Grid>
+            </Border>
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card">
+          <StackPanel Spacing="10">
+            <TextBlock Classes="label" Text="SHARING OVER THE NETWORK" />
+            <TextBlock Text="Port, PIN and hosting live in the Network tab, next to the list of who is connected."
+                       Classes="sub" TextWrapping="Wrap" />
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card">
+          <StackPanel Spacing="10">
+            <TextBlock Classes="label" Text="ABOUT" />
+
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <Border Width="38" Height="38" CornerRadius="9" Background="{DynamicResource Accent}" />
+              <StackPanel Spacing="3" VerticalAlignment="Center">
+                <TextBlock Text="Vulcano Control" FontWeight="SemiBold" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="{Binding Version, StringFormat='v {0}'}" Classes="mono footnote" />
+                  <TextBlock Text="{Binding BuildNote}" Classes="footnote" />
+                </StackPanel>
+              </StackPanel>
+            </StackPanel>
+
+            <TextBlock Text="Automatic updates are switched off in this build. They come back together with the Linux packaging, so both platforms get the same behaviour rather than one silently different one."
+                       Classes="footnote" TextWrapping="Wrap" />
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </Grid>
+  </ScrollViewer>
+
+</UserControl>

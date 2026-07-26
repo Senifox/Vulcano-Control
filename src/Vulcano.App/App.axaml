@@ -18,6 +18,7 @@
 
   <Application.Styles>
     <FluentTheme />
+    <StyleInclude Source="avares://vulcano-control/Theme/ViewStyles.axaml" />
   </Application.Styles>
 
 </Application>

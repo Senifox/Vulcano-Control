@@ -108,6 +108,13 @@ public partial class ChartViewModel : ObservableObject, IDisposable
     public string HistoryNote => $"last {Formatting.Minutes(_settings.HistoryRetentionMinutes)}";
 
     /// <summary>
+    /// False until the first reading arrives. Worth a property of its own: a time axis with no data
+    /// to bound it invents a range - it draws a full grid labelled from midnight of year one, which
+    /// looks like a broken chart rather than an empty one.
+    /// </summary>
+    public bool HasData => _measured.Count > 0 || _plan.Count > 0;
+
+    /// <summary>
     /// Called by the view on load and whenever the theme variant changes. Paints are SkiaSharp
     /// objects, so they cannot come from a resource dictionary and have to be rebuilt by hand.
     /// </summary>
@@ -141,8 +148,12 @@ public partial class ChartViewModel : ObservableObject, IDisposable
 
     private void Append(ObservableCollection<DateTimePoint> points, double celsius)
     {
+        var wasEmpty = !HasData;
+
         points.Add(new DateTimePoint(DateTime.Now, celsius));
         Trim(points);
+
+        if (wasEmpty) OnPropertyChanged(nameof(HasData));
     }
 
     private void Trim(ObservableCollection<DateTimePoint> points)

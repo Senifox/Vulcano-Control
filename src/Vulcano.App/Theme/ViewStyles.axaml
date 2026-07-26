@@ -1,0 +1,181 @@
+<!--
+  The handful of classes every tab uses: a card, a section label, secondary text, a pill, the big
+  mono numbers. Central rather than per-view, because seven tabs repeating the same six styles is
+  seven places to forget one.
+-->
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <Style Selector="Border.card">
+    <Setter Property="Padding" Value="18,16" />
+    <Setter Property="CornerRadius" Value="{StaticResource Radius.Card}" />
+    <Setter Property="Background" Value="{DynamicResource Bg.Panel}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Border}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+
+  <Style Selector="Border.card.tight">
+    <Setter Property="Padding" Value="14" />
+  </Style>
+
+  <Style Selector="Border.card.flush">
+    <Setter Property="Padding" Value="0" />
+  </Style>
+
+  <!-- A tile that colours itself when whatever it controls is on. -->
+  <Style Selector="Border.card.tile.active">
+    <Setter Property="Background" Value="{DynamicResource Surface.Heat}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Heat}" />
+  </Style>
+
+  <!-- Section labels: mono, uppercase, wide tracking, dim. -->
+  <Style Selector="TextBlock.label">
+    <Setter Property="FontFamily" Value="{StaticResource Font.Mono}" />
+    <Setter Property="FontSize" Value="{StaticResource Text.Label}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Dim}" />
+  </Style>
+
+  <Style Selector="TextBlock.sub">
+    <Setter Property="FontSize" Value="{StaticResource Text.Small}" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+  </Style>
+
+  <Style Selector="TextBlock.footnote">
+    <Setter Property="FontSize" Value="{StaticResource Text.Footnote}" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Dim}" />
+    <Setter Property="LineHeight" Value="17.6" />
+  </Style>
+
+  <Style Selector="TextBlock.mono">
+    <Setter Property="FontFamily" Value="{StaticResource Font.Mono}" />
+  </Style>
+
+  <Style Selector="TextBlock.value">
+    <Setter Property="FontFamily" Value="{StaticResource Font.Mono}" />
+    <Setter Property="Foreground" Value="{DynamicResource Text}" />
+    <Setter Property="FontWeight" Value="Medium" />
+  </Style>
+
+  <Style Selector="TextBlock.big">
+    <Setter Property="FontFamily" Value="{StaticResource Font.Mono}" />
+    <Setter Property="FontSize" Value="34" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="Foreground" Value="{DynamicResource Text}" />
+  </Style>
+
+  <Style Selector="TextBlock.unit">
+    <Setter Property="FontFamily" Value="{StaticResource Font.Mono}" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Dim}" />
+    <Setter Property="VerticalAlignment" Value="Bottom" />
+    <Setter Property="Margin" Value="0,0,0,5" />
+  </Style>
+
+  <Style Selector="TextBlock.invalid">
+    <Setter Property="Foreground" Value="{DynamicResource Error.Text}" />
+  </Style>
+
+  <Style Selector="TextBlock.error">
+    <Setter Property="FontSize" Value="{StaticResource Text.Small}" />
+    <Setter Property="Foreground" Value="{DynamicResource Error.Text}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+
+  <!-- Pills. Neutral by default, tinted by adding heat / accent / success / info. -->
+  <Style Selector="Border.chip">
+    <Setter Property="Padding" Value="8,3" />
+    <Setter Property="CornerRadius" Value="{StaticResource Radius.Pill}" />
+    <Setter Property="Background" Value="{DynamicResource Bg.Field}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.chip > TextBlock">
+    <Setter Property="FontSize" Value="{StaticResource Text.Footnote}" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+  </Style>
+
+  <Style Selector="Border.chip.heat">
+    <Setter Property="Background" Value="{DynamicResource Surface.Heat}" />
+  </Style>
+  <Style Selector="Border.chip.heat > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource Heat}" />
+  </Style>
+
+  <Style Selector="Border.chip.accent">
+    <Setter Property="Background" Value="{DynamicResource Surface.Accent}" />
+  </Style>
+  <Style Selector="Border.chip.accent > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource Accent.Text}" />
+  </Style>
+
+  <Style Selector="Border.chip.success">
+    <Setter Property="Background" Value="{DynamicResource Surface.Success}" />
+  </Style>
+  <Style Selector="Border.chip.success > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource Success}" />
+  </Style>
+
+  <Style Selector="Border.chip.info">
+    <Setter Property="Background" Value="{DynamicResource Surface.Info}" />
+  </Style>
+  <Style Selector="Border.chip.info > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource Info}" />
+  </Style>
+
+  <!-- A row that reads as one line of a list: label left, control right, hairline underneath. -->
+  <Style Selector="Border.row">
+    <Setter Property="BorderBrush" Value="{DynamicResource Border.Faint}" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+    <Setter Property="Padding" Value="0,11" />
+  </Style>
+  <Style Selector="Border.row.last">
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+
+  <!--
+    A list that reads as a table: full-width rows, no highlight bar, the selected row a tinted band.
+    Opt in with Classes="rows" so ordinary lists keep Fluent's own look.
+  -->
+  <Style Selector="ListBox.rows">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+  </Style>
+  <Style Selector="ListBox.rows > ListBoxItem">
+    <Setter Property="Padding" Value="14,0" />
+    <Setter Property="MinHeight" Value="{StaticResource Size.Row}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="CornerRadius" Value="0" />
+  </Style>
+  <Style Selector="ListBox.rows > ListBoxItem:selected /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Surface.Accent}" />
+  </Style>
+
+  <!-- The strip of segments across a running ramp. -->
+  <Style Selector="Border.segment">
+    <Setter Property="Height" Value="30" />
+    <Setter Property="Margin" Value="0,0,3,0" />
+    <Setter Property="Padding" Value="8,0" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Background" Value="{DynamicResource Bg.Field}" />
+  </Style>
+  <Style Selector="Border.segment > TextBlock">
+    <Setter Property="FontSize" Value="{StaticResource Text.Footnote}" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.segment.complete">
+    <Setter Property="Background" Value="{DynamicResource Surface.Accent}" />
+  </Style>
+  <Style Selector="Border.segment.complete > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource Accent.Text}" />
+  </Style>
+  <Style Selector="Border.segment.active">
+    <Setter Property="Background" Value="{DynamicResource Accent}" />
+  </Style>
+  <Style Selector="Border.segment.active > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource Accent.On}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
+</Styles>

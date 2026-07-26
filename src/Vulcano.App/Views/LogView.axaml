@@ -1,0 +1,96 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:Vulcano.App.Controls"
+             xmlns:vm="clr-namespace:Vulcano.App.ViewModels"
+             x:Class="Vulcano.App.Views.LogView"
+             x:DataType="vm:LogViewModel">
+
+  <Grid RowDefinitions="Auto,*,Auto" Margin="14">
+
+    <!-- ============ Filters ============ -->
+    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,12">
+      <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+        <TextBlock Text="Log" FontSize="{StaticResource Text.Section}" FontWeight="SemiBold"
+                   VerticalAlignment="Center" Margin="0,0,8,0" />
+
+        <Border Classes="chip">
+          <TextBlock Text="{Binding TotalCount, StringFormat='all {0}'}" />
+        </Border>
+
+        <!-- The count next to each level answers "is hiding Debug hiding two lines or two
+             hundred", which is the only reason to look at a filter twice. -->
+        <ToggleButton Theme="{StaticResource Chip}"
+                      IsChecked="{Binding ShowDebug, Mode=TwoWay}"
+                      Content="{Binding DebugCount, StringFormat='Debug {0}'}" />
+        <ToggleButton Theme="{StaticResource Chip}"
+                      IsChecked="{Binding ShowInfo, Mode=TwoWay}"
+                      Content="{Binding InfoCount, StringFormat='Info {0}'}" />
+        <ToggleButton Theme="{StaticResource Chip}"
+                      IsChecked="{Binding ShowWarning, Mode=TwoWay}"
+                      Content="{Binding WarningCount, StringFormat='Warning {0}'}" />
+        <ToggleButton Theme="{StaticResource Chip}"
+                      IsChecked="{Binding ShowError, Mode=TwoWay}"
+                      Content="{Binding ErrorCount, StringFormat='Error {0}'}" />
+      </StackPanel>
+
+      <Button Grid.Column="2"
+              Theme="{StaticResource SecondaryButton}"
+              Command="{Binding ExportCommand}">
+        <StackPanel Orientation="Horizontal" Spacing="7">
+          <c:Icon Data="{StaticResource Icon.Download}" />
+          <TextBlock Text="Export" VerticalAlignment="Center" />
+        </StackPanel>
+      </Button>
+    </Grid>
+
+    <!-- ============ Lines ============ -->
+    <Border Grid.Row="1" Classes="card flush" Background="{DynamicResource Bg.Deep}">
+      <DockPanel>
+        <Grid DockPanel.Dock="Top" ColumnDefinitions="72,74,*" Margin="14,12,14,8">
+          <TextBlock Grid.Column="0" Classes="label" Text="TIME" />
+          <TextBlock Grid.Column="1" Classes="label" Text="LEVEL" />
+          <TextBlock Grid.Column="2" Classes="label" Text="MESSAGE" />
+        </Grid>
+
+        <ListBox Name="Lines" Classes="rows" ItemsSource="{Binding Entries}">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:LogRow">
+              <Grid ColumnDefinitions="72,74,*" MinHeight="22">
+                <TextBlock Grid.Column="0" Text="{Binding Time}" Classes="mono footnote" />
+                <TextBlock Grid.Column="1" Text="{Binding Level}" Classes="mono footnote"
+                           Classes.debug="{Binding Level, Converter={StaticResource EnumToBool}, ConverterParameter=Debug}"
+                           Classes.warning="{Binding Level, Converter={StaticResource EnumToBool}, ConverterParameter=Warning}"
+                           Classes.error="{Binding Level, Converter={StaticResource EnumToBool}, ConverterParameter=Error}" />
+                <TextBlock Grid.Column="2" Text="{Binding Message}" Classes="mono footnote"
+                           Foreground="{DynamicResource Text.Sub}"
+                           TextWrapping="Wrap" />
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+    </Border>
+
+    <TextBlock Grid.Row="2"
+               Text="{Binding ExportNote}"
+               Classes="sub"
+               Margin="0,10,0,0"
+               TextWrapping="Wrap"
+               IsVisible="{Binding ExportNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+  </Grid>
+
+  <UserControl.Styles>
+    <!-- Level colours, straight from the tokens. Debug is dimmer than the rest on purpose: it is
+         the level you scroll past. -->
+    <Style Selector="TextBlock.debug">
+      <Setter Property="Foreground" Value="{DynamicResource Text.Faint}" />
+    </Style>
+    <Style Selector="TextBlock.warning">
+      <Setter Property="Foreground" Value="{DynamicResource Warn}" />
+    </Style>
+    <Style Selector="TextBlock.error">
+      <Setter Property="Foreground" Value="{DynamicResource Error.Text}" />
+    </Style>
+  </UserControl.Styles>
+
+</UserControl>

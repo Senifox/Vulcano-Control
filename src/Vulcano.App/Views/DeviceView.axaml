@@ -1,0 +1,110 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:Vulcano.App.Controls"
+             xmlns:vm="clr-namespace:Vulcano.App.ViewModels"
+             x:Class="Vulcano.App.Views.DeviceView"
+             x:DataType="vm:DeviceViewModel">
+
+  <Grid ColumnDefinitions="440,*" Margin="14">
+    <StackPanel Grid.Column="0" Spacing="12">
+
+      <TextBlock Text="Device" FontSize="{StaticResource Text.Section}" FontWeight="SemiBold" />
+      <TextBlock Text="Changes go straight to the device - there is nothing to confirm."
+                 Classes="sub" TextWrapping="Wrap" />
+
+      <!-- ============ Identity ============ -->
+      <Border Classes="card"
+              BorderBrush="{DynamicResource Border.Dashed}"
+              Opacity="{Binding IsRemote, Converter={StaticResource DimWhenTrue}}">
+        <StackPanel Spacing="10">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Grid.Column="0" Classes="label" Text="IDENTITY" />
+            <Border Grid.Column="1" Classes="chip info" IsVisible="{Binding IsRemote}">
+              <TextBlock Text="{Binding RemoteNote}" />
+            </Border>
+          </Grid>
+
+          <Grid ColumnDefinitions="150,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="7">
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="Serial number" Classes="sub" />
+            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SerialNumber}" Classes="value" />
+
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="Hours of heating" Classes="sub" />
+            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding HoursOfHeating}" Classes="value" />
+
+            <TextBlock Grid.Row="2" Grid.Column="0" Text="Firmware" Classes="sub" />
+            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding FirmwareVersion}" Classes="value" />
+
+            <TextBlock Grid.Row="3" Grid.Column="0" Text="Bluetooth firmware" Classes="sub" />
+            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding BleFirmwareVersion}" Classes="value" />
+          </Grid>
+        </StackPanel>
+      </Border>
+
+      <!-- ============ Device settings ============ -->
+      <Border Classes="card" IsEnabled="{Binding IsConnected}">
+        <StackPanel Spacing="4">
+          <TextBlock Classes="label" Text="DISPLAY AND TIMERS" Margin="0,0,0,6" />
+
+          <Border Classes="row">
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel Grid.Column="0" Spacing="2">
+                <TextBlock Text="LED display brightness" />
+                <TextBlock Text="how bright the device's own display is" Classes="footnote" />
+              </StackPanel>
+              <c:Stepper Grid.Column="1"
+                         Value="{Binding Brightness, Mode=TwoWay}"
+                         Minimum="0" Maximum="100" Step="5" Unit="%" Width="130" />
+            </Grid>
+          </Border>
+
+          <Border Classes="row">
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel Grid.Column="0" Spacing="2">
+                <TextBlock Text="Auto shut-off timer" />
+                <TextBlock Text="held off while a ramp is running" Classes="footnote" />
+              </StackPanel>
+              <c:Stepper Grid.Column="1"
+                         Value="{Binding AutoOffMinutes, Mode=TwoWay}"
+                         Minimum="5" Maximum="360" Step="5" Unit="min" Width="130" />
+            </Grid>
+          </Border>
+
+          <Border Classes="row">
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel Grid.Column="0" Spacing="2">
+                <TextBlock Text="Fan vibration alarm" />
+                <TextBlock Text="the device buzzes when the pump stops" Classes="footnote" />
+              </StackPanel>
+              <ToggleButton Grid.Column="1" Theme="{StaticResource Toggle}"
+                            IsChecked="{Binding Vibration, Mode=TwoWay}" />
+            </Grid>
+          </Border>
+
+          <Border Classes="row last">
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel Grid.Column="0" Spacing="2">
+                <TextBlock Text="Show temp while cooling" />
+                <TextBlock Text="keeps the display on as it cools down" Classes="footnote" />
+              </StackPanel>
+              <ToggleButton Grid.Column="1" Theme="{StaticResource Toggle}"
+                            IsChecked="{Binding ShowTemperatureWhileCooling, Mode=TwoWay}" />
+            </Grid>
+          </Border>
+        </StackPanel>
+      </Border>
+
+      <StackPanel Orientation="Horizontal" Spacing="10">
+        <Button Theme="{StaticResource SecondaryButton}"
+                Content="Reload from device"
+                Command="{Binding ReloadCommand}"
+                IsEnabled="{Binding IsConnected}" />
+      </StackPanel>
+
+      <TextBlock Text="The temperature unit on the device is not offered yet - the app works in °C
+                       throughout, and switching the device's own display needs checking against
+                       real hardware first."
+                 Classes="footnote" TextWrapping="Wrap" />
+    </StackPanel>
+  </Grid>
+
+</UserControl>
