@@ -122,18 +122,60 @@ function Backup-Data([string]$destination) {
         ForEach-Object { Copy-Item $_.FullName (Join-Path $destination $_.Name) -Force }
 }
 
+<#
+    Velopack's uninstaller detaches: Update.exe returns at once - with no exit code to read - and a
+    separate process clears the folder afterwards. Restoring straight away therefore restored
+    nothing, because the files were all still there, and the deletion then took them.
+
+    So: wait for the install to actually be gone before putting anything back.
+#>
+function Wait-ForUninstall([string]$root, [int]$timeoutSeconds = 120) {
+    $deadline = (Get-Date).AddSeconds($timeoutSeconds)
+
+    while ((Get-Date) -lt $deadline) {
+        if (-not (Test-Path (Join-Path $root "Update.exe"))) {
+            # It has stopped; give the last handful of deletions a moment to finish.
+            Start-Sleep -Seconds 3
+            return $true
+        }
+
+        Start-Sleep -Milliseconds 500
+    }
+
+    return $false
+}
+
+<#
+    Puts the data back, then checks a moment later that it is still there. A straggling uninstaller
+    that deletes the folder after the restore would otherwise take it a second time, and the only
+    sign would be an empty folder nobody looked in.
+#>
 function Restore-Data([string]$backup) {
     if (-not (Test-Path $backup)) { return }
 
-    New-Item -ItemType Directory -Force $dataDirectory | Out-Null
+    for ($attempt = 1; $attempt -le 3; $attempt++) {
+        New-Item -ItemType Directory -Force $dataDirectory | Out-Null
 
-    Get-ChildItem $backup | ForEach-Object {
-        $target = Join-Path $dataDirectory $_.Name
-        if (-not (Test-Path $target)) {
-            Copy-Item $_.FullName $target -Recurse -Force
-            Write-Host "      put back: $($_.Name)"
+        $restored = @()
+        foreach ($item in Get-ChildItem $backup) {
+            $target = Join-Path $dataDirectory $item.Name
+            if (-not (Test-Path $target)) {
+                Copy-Item $item.FullName $target -Recurse -Force
+                $restored += $item.Name
+            }
         }
+
+        foreach ($name in $restored) { Write-Host "      put back: $name" }
+
+        Start-Sleep -Seconds 2
+
+        $missing = Get-ChildItem $backup | Where-Object { -not (Test-Path (Join-Path $dataDirectory $_.Name)) }
+        if (-not $missing) { return }
+
+        Write-Host "      something removed them again - trying once more"
     }
+
+    Write-Host "      COULD NOT put the data back. It is safe in: $backup"
 }
 
 # --- Look ---
@@ -220,10 +262,16 @@ if ($null -ne $wpf -and -not $wpf.IsRewrite) {
     Write-Host ""
     Write-Host "Uninstalling the WPF app..."
     & $wpf.Update "--uninstall" "--silent"
-    if ($LASTEXITCODE -ne 0) { Write-Host "  the uninstaller reported exit code $LASTEXITCODE" }
+
+    if (-not (Wait-ForUninstall $wpf.Root)) {
+        Write-Host "  it is still going after two minutes - not putting the data back yet."
+        Write-Host "  Everything is in: $BackupTo"
+        return
+    }
+
     $removed += "WPF app"
 
-    # Velopack may clear the whole folder, settings included. That is what the backup was for.
+    # Velopack clears the whole folder, settings included. That is what the backup was for.
     Restore-Data $BackupTo
 }
 
@@ -231,9 +279,14 @@ if ($null -ne $preview -and $IncludePreview) {
     Write-Host ""
     Write-Host "Uninstalling the preview..."
     & $preview.Update "--uninstall" "--silent"
-    if ($LASTEXITCODE -ne 0) { Write-Host "  the uninstaller reported exit code $LASTEXITCODE" }
+
+    if (-not (Wait-ForUninstall $preview.Root)) {
+        Write-Host "  it is still going after two minutes."
+    }
+
     $removed += "preview"
 
+    # The preview installs elsewhere, but it shares the data folder, so this is checked either way.
     Restore-Data $BackupTo
 }
 
