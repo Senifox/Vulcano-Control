@@ -22,6 +22,10 @@ public sealed class RemoteRampController : IRampSessionController
     /// <summary>Mirrored from the host's progress events - pausing is decided over there.</summary>
     public bool IsPaused => _isPaused;
 
+    /// <summary>Always null: the plan lives on the host, and this client may well have joined
+    /// after it started.</summary>
+    public TemperatureRampPlan? ActivePlan => null;
+
     public event EventHandler<RampProgressEventArgs>? ProgressChanged;
     public event EventHandler? WarmupCompleted;
     public event EventHandler<double>? Completed;

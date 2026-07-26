@@ -193,6 +193,19 @@ public sealed class RampSessionControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task The_running_plan_is_available_while_it_runs_and_not_before_or_after()
+    {
+        Assert.Null(_controller.ActivePlan);
+
+        await StartAsync();
+        Assert.NotNull(_controller.ActivePlan);
+        Assert.Equal(2, _controller.ActivePlan!.SegmentCount);
+
+        _controller.Stop();
+        Assert.Null(_controller.ActivePlan);
+    }
+
+    [Fact]
     public async Task Stopping_ends_the_ramp_and_reports_it()
     {
         var stopped = false;

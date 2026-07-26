@@ -106,6 +106,8 @@ public sealed class VolcanoDeviceOrchestrator : IVolcanoDevice, IRampSessionCont
 
     public bool IsPaused => _ramp.IsPaused;
 
+    public TemperatureRampPlan? ActivePlan => _ramp.ActivePlan;
+
     public event EventHandler<RampProgressEventArgs>? ProgressChanged;
     public event EventHandler? WarmupCompleted;
     public event EventHandler<double>? Completed;

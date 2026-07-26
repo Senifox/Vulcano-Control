@@ -65,6 +65,7 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
 
         Control = new ControlViewModel(device, settings);
         Ramp = new RampViewModel(device, settingsService, settings);
+        Run = new RunViewModel(device);
 
         _device.ConnectionStateChanged += OnConnectionStateChanged;
         _device.ProgressChanged += OnRampProgressChanged;
@@ -77,6 +78,9 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
 
     /// <summary>The ramp editor and its saved profiles.</summary>
     public RampViewModel Ramp { get; }
+
+    /// <summary>The running ramp, while one is running.</summary>
+    public RunViewModel Run { get; }
 
     public bool IsConnected => ConnectionState == ConnectionState.Connected;
 
@@ -172,6 +176,7 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
             IsRampRunning = false;
             Control.IsRampRunning = false;
             Ramp.IsRampRunning = false;
+            Run.Reset();
             if (SelectedTab == AppTab.Run) SelectedTab = AppTab.Control;
         });
 
@@ -183,6 +188,7 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
         _device.Stopped -= OnRampEnded;
         Control.Dispose();
         Ramp.Dispose();
+        Run.Dispose();
 
         _log.Log("Shutting down");
         _device.Dispose();

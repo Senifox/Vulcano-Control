@@ -21,6 +21,13 @@ public interface IRampSessionController : IDisposable
     /// because the connection dropped mid-ramp.</summary>
     bool IsPaused { get; }
 
+    /// <summary>
+    /// The plan currently running, or null when nothing is running. Also null on a relay client:
+    /// the ramp lives on the host, and a client that joined mid-run never saw the points. Anything
+    /// showing it has to cope with not having it.
+    /// </summary>
+    TemperatureRampPlan? ActivePlan { get; }
+
     event EventHandler<RampProgressEventArgs>? ProgressChanged;
     event EventHandler? WarmupCompleted;
     event EventHandler<double>? Completed;

@@ -63,6 +63,8 @@ public sealed class RampSessionController : IRampSessionController
 
     public bool IsPaused => _pausedAtUtc is not null;
 
+    public TemperatureRampPlan? ActivePlan => IsRunning ? _plan : null;
+
     public event EventHandler<RampProgressEventArgs>? ProgressChanged;
     public event EventHandler? WarmupCompleted;
     public event EventHandler<double>? Completed;
