@@ -14,6 +14,16 @@ public sealed class FakeVolcanoDevice : IVolcanoDevice
 
     public List<double> WrittenTargets { get; } = new();
     public List<bool> WrittenHeaterStates { get; } = new();
+    public List<bool> WrittenPumpStates { get; } = new();
+    public List<int> WrittenBrightness { get; } = new();
+
+    /// <summary>What the read methods hand back. Left null by default so a test has to say what the
+    /// device knows before it can claim a round trip carried it.</summary>
+    public VolcanoDeviceInfo? DeviceInfo { get; set; }
+    public int? Brightness { get; set; }
+    public int? AutoOffMinutes { get; set; }
+    public (bool Fahrenheit, bool DisplayOnCooling)? DisplayFlags { get; set; }
+    public bool? Vibration { get; set; }
 
     public ConnectionState State => _state;
     public bool IsRemote => false;
@@ -38,6 +48,11 @@ public sealed class FakeVolcanoDevice : IVolcanoDevice
         ConnectionStateChanged?.Invoke(this, state);
     }
 
+    public void ReportAutoOffSeconds(int seconds) =>
+        RemainingAutoOffSecondsChanged?.Invoke(this, seconds);
+
+    public void ReportError(string message) => ErrorOccurred?.Invoke(this, message);
+
     public Task<bool> ScanAndConnectAsync(CancellationToken ct = default) => Task.FromResult(true);
     public Task DisconnectAsync() => Task.CompletedTask;
 
@@ -56,24 +71,29 @@ public sealed class FakeVolcanoDevice : IVolcanoDevice
         return Task.CompletedTask;
     }
 
-    public Task SetPumpAsync(bool on) => Task.CompletedTask;
+    public Task SetPumpAsync(bool on)
+    {
+        WrittenPumpStates.Add(on);
+        return Task.CompletedTask;
+    }
 
-    public Task<VolcanoDeviceInfo?> ReadDeviceInfoAsync() => Task.FromResult<VolcanoDeviceInfo?>(null);
-    public Task<int?> ReadBrightnessAsync() => Task.FromResult<int?>(null);
-    public Task SetBrightnessAsync(int level) => Task.CompletedTask;
-    public Task<int?> ReadAutoOffMinutesAsync() => Task.FromResult<int?>(null);
+    public Task<VolcanoDeviceInfo?> ReadDeviceInfoAsync() => Task.FromResult(DeviceInfo);
+    public Task<int?> ReadBrightnessAsync() => Task.FromResult(Brightness);
+
+    public Task SetBrightnessAsync(int level)
+    {
+        WrittenBrightness.Add(level);
+        return Task.CompletedTask;
+    }
+
+    public Task<int?> ReadAutoOffMinutesAsync() => Task.FromResult(AutoOffMinutes);
     public Task SetAutoOffMinutesAsync(int minutes) => Task.CompletedTask;
     public Task<(bool Fahrenheit, bool DisplayOnCooling)?> ReadDisplayFlagsAsync() =>
-        Task.FromResult<(bool, bool)?>(null);
+        Task.FromResult(DisplayFlags);
     public Task SetFahrenheitAsync(bool enabled) => Task.CompletedTask;
     public Task SetDisplayOnCoolingAsync(bool enabled) => Task.CompletedTask;
-    public Task<bool?> ReadVibrationAsync() => Task.FromResult<bool?>(null);
+    public Task<bool?> ReadVibrationAsync() => Task.FromResult(Vibration);
     public Task SetVibrationAsync(bool enabled) => Task.CompletedTask;
 
-    public ValueTask DisposeAsync()
-    {
-        _ = ErrorOccurred;
-        _ = RemainingAutoOffSecondsChanged;
-        return ValueTask.CompletedTask;
-    }
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 }

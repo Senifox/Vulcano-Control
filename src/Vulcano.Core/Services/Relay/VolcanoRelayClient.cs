@@ -289,6 +289,21 @@ public sealed class VolcanoRelayClient : IVolcanoDevice
 
     private void DispatchEvent(RelayMessage message)
     {
+        // The two events that carry no payload are sent with a JSON null, and a JSON null read back
+        // into a JsonElement? is not an element holding null - it is no element at all. So they have
+        // to be dispatched before any guard that reads a missing payload as nothing to do, or the
+        // client silently never hears that warm-up finished or that the ramp was stopped.
+        switch (message.Method)
+        {
+            case RelayEvents.RampWarmupCompleted:
+                RampWarmupCompleted?.Invoke(this, EventArgs.Empty);
+                return;
+
+            case RelayEvents.RampStopped:
+                RampStopped?.Invoke(this, EventArgs.Empty);
+                return;
+        }
+
         if (message.Args is not { } args) return;
 
         switch (message.Method)
@@ -317,20 +332,12 @@ public sealed class VolcanoRelayClient : IVolcanoDevice
                 RampProgressChanged?.Invoke(this, args.Deserialize<RampProgressEventArgs>(RelayJson.Options)!);
                 break;
 
-            case RelayEvents.RampWarmupCompleted:
-                RampWarmupCompleted?.Invoke(this, EventArgs.Empty);
-                break;
-
             case RelayEvents.RampCompleted:
                 RampCompleted?.Invoke(this, args.Deserialize<RampCompletedPayload>(RelayJson.Options)!.ResetTemperatureCelsius);
                 break;
 
             case RelayEvents.RampErrorOccurred:
                 RampErrorOccurred?.Invoke(this, args.Deserialize<ErrorOccurredPayload>(RelayJson.Options)!.Message);
-                break;
-
-            case RelayEvents.RampStopped:
-                RampStopped?.Invoke(this, EventArgs.Empty);
                 break;
         }
     }

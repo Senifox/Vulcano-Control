@@ -7,7 +7,6 @@ namespace Vulcano.Core.Tests;
 public sealed class RampSessionControllerTests : IDisposable
 {
     private static readonly TimeSpan Tick = TimeSpan.FromMilliseconds(25);
-    private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(5);
 
     private readonly string _logFile = Path.Combine(Path.GetTempPath(), $"vulcano-test-{Guid.NewGuid():N}.log");
     private readonly FakeVolcanoDevice _device = new();
@@ -38,17 +37,8 @@ public sealed class RampSessionControllerTests : IDisposable
     private Task StartAsync() =>
         _controller.StartAsync(new TemperatureRampPlan(Points, TimeSpan.FromMinutes(5)), heaterCurrentlyOn: true);
 
-    private static async Task WaitFor(Func<bool> condition, string because)
-    {
-        var deadline = DateTime.UtcNow + Timeout;
-        while (DateTime.UtcNow < deadline)
-        {
-            if (condition()) return;
-            await Task.Delay(10);
-        }
-
-        Assert.Fail($"Timed out waiting for: {because}");
-    }
+    private static Task WaitFor(Func<bool> condition, string because) =>
+        Wait.ForAsync(condition, because);
 
     /// <summary>Gets the ramp past warm-up and returns once it is actually running the curve.</summary>
     private async Task RunToRampingAsync()
