@@ -22,12 +22,15 @@
             </Border>
           </Grid>
 
+          <!-- LineHeight sits above the font size, never below it: a line box shorter than the
+               glyphs cuts the digits off along their bottom edge, which is subtle enough at 185 and
+               obvious at 221. -->
           <StackPanel Orientation="Horizontal" Spacing="4">
             <TextBlock Text="{Binding CurrentTemperatureText}"
                        FontFamily="{StaticResource Font.Mono}"
                        FontSize="{StaticResource Text.Display}"
                        FontWeight="Medium"
-                       LineHeight="68"
+                       LineHeight="80"
                        Foreground="{DynamicResource Text}" />
             <TextBlock Text="°C"
                        FontFamily="{StaticResource Font.Mono}"

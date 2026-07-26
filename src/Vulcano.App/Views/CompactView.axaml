@@ -41,8 +41,12 @@
       </Grid>
     </Border>
 
-    <!-- ============ Content ============ -->
-    <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="14,10,12,12">
+    <!-- ============ Content ============
+         The temperature column is Auto and comes first, so it is measured before anything else and
+         cannot be squeezed: it is the reason this window exists, and a reading clipped to its first
+         digit is worse than no reading at all - 185 that renders as 1 is not obviously wrong.
+         Whatever is short of room, it is the buttons, and they are 34 px squares with tooltips. -->
+    <Grid Grid.Row="1" ColumnDefinitions="Auto,*" Margin="14,10,12,12">
 
       <StackPanel Grid.Column="0" VerticalAlignment="Center">
         <StackPanel Orientation="Horizontal" Spacing="3">
@@ -50,7 +54,7 @@
                      FontFamily="{StaticResource Font.Mono}"
                      FontSize="{StaticResource Text.DisplayRemote}"
                      FontWeight="Medium"
-                     LineHeight="46"
+                     LineHeight="54"
                      Foreground="{DynamicResource Text}" />
           <TextBlock Text="°C"
                      FontFamily="{StaticResource Font.Mono}"
@@ -60,10 +64,14 @@
                      Margin="0,0,0,7" />
         </StackPanel>
 
-        <TextBlock Text="{Binding CompactDetailText}" Classes="mono footnote" />
+        <!-- Trimmed rather than allowed to widen the column: the plan and the time left are worth
+             showing, but not at the price of the number above them. -->
+        <TextBlock Text="{Binding CompactDetailText}" Classes="mono footnote"
+                   TextTrimming="CharacterEllipsis" />
       </StackPanel>
 
-      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
+                  HorizontalAlignment="Right" VerticalAlignment="Center">
         <ToggleButton Theme="{StaticResource CompactTile}"
                       Classes="heat"
                       IsChecked="{Binding Control.HeaterSwitchOn}"
