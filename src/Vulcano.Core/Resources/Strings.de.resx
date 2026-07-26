@@ -224,7 +224,7 @@
     <value>AUTO-ABSCHALTUNG</value>
   </data>
   <data name="Control.AutoShutOff.Extended" xml:space="preserve">
-    <value>Wird während einer laufenden Rampe automatisch verlängert</value>
+    <value>Heizung wird während einer laufenden Rampe automatisch wieder eingeschaltet</value>
   </data>
   <data name="Control.HeaterFor" xml:space="preserve">
     <value>an · {0}</value>

@@ -157,6 +157,30 @@ public sealed class RampSessionControllerTests : IDisposable
         Assert.Equal(writesWhilePaused, _device.WrittenTargets.Count);
     }
 
+    /// <summary>
+    /// The device has an auto shut-off of its own - five minutes out of the box, against a ramp that
+    /// can run for thirty-five. When it fires mid-ramp the controller switches the heater back on;
+    /// without that the ramp would keep counting and pushing targets at a device that had quietly
+    /// stopped heating, and the profile would finish on paper only.
+    /// </summary>
+    [Fact]
+    public async Task The_heater_goes_back_on_when_the_device_switches_it_off_mid_ramp()
+    {
+        await RunToRampingAsync();
+        Assert.Empty(_device.WrittenHeaterStates);
+
+        _device.ReportHeater(false);
+
+        await WaitFor(() => _device.WrittenHeaterStates.Count > 0, "the heater to be switched back on");
+        Assert.True(_device.WrittenHeaterStates[0]);
+
+        // And only once. The write is assumed to have worked until the device says otherwise, so a
+        // notification still in flight cannot turn into one heater write per tick.
+        var ticks = _progress.Count;
+        await WaitFor(() => _progress.Count >= ticks + 3, "a few more ticks to pass");
+        Assert.Single(_device.WrittenHeaterStates);
+    }
+
     [Fact]
     public async Task Losing_the_connection_pauses_the_ramp_instead_of_aborting_it()
     {

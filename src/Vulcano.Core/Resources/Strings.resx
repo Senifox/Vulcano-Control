@@ -224,7 +224,7 @@
     <value>AUTO SHUT-OFF</value>
   </data>
   <data name="Control.AutoShutOff.Extended" xml:space="preserve">
-    <value>Extended automatically while a ramp is running</value>
+    <value>Heater is switched back on automatically while a ramp is running</value>
   </data>
   <data name="Control.HeaterFor" xml:space="preserve">
     <value>on · {0}</value>
