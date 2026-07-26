@@ -122,5 +122,11 @@ public class StringsTests
         {
             Assert.NotEqual($"Ramp.Invalid.{issue}", Strings.Get($"Ramp.Invalid.{issue}"));
         }
+
+        // None is never shown - it is the answer when nothing went wrong - so it needs no text.
+        foreach (var issue in Enum.GetValues<ProfileNameIssue>().Where(i => i != ProfileNameIssue.None))
+        {
+            Assert.NotEqual($"Ramp.Profile.{issue}", Strings.Get($"Ramp.Profile.{issue}"));
+        }
     }
 }

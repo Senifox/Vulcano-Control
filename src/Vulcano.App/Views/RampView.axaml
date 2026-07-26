@@ -8,8 +8,11 @@
 
   <Grid RowDefinitions="Auto,290,*" Margin="14">
 
-    <!-- ============ Header ============ -->
-    <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*,Auto,Auto" Margin="0,0,0,12">
+    <!-- ============ Header ============
+         Pick a profile, rename it in the box beside it, add one, throw one away. The name is part of
+         what Save writes, so there is no separate rename step and no way to end up with a renamed
+         profile whose points were never saved. -->
+    <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto,Auto" Margin="0,0,0,12">
       <TextBlock Grid.Column="0"
                  Text="{DynamicResource S.Ramp.Title}"
                  FontSize="{StaticResource Text.Section}"
@@ -20,7 +23,7 @@
       <ComboBox Grid.Column="1"
                 ItemsSource="{Binding Profiles}"
                 SelectedItem="{Binding SelectedProfile}"
-                MinWidth="180"
+                MinWidth="170"
                 VerticalAlignment="Center">
         <ComboBox.ItemTemplate>
           <DataTemplate x:DataType="models:RampProfile">
@@ -29,20 +32,50 @@
         </ComboBox.ItemTemplate>
       </ComboBox>
 
-      <TextBlock Grid.Column="2"
-                 Text="{Binding TotalDurationText}"
-                 Classes="sub"
-                 FontFamily="{StaticResource Font.Mono}"
-                 VerticalAlignment="Center"
-                 Margin="14,0,0,0" />
+      <TextBox Grid.Column="2"
+               Text="{Binding ProfileName, Mode=TwoWay}"
+               Watermark="{DynamicResource S.Ramp.Profile.Name}"
+               Width="170"
+               Margin="8,0,0,0"
+               VerticalAlignment="Center" />
 
       <Button Grid.Column="3"
+              Theme="{StaticResource SecondaryButton}"
+              Command="{Binding NewProfileCommand}"
+              Margin="8,0,0,0"
+              Padding="9,0"
+              ToolTip.Tip="{DynamicResource S.Action.NewProfile}">
+        <c:Icon Data="{StaticResource Icon.Plus}" Width="13" Height="13" />
+      </Button>
+
+      <Button Grid.Column="4"
+              Theme="{StaticResource SecondaryButton}"
+              Command="{Binding DeleteProfileCommand}"
+              Margin="6,0,0,0"
+              Padding="9,0"
+              ToolTip.Tip="{DynamicResource S.Action.DeleteProfile}">
+        <c:Icon Data="{StaticResource Icon.Trash2}" Width="13" Height="13" />
+      </Button>
+
+      <StackPanel Grid.Column="5" Orientation="Horizontal" Spacing="12"
+                  VerticalAlignment="Center" Margin="14,0,14,0">
+        <TextBlock Text="{Binding TotalDurationText}"
+                   Classes="sub"
+                   FontFamily="{StaticResource Font.Mono}"
+                   VerticalAlignment="Center" />
+        <TextBlock Text="{Binding ProfileMessage}"
+                   Classes="sub"
+                   VerticalAlignment="Center"
+                   TextTrimming="CharacterEllipsis" />
+      </StackPanel>
+
+      <Button Grid.Column="6"
               Theme="{StaticResource SecondaryButton}"
               Content="{DynamicResource S.Action.SaveProfile}"
               Command="{Binding SaveProfileCommand}"
               Margin="0,0,8,0" />
 
-      <Button Grid.Column="4"
+      <Button Grid.Column="7"
               Theme="{StaticResource PrimaryButton}"
               Content="{DynamicResource S.Action.StartRamp}"
               Command="{Binding StartRampCommand}" />

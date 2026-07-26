@@ -25,8 +25,21 @@ public partial class RampViewModel : ObservableObject, IDisposable
     private bool _isHeaterOn;
     private bool _suspendRebuild;
 
+    /// <summary>Set while the profile list is being rewritten to show a new name, so the selection
+    /// bouncing through null does not reload the editor from underneath the person using it.</summary>
+    private bool _suspendProfileReload;
+
     [ObservableProperty]
     private RampProfile? _selectedProfile;
+
+    /// <summary>The name in the box, which is the selected profile's until somebody types over it.
+    /// Applied by saving, so renaming and editing are one action rather than two.</summary>
+    [ObservableProperty]
+    private string _profileName = "";
+
+    /// <summary>Why the last save or delete did not happen, or empty.</summary>
+    [ObservableProperty]
+    private string _profileMessage = "";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SelectedPoint))]
@@ -118,7 +131,13 @@ public partial class RampViewModel : ObservableObject, IDisposable
 
     partial void OnSelectedProfileChanged(RampProfile? value)
     {
+        if (_suspendProfileReload) return;
+
         LoadProfile(value);
+        ProfileName = value?.Name ?? "";
+        ProfileMessage = "";
+        DeleteProfileCommand.NotifyCanExecuteChanged();
+
         _settings.ActiveRampProfileName = value?.Name ?? "";
         _settingsService.Save(_settings);
     }
@@ -165,6 +184,16 @@ public partial class RampViewModel : ObservableObject, IDisposable
         _suspendRebuild = false;
         SelectedIndex = Points.Count > 0 ? 0 : -1;
         Renumber();
+
+        // Renumber has to come after the selection, because it is what marks the selected point -
+        // but the labels that spell out a segment read the point's number, and setting the selection
+        // is what makes them read it. So they are asked again here: too early otherwise, and not at
+        // all when the selection was already 0 and did not change. That is how a freshly loaded
+        // profile came to announce "SEGMENT 0 to 1".
+        OnPropertyChanged(nameof(SelectedPoint));
+        OnPropertyChanged(nameof(SegmentTitle));
+        OnPropertyChanged(nameof(HasSegment));
+
         Revalidate();
     }
 
@@ -331,17 +360,95 @@ public partial class RampViewModel : ObservableObject, IDisposable
         SyncCurveOptions();
     }
 
-    /// <summary>Writes the edited points back into the selected profile and saves.</summary>
+    /// <summary>
+    /// Writes the edited points, the hold and the name back into the selected profile and saves.
+    /// The name goes through the same door as the rest: there is no separate rename, because a
+    /// profile whose name was changed but whose points were not saved would be a state nobody asked
+    /// for and everybody would eventually hit.
+    /// </summary>
     [RelayCommand]
     private void SaveProfile()
     {
         if (SelectedProfile is not { } profile) return;
 
+        var rename = RampProfileLibrary.Rename(Profiles, profile, ProfileName);
+        if (rename is not ProfileNameIssue.None)
+        {
+            ProfileMessage = Strings.Get($"Ramp.Profile.{rename}");
+            return;
+        }
+
         profile.Points = Points.Select(p => p.ToPoint()).ToList();
         profile.HoldMinutes = HoldMinutes;
 
+        ProfileName = profile.Name;
+        ProfileMessage = Strings.Get("Ramp.Profile.Saved", profile.Name);
+        RedrawProfileInList(profile);
+
+        _settings.RampProfiles = Profiles.ToList();
+        _settings.ActiveRampProfileName = profile.Name;
+        _settingsService.Save(_settings);
+    }
+
+    /// <summary>
+    /// Adds a profile alongside the current one, carrying its points over: a new ramp is far more
+    /// often "that one but a bit different" than a blank sheet, and the blank sheet is one Remove
+    /// away.
+    /// </summary>
+    [RelayCommand]
+    private void NewProfile()
+    {
+        var added = RampProfileLibrary.Add(
+            Profiles,
+            ProfileName.Trim().Length > 0 ? ProfileName : Strings.Get("Ramp.Profile.NewName"),
+            copyOf: SelectedProfile);
+
+        SelectedProfile = added;
+        ProfileMessage = Strings.Get("Ramp.Profile.Added", added.Name);
+
         _settings.RampProfiles = Profiles.ToList();
         _settingsService.Save(_settings);
+    }
+
+    private bool CanDeleteProfile() => Profiles.Count > 1 && SelectedProfile is not null;
+
+    [RelayCommand(CanExecute = nameof(CanDeleteProfile))]
+    private void DeleteProfile()
+    {
+        if (SelectedProfile is not { } profile) return;
+
+        var name = profile.Name;
+        if (RampProfileLibrary.Remove(Profiles, profile) is not { } next) return;
+
+        SelectedProfile = next;
+        ProfileMessage = Strings.Get("Ramp.Profile.Deleted", name);
+
+        _settings.RampProfiles = Profiles.ToList();
+        _settingsService.Save(_settings);
+    }
+
+    /// <summary>
+    /// Puts a renamed profile back into the list so the drop-down shows the new name. RampProfile is
+    /// a plain settings model with no change notification - deliberately, it is written to a file -
+    /// so the collection has to be told, and taking the item out and putting it back is what tells
+    /// it. Selection is restored on the way out because removing the selected item clears it.
+    /// </summary>
+    private void RedrawProfileInList(RampProfile profile)
+    {
+        var index = Profiles.IndexOf(profile);
+        if (index < 0) return;
+
+        _suspendProfileReload = true;
+        try
+        {
+            Profiles.RemoveAt(index);
+            Profiles.Insert(index, profile);
+            SelectedProfile = profile;
+        }
+        finally
+        {
+            _suspendProfileReload = false;
+        }
     }
 
     private bool CanStartRamp() => IsValid && IsConnected && !IsRampRunning;

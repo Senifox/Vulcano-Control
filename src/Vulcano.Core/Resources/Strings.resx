@@ -106,6 +106,33 @@
   <data name="Action.SaveProfile" xml:space="preserve">
     <value>Save profile</value>
   </data>
+  <data name="Action.NewProfile" xml:space="preserve">
+    <value>New profile</value>
+  </data>
+  <data name="Action.DeleteProfile" xml:space="preserve">
+    <value>Delete profile</value>
+  </data>
+  <data name="Ramp.Profile.NewName" xml:space="preserve">
+    <value>Ramp</value>
+  </data>
+  <data name="Ramp.Profile.Name" xml:space="preserve">
+    <value>PROFILE NAME</value>
+  </data>
+  <data name="Ramp.Profile.Saved" xml:space="preserve">
+    <value>Saved as "{0}".</value>
+  </data>
+  <data name="Ramp.Profile.Added" xml:space="preserve">
+    <value>"{0}" added - it is a copy, so change it and save.</value>
+  </data>
+  <data name="Ramp.Profile.Deleted" xml:space="preserve">
+    <value>"{0}" deleted.</value>
+  </data>
+  <data name="Ramp.Profile.Empty" xml:space="preserve">
+    <value>A profile needs a name.</value>
+  </data>
+  <data name="Ramp.Profile.AlreadyTaken" xml:space="preserve">
+    <value>Another profile is already called that.</value>
+  </data>
   <data name="Action.AddPoint" xml:space="preserve">
     <value>Add point</value>
   </data>
