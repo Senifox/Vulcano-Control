@@ -53,8 +53,19 @@ public sealed class FakeVolcanoDevice : IVolcanoDevice
 
     public void ReportError(string message) => ErrorOccurred?.Invoke(this, message);
 
-    public Task<bool> ScanAndConnectAsync(CancellationToken ct = default) => Task.FromResult(true);
-    public Task DisconnectAsync() => Task.CompletedTask;
+    /// <summary>Announces the connection the way a device does. Without the event nothing above this
+    /// ever learns it happened - the state property alone is not what the app listens to.</summary>
+    public Task<bool> ScanAndConnectAsync(CancellationToken ct = default)
+    {
+        ReportConnectionState(ConnectionState.Connected);
+        return Task.FromResult(true);
+    }
+
+    public Task DisconnectAsync()
+    {
+        ReportConnectionState(ConnectionState.Disconnected);
+        return Task.CompletedTask;
+    }
 
     public Task SetTargetTemperatureAsync(double celsius)
     {
