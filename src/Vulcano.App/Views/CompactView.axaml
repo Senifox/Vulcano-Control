@@ -58,16 +58,14 @@
       <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
         <ToggleButton Theme="{StaticResource CompactTile}"
                       Classes="heat"
-                      IsChecked="{Binding Control.IsHeaterOn, Mode=OneWay}"
-                      Command="{Binding Control.ToggleHeaterCommand}"
+                      IsChecked="{Binding Control.HeaterSwitchOn}"
                       IsEnabled="{Binding IsConnected}"
                       ToolTip.Tip="{DynamicResource S.Control.Heater}">
           <c:Icon Data="{StaticResource Icon.Flame}" Width="17" Height="17" />
         </ToggleButton>
 
         <ToggleButton Theme="{StaticResource CompactTile}"
-                      IsChecked="{Binding Control.IsPumpOn, Mode=OneWay}"
-                      Command="{Binding Control.TogglePumpCommand}"
+                      IsChecked="{Binding Control.PumpSwitchOn}"
                       IsEnabled="{Binding IsConnected}"
                       ToolTip.Tip="{DynamicResource S.Control.Pump}">
           <c:Icon Data="{StaticResource Icon.Fan}" Width="17" Height="17" />

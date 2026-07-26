@@ -96,7 +96,20 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
         _device.ProgressChanged += OnRampProgressChanged;
         _device.Completed += OnRampEnded;
         _device.Stopped += OnRampEnded;
+
+        // Somebody has to listen to these. The error channel runs from the device through the
+        // orchestrator to here and nothing was plugged in at this end, so a refused or failed write
+        // vanished without a trace - a watcher clicking the heater got no message and no log line.
+        // Both interfaces declare ErrorOccurred, hence the casts to say which one is meant.
+        ((IVolcanoDevice)_device).ErrorOccurred += OnDeviceErrorOccurred;
+        ((IRampSessionController)_device).ErrorOccurred += OnRampErrorOccurred;
     }
+
+    private void OnDeviceErrorOccurred(object? sender, string message) =>
+        _log.Log(message, LogLevel.Warning);
+
+    private void OnRampErrorOccurred(object? sender, string message) =>
+        _log.Log(message, LogLevel.Warning);
 
     /// <summary>
     /// Nudges every view model to re-read its computed labels. The tabs and static text follow the
@@ -271,6 +284,8 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
         _device.ProgressChanged -= OnRampProgressChanged;
         _device.Completed -= OnRampEnded;
         _device.Stopped -= OnRampEnded;
+        ((IVolcanoDevice)_device).ErrorOccurred -= OnDeviceErrorOccurred;
+        ((IRampSessionController)_device).ErrorOccurred -= OnRampErrorOccurred;
         Control.Dispose();
         Ramp.Dispose();
         Run.Dispose();

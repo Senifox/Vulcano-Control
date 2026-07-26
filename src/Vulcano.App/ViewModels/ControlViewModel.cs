@@ -63,6 +63,27 @@ public partial class ControlViewModel : ObservableObject, IDisposable
     [NotifyPropertyChangedFor(nameof(PumpDetailText))]
     private bool _isPumpOn;
 
+    /// <summary>
+    /// Where the two switches are standing, which is not the same question as whether the device is
+    /// heating. A switch is flipped by the person clicking it; the device is what answers. Binding
+    /// the switch straight to <see cref="IsHeaterOn"/> looked equivalent and was not: a ToggleButton
+    /// flips itself on click, and if the write never took - a watching client refused by the host, a
+    /// device that did not answer - nothing put it back, so the knob sat there claiming the heater
+    /// was on while the label under it said off.
+    ///
+    /// Keeping the position separate means the correction is a real change from true to false, which
+    /// is what makes it reach the control at all.
+    /// </summary>
+    [ObservableProperty]
+    private bool _heaterSwitchOn;
+
+    [ObservableProperty]
+    private bool _pumpSwitchOn;
+
+    /// <summary>Set while the switches are being moved to match the device, so that doing so does
+    /// not read as a click and send the device another write.</summary>
+    private bool _syncingSwitches;
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(AutoShutOffText))]
     private int _remainingAutoOffSeconds;
@@ -141,11 +162,39 @@ public partial class ControlViewModel : ObservableObject, IDisposable
     public string AutoShutOffNote =>
         IsRampRunning ? Strings.Get("Control.AutoShutOff.Extended") : "";
 
-    [RelayCommand]
-    private async Task ToggleHeaterAsync() => await _device.SetHeaterAsync(!IsHeaterOn);
+    partial void OnHeaterSwitchOnChanged(bool value)
+    {
+        if (_syncingSwitches) return;
+        _ = ApplyAsync(_device.SetHeaterAsync(value));
+    }
 
-    [RelayCommand]
-    private async Task TogglePumpAsync() => await _device.SetPumpAsync(!IsPumpOn);
+    partial void OnPumpSwitchOnChanged(bool value)
+    {
+        if (_syncingSwitches) return;
+        _ = ApplyAsync(_device.SetPumpAsync(value));
+    }
+
+    /// <summary>Sends the write, then puts both switches wherever the device actually ended up -
+    /// which for a write that was refused or lost means back where they were.</summary>
+    private async Task ApplyAsync(Task write)
+    {
+        await write;
+        MoveSwitchesToMatchDevice();
+    }
+
+    private void MoveSwitchesToMatchDevice()
+    {
+        _syncingSwitches = true;
+        try
+        {
+            HeaterSwitchOn = IsHeaterOn;
+            PumpSwitchOn = IsPumpOn;
+        }
+        finally
+        {
+            _syncingSwitches = false;
+        }
+    }
 
     /// <summary>Writes whatever the stepper or a quick chip left in <see cref="TargetTemperature"/>.</summary>
     [RelayCommand]
@@ -202,6 +251,7 @@ public partial class ControlViewModel : ObservableObject, IDisposable
 
             IsHeaterOn = heaterOn;
             IsPumpOn = (activity & VolcanoUuids.ActivityFlags.PumpEnabled) != 0;
+            MoveSwitchesToMatchDevice();
             UpdateHeatState();
         });
 

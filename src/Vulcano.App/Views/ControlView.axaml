@@ -64,8 +64,7 @@
               <c:Icon Grid.Column="0" Data="{StaticResource Icon.Flame}"
                       Foreground="{DynamicResource Heat}" Width="18" Height="18" />
               <ToggleButton Grid.Column="2" Theme="{StaticResource Toggle}"
-                            IsChecked="{Binding IsHeaterOn, Mode=OneWay}"
-                            Command="{Binding ToggleHeaterCommand}"
+                            IsChecked="{Binding HeaterSwitchOn}"
                             IsEnabled="{Binding IsConnected}" />
             </Grid>
             <TextBlock Text="{DynamicResource S.Control.Heater}" FontSize="{StaticResource Text.CardTitle}" FontWeight="SemiBold" />
@@ -79,8 +78,7 @@
               <c:Icon Grid.Column="0" Data="{StaticResource Icon.Fan}"
                       Foreground="{DynamicResource Text.Muted}" Width="18" Height="18" />
               <ToggleButton Grid.Column="2" Theme="{StaticResource Toggle}"
-                            IsChecked="{Binding IsPumpOn, Mode=OneWay}"
-                            Command="{Binding TogglePumpCommand}"
+                            IsChecked="{Binding PumpSwitchOn}"
                             IsEnabled="{Binding IsConnected}" />
             </Grid>
             <TextBlock Text="{DynamicResource S.Control.Pump}" FontSize="{StaticResource Text.CardTitle}" FontWeight="SemiBold" />
