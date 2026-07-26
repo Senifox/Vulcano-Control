@@ -3,12 +3,23 @@ using Vulcano.Core.Services;
 
 namespace Vulcano.Core.Tests;
 
+/// <summary>
+/// Loading, saving, and the chain of places settings have lived: the current file first, then this
+/// app's own earlier file, then the WPF version's - each in a directory of its own here, as they are
+/// on a real machine.
+/// </summary>
 public sealed class SettingsServiceTests : IDisposable
 {
     private readonly string _directory =
         Path.Combine(Path.GetTempPath(), $"vulcano-settings-{Guid.NewGuid():N}");
 
+    /// <summary>%AppData%\Vulcano-Control\settings.json - the only file ever written.</summary>
     private readonly string _own;
+
+    /// <summary>%LocalAppData%\Vulcano-Control\settings.v2.json - this app before it moved out.</summary>
+    private readonly string _previous;
+
+    /// <summary>%LocalAppData%\Vulcano-Control\settings.json - the WPF version.</summary>
     private readonly string _legacy;
 
     /// <summary>A settings.json as the WPF version writes it.</summary>
@@ -32,9 +43,14 @@ public sealed class SettingsServiceTests : IDisposable
 
     public SettingsServiceTests()
     {
-        Directory.CreateDirectory(_directory);
-        _own = Path.Combine(_directory, "settings.v2.json");
-        _legacy = Path.Combine(_directory, "settings.json");
+        var current = Path.Combine(_directory, "roaming");
+        var old = Path.Combine(_directory, "local");
+        Directory.CreateDirectory(current);
+        Directory.CreateDirectory(old);
+
+        _own = Path.Combine(current, "settings.json");
+        _previous = Path.Combine(old, "settings.v2.json");
+        _legacy = Path.Combine(old, "settings.json");
     }
 
     public void Dispose()
@@ -42,7 +58,7 @@ public sealed class SettingsServiceTests : IDisposable
         try { Directory.Delete(_directory, recursive: true); } catch { /* best-effort */ }
     }
 
-    private SettingsService CreateService() => new(_own, _legacy);
+    private SettingsService CreateService() => new(_own, [_previous, _legacy]);
 
     [Fact]
     public void A_first_start_picks_up_the_WPF_versions_settings()
@@ -103,6 +119,48 @@ public sealed class SettingsServiceTests : IDisposable
         File.WriteAllText(_legacy, LegacyJson.Replace("\"HistoryRetentionMinutes\": 45", "\"HistoryRetentionMinutes\": 7"));
 
         Assert.Equal(99, CreateService().Load().HistoryRetentionMinutes);
+    }
+
+    /// <summary>
+    /// The move out of the install directory: what this app itself last wrote is nearer than what the
+    /// WPF version left behind, so a machine that has both must come up with the ramp profiles from
+    /// the newer file.
+    /// </summary>
+    [Fact]
+    public void The_apps_own_earlier_file_is_preferred_over_the_WPF_versions()
+    {
+        File.WriteAllText(_legacy, LegacyJson);
+        File.WriteAllText(_previous, """
+            { "Theme": "Light", "HistoryRetentionMinutes": 12 }
+            """);
+
+        var settings = CreateService().Load();
+
+        Assert.Equal(AppTheme.Light, settings.Theme);
+        Assert.Equal(12, settings.HistoryRetentionMinutes);
+    }
+
+    /// <summary>
+    /// Nothing in the old home is written to, however it was found - the installer may empty that
+    /// folder at any time, and a copy left intact is what somebody going back to the older version
+    /// would start from.
+    /// </summary>
+    [Fact]
+    public void The_earlier_file_is_read_once_and_left_alone()
+    {
+        File.WriteAllText(_previous, """
+            { "Theme": "Light" }
+            """);
+        var before = File.ReadAllText(_previous);
+
+        var service = CreateService();
+        var settings = service.Load();
+        settings.Theme = AppTheme.Dark;
+        service.Save(settings);
+
+        Assert.Equal(before, File.ReadAllText(_previous));
+        Assert.True(File.Exists(_own));
+        Assert.Equal(AppTheme.Dark, CreateService().Load().Theme);
     }
 
     [Fact]

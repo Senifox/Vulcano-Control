@@ -3,13 +3,14 @@
     Removes the old WPF installation and the notification identities the Avalonia app registered.
 
 .DESCRIPTION
-    Two apps and one data folder live side by side during the rewrite, and the awkward part is that
-    they share it: the WPF app installs into %LocalAppData%\Vulcano-Control, and that same folder
-    holds settings.json, settings.v2.json, the logs and the measurements. An uninstaller pointed at
-    the folder would take the settings and every saved ramp profile with it.
+    Settings and ramp profiles used to live in %LocalAppData%\Vulcano-Control - the same folder the
+    WPF app installs into, chosen so the rewrite would find the old app's settings rather than reset
+    them. An uninstaller pointed at that folder takes the settings and every saved ramp profile with
+    it, which is why this script used to back the folder up and put it back afterwards.
 
-    So this backs the data up before touching anything, and puts it back afterwards if the
-    uninstaller cleared the folder out. Nothing is deleted without that copy existing first.
+    The app now keeps its data in %AppData%\Vulcano-Control, where no installer ever reaches. So the
+    job here is smaller and much safer: carry anything still sitting in the old folder across to the
+    new one, back it up regardless, and only then uninstall.
 
     It reports and changes nothing unless -Execute is given. Read the report, then run it again.
 
@@ -21,7 +22,7 @@
     while the rewrite is being tested that is the app in use.
 
 .PARAMETER BackupTo
-    Where to copy the settings and logs first. Defaults to a timestamped folder on the desktop.
+    Where to copy the old settings and logs first. Defaults to a timestamped folder on the desktop.
 
 .EXAMPLE
     .\Cleanup.ps1
@@ -36,35 +37,43 @@ param(
     [switch]$IncludePreview,
     [string]$BackupTo,
 
-    # Where the two installs live, and where the notification identities are registered. All three
-    # are overridable so this script can be rehearsed somewhere harmless: it deletes things, and a
-    # script that deletes things should be runnable against a copy first.
+    # Where the two installs live, where the data lives now, and where the notification identities
+    # are registered. All four are overridable so this script can be rehearsed somewhere harmless:
+    # it deletes things, and a script that deletes things should be runnable against a copy first.
     #
-    # All three, because a rehearsal that overrides only the folders still reaches into the real
+    # All four, because a rehearsal that overrides only the folders still reaches into the real
     # registry - which is exactly what happened the first time this was tried, and it removed the
     # identity of an app that was staying.
-    [string]$DataDirectory,
+    [string]$InstallDirectory,
     [string]$PreviewDirectory,
+    [string]$DataDirectory,
     [string]$IdentityRoot = "HKCU:\Software\Classes\AppUserModelId"
 )
 
 $ErrorActionPreference = "Stop"
 
-if (-not $DataDirectory) { $DataDirectory = Join-Path $env:LOCALAPPDATA "Vulcano-Control" }
+if (-not $InstallDirectory) { $InstallDirectory = Join-Path $env:LOCALAPPDATA "Vulcano-Control" }
 if (-not $PreviewDirectory) { $PreviewDirectory = Join-Path $env:LOCALAPPDATA "Vulcano-Control-Preview" }
+if (-not $DataDirectory)    { $DataDirectory    = Join-Path $env:APPDATA "Vulcano-Control" }
 
-$dataDirectory = $DataDirectory
+$installDirectory = $InstallDirectory
 $previewDirectory = $PreviewDirectory
-$startMenu = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs"
+$dataDirectory = $DataDirectory
 
-# Everything here is the user's, not the app's. It lives in the same folder as the WPF install by
-# design - the rewrite reads the old app's settings - which is exactly why it has to be carried out
-# of the way before an uninstaller runs.
-$dataFiles = @("settings.json", "settings.v2.json", "vulcano-control.log")
+<#
+    The settings files, oldest home last. This is the same order the app itself looks in, and it has
+    to be: whichever of these the app would have loaded is the one that has to end up in the new
+    folder, or the first start after the cleanup comes up with somebody else's older profiles.
+#>
+$settingsChain = @("settings.v2.json", "settings.json")
+
+# The rest of what is the user's, not the app's. The live log is not among them - it is written
+# afresh on every start, and the one in the old folder is a record of runs that are over.
 $dataFolders = @("measurements")
+$exportedLogs = "vulcano-control-log-*.txt"
 
-# The app wrote this for itself so a toast could show an icon. Backed up like the rest, but it is
-# not the user's and it goes when the identity it belongs to goes.
+# Backed up like the rest, but app-owned: it exists only so a toast can show an icon, and the app
+# writes it again in the new folder whenever it needs one.
 $iconFile = "notification-icon.png"
 
 # Velopack derives the id on the Start menu shortcut from the pack id, with this prefix. An identity
@@ -101,33 +110,79 @@ function Stop-IfRunning {
     }
 }
 
+<#
+    Everything in the old folder that is worth keeping, as full paths. Used for both the report and
+    the backup, so the two can never disagree about what is at stake.
+#>
+function Get-OldData {
+    $items = @()
+    if (-not (Test-Path $installDirectory)) { return $items }
+
+    foreach ($name in ($settingsChain + $dataFolders + @($iconFile, "vulcano-control.log"))) {
+        $path = Join-Path $installDirectory $name
+        if (Test-Path $path) { $items += Get-Item $path }
+    }
+
+    # The exported logs are named by date, so they are matched rather than listed.
+    $items += Get-ChildItem $installDirectory -Filter $exportedLogs -ErrorAction SilentlyContinue
+
+    return $items
+}
+
 function Backup-Data([string]$destination) {
     New-Item -ItemType Directory -Force $destination | Out-Null
 
-    foreach ($name in $dataFiles) {
-        $source = Join-Path $dataDirectory $name
-        if (Test-Path $source) { Copy-Item $source (Join-Path $destination $name) -Force }
+    foreach ($item in Get-OldData) {
+        Copy-Item $item.FullName (Join-Path $destination $item.Name) -Recurse -Force
+    }
+}
+
+<#
+    Moves what is left in the old folder to the new one, which is the same thing the app does on its
+    first start - done here as well because the uninstaller may get there first, and after that
+    there is nothing left to migrate.
+
+    Nothing already in the new folder is overwritten: what the app has been writing is by definition
+    newer than what an install it has replaced left behind.
+#>
+function Copy-DataForward {
+    if (-not (Test-Path $installDirectory)) { return }
+    New-Item -ItemType Directory -Force $dataDirectory | Out-Null
+
+    $settingsTarget = Join-Path $dataDirectory "settings.json"
+    if (-not (Test-Path $settingsTarget)) {
+        foreach ($name in $settingsChain) {
+            $source = Join-Path $installDirectory $name
+            if (-not (Test-Path $source)) { continue }
+
+            Copy-Item $source $settingsTarget -Force
+            Write-Host "      carried across: $name -> settings.json"
+            break
+        }
     }
 
     foreach ($name in $dataFolders) {
-        $source = Join-Path $dataDirectory $name
-        if (Test-Path $source) { Copy-Item $source (Join-Path $destination $name) -Recurse -Force }
+        $source = Join-Path $installDirectory $name
+        $target = Join-Path $dataDirectory $name
+        if ((Test-Path $source) -and -not (Test-Path $target)) {
+            Copy-Item $source $target -Recurse -Force
+            Write-Host "      carried across: $name"
+        }
     }
 
-    $icon = Join-Path $dataDirectory $iconFile
-    if (Test-Path $icon) { Copy-Item $icon (Join-Path $destination $iconFile) -Force }
-
-    # The exported logs are named by date, so they are matched rather than listed.
-    Get-ChildItem $dataDirectory -Filter "vulcano-control-log-*.txt" -ErrorAction SilentlyContinue |
-        ForEach-Object { Copy-Item $_.FullName (Join-Path $destination $_.Name) -Force }
+    foreach ($log in Get-ChildItem $installDirectory -Filter $exportedLogs -ErrorAction SilentlyContinue) {
+        $target = Join-Path $dataDirectory $log.Name
+        if (-not (Test-Path $target)) {
+            Copy-Item $log.FullName $target -Force
+            Write-Host "      carried across: $($log.Name)"
+        }
+    }
 }
 
 <#
     Velopack's uninstaller detaches: Update.exe returns at once - with no exit code to read - and a
-    separate process clears the folder afterwards. Restoring straight away therefore restored
-    nothing, because the files were all still there, and the deletion then took them.
-
-    So: wait for the install to actually be gone before putting anything back.
+    separate process clears the folder afterwards. Anything that has to happen after the folder is
+    gone therefore has to wait for it, rather than for Update.exe.
 #>
 function Wait-ForUninstall([string]$root, [int]$timeoutSeconds = 120) {
     $deadline = (Get-Date).AddSeconds($timeoutSeconds)
@@ -145,39 +200,6 @@ function Wait-ForUninstall([string]$root, [int]$timeoutSeconds = 120) {
     return $false
 }
 
-<#
-    Puts the data back, then checks a moment later that it is still there. A straggling uninstaller
-    that deletes the folder after the restore would otherwise take it a second time, and the only
-    sign would be an empty folder nobody looked in.
-#>
-function Restore-Data([string]$backup) {
-    if (-not (Test-Path $backup)) { return }
-
-    for ($attempt = 1; $attempt -le 3; $attempt++) {
-        New-Item -ItemType Directory -Force $dataDirectory | Out-Null
-
-        $restored = @()
-        foreach ($item in Get-ChildItem $backup) {
-            $target = Join-Path $dataDirectory $item.Name
-            if (-not (Test-Path $target)) {
-                Copy-Item $item.FullName $target -Recurse -Force
-                $restored += $item.Name
-            }
-        }
-
-        foreach ($name in $restored) { Write-Host "      put back: $name" }
-
-        Start-Sleep -Seconds 2
-
-        $missing = Get-ChildItem $backup | Where-Object { -not (Test-Path (Join-Path $dataDirectory $_.Name)) }
-        if (-not $missing) { return }
-
-        Write-Host "      something removed them again - trying once more"
-    }
-
-    Write-Host "      COULD NOT put the data back. It is safe in: $backup"
-}
-
 # --- Look ---
 
 Write-Host ""
@@ -185,7 +207,7 @@ Write-Host "Vulcano Control cleanup"
 Write-Host ""
 Write-Host "Installed:"
 
-$wpf = Get-InstalledApp $dataDirectory
+$wpf = Get-InstalledApp $installDirectory
 $preview = Get-InstalledApp $previewDirectory
 
 if ($null -eq $wpf) {
@@ -228,10 +250,14 @@ foreach ($identity in $identities) {
 }
 
 Write-Host ""
-Write-Host "Kept, always - this is yours, not the app's:"
-foreach ($name in ($dataFiles + $dataFolders)) {
-    $path = Join-Path $dataDirectory $name
-    if (Test-Path $path) { Write-Finding $name "found" "backed up, then put back" }
+Write-Host "Your data lives here now, and nothing below touches it:"
+Write-Host "  $dataDirectory"
+
+$oldData = Get-OldData
+if ($oldData) {
+    Write-Host ""
+    Write-Host "Still in the old folder - backed up, then carried across before anything is removed:"
+    foreach ($item in $oldData) { Write-Finding $item.Name "found" }
 }
 
 if (-not $Execute) {
@@ -246,15 +272,21 @@ if (-not $Execute) {
 
 Stop-IfRunning
 
-if (-not $BackupTo) {
-    $stamp = Get-Date -Format "yyyy-MM-dd-HHmmss"
-    $BackupTo = Join-Path ([Environment]::GetFolderPath("Desktop")) "vulcano-control-backup-$stamp"
-}
+if ($oldData) {
+    if (-not $BackupTo) {
+        $stamp = Get-Date -Format "yyyy-MM-dd-HHmmss"
+        $BackupTo = Join-Path ([Environment]::GetFolderPath("Desktop")) "vulcano-control-backup-$stamp"
+    }
 
-Write-Host ""
-Write-Host "Backing up settings and logs to:"
-Write-Host "  $BackupTo"
-Backup-Data $BackupTo
+    Write-Host ""
+    Write-Host "Backing up the old folder's settings and logs to:"
+    Write-Host "  $BackupTo"
+    Backup-Data $BackupTo
+
+    Write-Host ""
+    Write-Host "Carrying anything still needed across to $dataDirectory"
+    Copy-DataForward
+}
 
 $removed = @()
 
@@ -263,16 +295,12 @@ if ($null -ne $wpf -and -not $wpf.IsRewrite) {
     Write-Host "Uninstalling the WPF app..."
     & $wpf.Update "--uninstall" "--silent"
 
-    if (-not (Wait-ForUninstall $wpf.Root)) {
-        Write-Host "  it is still going after two minutes - not putting the data back yet."
-        Write-Host "  Everything is in: $BackupTo"
-        return
+    if (Wait-ForUninstall $wpf.Root) {
+        $removed += "WPF app"
     }
-
-    $removed += "WPF app"
-
-    # Velopack clears the whole folder, settings included. That is what the backup was for.
-    Restore-Data $BackupTo
+    else {
+        Write-Host "  it is still going after two minutes - check the folder yourself afterwards."
+    }
 }
 
 if ($null -ne $preview -and $IncludePreview) {
@@ -285,9 +313,6 @@ if ($null -ne $preview -and $IncludePreview) {
     }
 
     $removed += "preview"
-
-    # The preview installs elsewhere, but it shares the data folder, so this is checked either way.
-    Restore-Data $BackupTo
 }
 
 Write-Host ""
@@ -307,19 +332,27 @@ foreach ($identity in $identities) {
 # The icon exists only so a toast can show one. It goes when nothing is left to raise a toast, and
 # stays as long as an app that might is still installed.
 $anyIdentityLeft = $identities | Where-Object { Test-Path $_.Key }
-$icon = Join-Path $dataDirectory $iconFile
-if ((Test-Path $icon) -and -not $anyIdentityLeft) {
-    Remove-Item $icon -Force
-    Write-Host "  removed: $iconFile (a copy is in the backup)"
+if (-not $anyIdentityLeft) {
+    foreach ($icon in @((Join-Path $dataDirectory $iconFile), (Join-Path $installDirectory $iconFile))) {
+        if (Test-Path $icon) {
+            Remove-Item $icon -Force
+            Write-Host "  removed: $iconFile"
+        }
+    }
 }
 
 Write-Host ""
-Write-Host "Left behind on purpose:"
-foreach ($name in ($dataFiles + $dataFolders)) {
-    $path = Join-Path $dataDirectory $name
-    if (Test-Path $path) { Write-Host "  $name" }
+Write-Host "Kept, as always - this is yours, not the app's:"
+foreach ($item in Get-ChildItem $dataDirectory -ErrorAction SilentlyContinue) {
+    Write-Host "  $($item.Name)"
+}
+
+if ($BackupTo) {
+    Write-Host ""
+    Write-Host "The backup stays where it is - delete it yourself once you are satisfied:"
+    Write-Host "  $BackupTo"
 }
 
 Write-Host ""
-Write-Host "Done. The backup stays where it is - delete it yourself once you are satisfied."
+Write-Host "Done."
 Write-Host ""

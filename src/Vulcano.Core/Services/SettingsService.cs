@@ -7,10 +7,10 @@ namespace Vulcano.Core.Services;
 /// <summary>
 /// Loads and saves <see cref="AppSettings"/> as JSON in <see cref="AppPaths.DataDirectory"/>.
 ///
-/// Reads from two places and writes to exactly one. On a machine that still has the WPF version
-/// installed, its settings.json is the only place the user's preferences exist, so the first start
-/// reads them from there - but never writes back, because this app's shape drops properties the
-/// old one still needs. See <see cref="AppPaths.SettingsFilePath"/>.
+/// Reads from wherever settings have ever lived and writes to exactly one place. Each earlier home
+/// is tried in turn until one answers, and none of them is ever written back to: the first save goes
+/// to the current location, so an older copy stays intact for anyone who wants to go back to the
+/// version that wrote it.
 ///
 /// Every write is best-effort: a settings change failing to persist must never take the app down
 /// mid-session, least of all during a running ramp.
@@ -24,19 +24,22 @@ public sealed class SettingsService
     };
 
     private readonly string _settingsFilePath;
-    private readonly string? _legacySettingsFilePath;
+    private readonly IReadOnlyList<string> _previousFilePaths;
 
-    public SettingsService(string? settingsFilePath = null, string? legacySettingsFilePath = null)
+    /// <param name="previousFilePaths">Where to look when the current file is not there, in order.
+    /// Null means the real ones; an empty list means nowhere, which is what a test wants so it
+    /// cannot accidentally read the settings of whoever is running it.</param>
+    public SettingsService(string? settingsFilePath = null, IReadOnlyList<string>? previousFilePaths = null)
     {
         _settingsFilePath = settingsFilePath ?? AppPaths.SettingsFilePath;
-        _legacySettingsFilePath = legacySettingsFilePath ?? AppPaths.LegacySettingsFilePath;
+        _previousFilePaths = previousFilePaths ?? AppPaths.PreviousSettingsFilePaths;
     }
 
     public string SettingsFilePath => _settingsFilePath;
 
     public AppSettings Load()
     {
-        var json = ReadOwnFile() ?? ReadLegacyFile();
+        var json = ReadOwnFile() ?? ReadPreviousFile();
         var settings = Deserialize(json);
 
         // The raw JSON travels along because a migration may need fields that no longer exist on
@@ -66,8 +69,16 @@ public sealed class SettingsService
 
     private string? ReadOwnFile() => TryRead(_settingsFilePath);
 
-    private string? ReadLegacyFile() =>
-        _legacySettingsFilePath is null ? null : TryRead(_legacySettingsFilePath);
+    /// <summary>The newest of the earlier homes that still holds something, tried in order.</summary>
+    private string? ReadPreviousFile()
+    {
+        foreach (var path in _previousFilePaths)
+        {
+            if (TryRead(path) is { } json) return json;
+        }
+
+        return null;
+    }
 
     private static string? TryRead(string path)
     {

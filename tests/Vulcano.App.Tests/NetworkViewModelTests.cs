@@ -34,7 +34,7 @@ public sealed class NetworkViewModelTests : IDisposable
         var fake = new FakeVolcanoDevice();
         var log = new LogService(logFile);
         var orchestrator = new VolcanoDeviceOrchestrator(() => fake, log);
-        var settingsService = new SettingsService(settingsFile, settingsFile + ".legacy");
+        var settingsService = new SettingsService(settingsFile, []);
 
         // Port zero asks the operating system for a free one, so tests never collide with each other
         // or with whatever else is listening on this machine.

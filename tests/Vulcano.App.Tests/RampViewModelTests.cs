@@ -32,7 +32,7 @@ public sealed class RampViewModelTests : IDisposable
     {
         _log = new LogService(_logFile);
         _ramp = new RampSessionController(_device, _log, TimeSpan.FromMilliseconds(25));
-        _settingsService = new SettingsService(_settingsFile, _settingsFile + ".legacy");
+        _settingsService = new SettingsService(_settingsFile, []);
 
         _settings = new AppSettings
         {
@@ -54,7 +54,7 @@ public sealed class RampViewModelTests : IDisposable
     public void Dispose()
     {
         _ramp.Dispose();
-        foreach (var file in new[] { _settingsFile, _settingsFile + ".legacy", _logFile })
+        foreach (var file in new[] { _settingsFile, _logFile })
         {
             try { File.Delete(file); } catch { /* best-effort */ }
         }

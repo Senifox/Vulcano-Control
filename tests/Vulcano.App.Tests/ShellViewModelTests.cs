@@ -72,7 +72,7 @@ public sealed class ShellViewModelTests : IAsyncDisposable
 
         _shell = new ShellViewModel(
             _device,
-            new SettingsService(_settingsFile, _settingsFile + ".legacy"),
+            new SettingsService(_settingsFile, []),
             new ThemeManager(),
             settings,
             log,
@@ -83,7 +83,7 @@ public sealed class ShellViewModelTests : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         await _shell.DisposeAsync();
-        foreach (var file in new[] { _settingsFile, _settingsFile + ".legacy", _logFile })
+        foreach (var file in new[] { _settingsFile, _logFile })
         {
             try { File.Delete(file); } catch { /* best-effort */ }
         }

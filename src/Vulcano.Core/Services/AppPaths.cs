@@ -8,40 +8,65 @@ namespace Vulcano.Core.Services;
 /// Never next to the executable: on Windows an installer puts each update in a new versioned
 /// folder, so anything written beside the exe is silently left behind on every update, and on
 /// Linux the AppImage mount point is read-only and replaced wholesale.
+///
+/// And never inside the install directory either, which is the harder-won half. The app used to
+/// keep its settings in %LocalAppData%\Vulcano-Control, the same folder Velopack installs into -
+/// chosen so the WPF version's settings.json would be found rather than reset. That works right up
+/// until somebody installs: the installer empties its target directory first, so a fresh install
+/// takes every saved ramp profile with it. Updates go through Update.exe and leave the folder
+/// alone, which is why the WPF app never suffered for it and why this stayed hidden until the
+/// changeover, when running the installer is exactly what everybody does.
 /// </summary>
 public static class AppPaths
 {
     /// <summary>
-    /// Windows: <c>%LocalAppData%\Vulcano-Control</c> - deliberately the same folder the WPF
-    /// version used, so an existing settings.json is picked up rather than reset.
-    /// Linux: <c>$XDG_CONFIG_HOME/vulcano-control</c>, i.e. <c>~/.config/vulcano-control</c>
-    /// (.NET maps SpecialFolder.ApplicationData to XDG_CONFIG_HOME there, while
-    /// LocalApplicationData would land in ~/.local/share).
+    /// Windows: <c>%AppData%\Vulcano-Control</c> - roaming, and nothing installs there.
+    /// Linux: <c>$XDG_CONFIG_HOME/vulcano-control</c>, i.e. <c>~/.config/vulcano-control</c>.
+    ///
+    /// One expression for both because SpecialFolder.ApplicationData already means the right thing
+    /// on each: roaming application data on Windows, XDG_CONFIG_HOME on Linux.
     /// </summary>
     public static string DataDirectory { get; } = CreateDataDirectory();
 
     /// <summary>
-    /// Deliberately not settings.json: the WPF version is still installed and still uses that file,
-    /// and this app's migration is one-way - it drops the five old ramp properties as soon as it
-    /// saves. Writing beside it instead of over it lets both run on the same machine.
-    /// Renamed back once the WPF app is gone.
+    /// Plainly settings.json again. It shared a folder with the WPF version's file of that name and
+    /// had to be called something else; in a folder of its own the qualifier has nothing left to
+    /// distinguish it from.
     /// </summary>
-    public static string SettingsFilePath => Path.Combine(DataDirectory, "settings.v2.json");
+    public static string SettingsFilePath => Path.Combine(DataDirectory, "settings.json");
 
-    /// <summary>The WPF version's file. Read once, on first start, and never written.</summary>
-    public static string LegacySettingsFilePath => Path.Combine(DataDirectory, "settings.json");
+    /// <summary>
+    /// Where settings used to live, in the order they should be looked for when this app has none of
+    /// its own yet: first this app's previous file, then the WPF version's. Read once and never
+    /// written - the first save goes to the new home, and the old copies are left where they are for
+    /// somebody who wants to go back.
+    ///
+    /// Empty away from Windows: no earlier version ever ran there.
+    /// </summary>
+    public static IReadOnlyList<string> PreviousSettingsFilePaths { get; } = FindPreviousSettings();
 
     private static string CreateDataDirectory()
     {
-        var directory = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-            ? Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Vulcano-Control")
-            : Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "vulcano-control");
+        var directory = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "Vulcano-Control" : "vulcano-control");
 
         Directory.CreateDirectory(directory);
         return directory;
+    }
+
+    private static IReadOnlyList<string> FindPreviousSettings()
+    {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return [];
+
+        var old = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Vulcano-Control");
+
+        return
+        [
+            Path.Combine(old, "settings.v2.json"),  // this app, before it moved out of the install folder
+            Path.Combine(old, "settings.json"),     // the WPF version
+        ];
     }
 }
