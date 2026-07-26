@@ -68,7 +68,11 @@ public sealed class WindowsToastNotifier : INotifier
             if (notifier.Setting != NotificationSetting.Enabled)
             {
                 _toastsUnavailable = true;
-                _log.Log(Strings.Get("Log.Notify.NoToasts", notifier.Setting), LogLevel.Debug);
+                // The enum name, spelled out: a log line that says "would not show it ()" names no
+                // cause at all, which is how the first attempt at this wasted a run.
+                _log.Log(
+                    Strings.Get("Log.Notify.NoToasts", $"{appUserModelId}: {notifier.Setting:G}"),
+                    LogLevel.Debug);
                 return false;
             }
 
@@ -92,9 +96,14 @@ public sealed class WindowsToastNotifier : INotifier
         catch (Exception ex)
         {
             // Once. Every notification after this would fail for the same reason, and a warning per
-            // ramp would be noise.
+            // ramp would be noise. Type and HResult, not just Message - the COM exceptions this API
+            // throws often carry no message at all, and "would not show it ()" says nothing.
             _toastsUnavailable = true;
-            _log.Log(Strings.Get("Log.Notify.NoToasts", ex.Message), LogLevel.Debug);
+            _log.Log(
+                Strings.Get(
+                    "Log.Notify.NoToasts",
+                    $"{ex.GetType().Name} 0x{ex.HResult:X8} {ex.Message}".Trim()),
+                LogLevel.Debug);
             return false;
         }
     }

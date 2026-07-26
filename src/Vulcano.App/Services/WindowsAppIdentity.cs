@@ -76,10 +76,21 @@ public static class WindowsAppIdentity
     }
 
     /// <summary>
-    /// The pack id of the install this copy belongs to, or null when it is not one. Velopack lays an
+    /// Velopack prefixes the id it puts on the shortcut, so the shortcut for pack id
+    /// <c>Vulcano-Control-Preview</c> carries <c>velopack.Vulcano-Control-Preview</c>. This has to
+    /// match it exactly - a toast sent under the bare pack id goes out under a name no shortcut
+    /// claims, which fails the only way this API fails: silently.
+    ///
+    /// Read off an installed shortcut rather than guessed. To check it again after a Velopack
+    /// upgrade, read System.AppUserModel.ID from the .lnk in the Start menu.
+    /// </summary>
+    private const string VelopackIdPrefix = "velopack.";
+
+    /// <summary>
+    /// The identity of the install this copy belongs to, or null when it is not one. Velopack lays an
     /// install out as <c>&lt;PackId&gt;\current\app.exe</c> with <c>Update.exe</c> beside the
-    /// <c>current</c> folder, and that shape is what is recognised here - the same shape the Start
-    /// menu shortcut's id is derived from.
+    /// <c>current</c> folder, and the pack id is the folder name - which is also what the Start menu
+    /// shortcut's id is built from, so the two agree without either being written down twice.
     ///
     /// A portable copy has that exact shape too and no shortcut at all, which would put us right back
     /// to toasts that report success and show nothing. Velopack marks it with a <c>.portable</c> file,
@@ -97,7 +108,7 @@ public static class WindowsAppIdentity
             if (!File.Exists(Path.Combine(installRoot.FullName, "Update.exe"))) return null;
             if (File.Exists(Path.Combine(installRoot.FullName, ".portable"))) return null;
 
-            return installRoot.Name;
+            return VelopackIdPrefix + installRoot.Name;
         }
         catch
         {
