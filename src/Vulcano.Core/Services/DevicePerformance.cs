@@ -3,14 +3,23 @@ namespace Vulcano.Core.Services;
 /// <summary>
 /// How fast the device actually changes temperature, measured rather than assumed.
 ///
-/// Recorded on 2026-07-26 from a Volcano Hybrid (VH8H9H7G00) with nothing attached, standing still,
-/// by tools/Vulcano.Measure: a climb from 33 °C to 229 °C at full drive in 63 seconds, and a free
-/// cool-down from 230 °C that took 43 minutes to reach 50 °C.
+/// Recorded on 2026-07-26 from a Volcano Hybrid (VH8H9H7G00) with nothing attached, standing still
+/// in a room at 27 °C, by tools/Vulcano.Measure: a climb from 33 °C to 229 °C at full drive in 63
+/// seconds, and a free cool-down from 230 °C that took 43 minutes to reach 50 °C.
 ///
-/// Two things worth knowing before trusting these numbers too far. They come from one device in one
-/// room, and cooling in particular depends on how warm that room is - on a hot day it will be
-/// slower. And they describe the device, not a promise: the estimates built on them are for warning
-/// somebody that a segment is asking the impossible, not for predicting a run to the second.
+/// That room temperature is part of the cooling figures, and unevenly so. What drives the cooling is
+/// the difference to the room, so at 210 °C a seven-degree-cooler room is a four per cent change and
+/// makes no odds - but at 45 °C the same seven degrees is nearly forty per cent, and the device would
+/// cool noticeably faster. The bands below about 85 °C are therefore the soft ones; everything above
+/// is close to room-independent. Nothing here compensates for that, because the app has no way to
+/// know how warm the room is: the device reports no temperature at all when it is cold and idle.
+///
+/// A single Newton exponential towards 27 °C fits at about 19 minutes but only to R² 0.97, with
+/// visible systematic curvature - radiation carries the top of the range and convection the bottom.
+/// Hence a measured table rather than one constant.
+///
+/// These describe the device, not a promise: the estimates built on them are for warning somebody
+/// that a segment is asking the impossible, not for predicting a run to the second.
 /// </summary>
 public static class DevicePerformance
 {
