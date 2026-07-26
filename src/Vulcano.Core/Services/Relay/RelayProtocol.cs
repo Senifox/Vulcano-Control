@@ -113,7 +113,8 @@ public static class RelayMethods
 }
 
 /// <summary>Event names pushed unprompted from server to client - the 5 IVolcanoDevice events
-/// plus the 5 IRampSessionController events.</summary>
+/// plus the 5 IRampSessionController events, plus the running ramp's shape (see
+/// <see cref="RampPlanPayload"/>), which is not an event on either interface.</summary>
 public static class RelayEvents
 {
     public const string ConnectionStateChanged = "ConnectionStateChanged";
@@ -123,6 +124,7 @@ public static class RelayEvents
     public const string RemainingAutoOffSecondsChanged = "RemainingAutoOffSecondsChanged";
 
     public const string RampProgressChanged = "RampProgressChanged";
+    public const string RampPlanChanged = "RampPlanChanged";
     public const string RampWarmupCompleted = "RampWarmupCompleted";
     public const string RampCompleted = "RampCompleted";
     public const string RampErrorOccurred = "RampErrorOccurred";
@@ -173,5 +175,13 @@ public sealed record CurrentTemperatureChangedPayload(double Celsius);
 public sealed record ActivityChangedPayload(ushort Activity);
 public sealed record RemainingAutoOffSecondsChangedPayload(int Seconds);
 public sealed record RampCompletedPayload(double ResetTemperatureCelsius);
+
+/// <summary>
+/// The shape of the ramp that is running: sent when one starts and to anyone joining while one is
+/// already under way. Without it a client has the numbers but not the curve, and its Run tab can
+/// only manage "2 of 3" where the host shows warm-up, every segment with the method it uses, and
+/// the hold at the end. Sent once per run rather than riding along with every progress tick.
+/// </summary>
+public sealed record RampPlanPayload(IReadOnlyList<RampPoint> Points, TimeSpan HoldDuration);
 // RampProgressChanged's payload is RampProgressEventArgs directly (already a clean record struct).
 // RampWarmupCompleted carries no payload.

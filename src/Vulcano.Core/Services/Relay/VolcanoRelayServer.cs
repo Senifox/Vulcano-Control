@@ -51,6 +51,10 @@ public sealed class VolcanoRelayServer : IAsyncDisposable
     private int _lastRemainingAutoOffSeconds;
     private RampProgressEventArgs? _lastRampProgress;
 
+    /// <summary>The plan the clients have already been told about, so it is sent once per run and
+    /// not with every tick.</summary>
+    private TemperatureRampPlan? _announcedPlan;
+
     public bool IsRunning => _listener is not null;
     public int Port { get; private set; }
 
@@ -447,9 +451,24 @@ public sealed class VolcanoRelayServer : IAsyncDisposable
 
     private void OnRampProgressChanged(object? sender, RampProgressEventArgs progress)
     {
+        // Neither interface has a "ramp started" event to hang the plan on, so it goes out as soon as
+        // progress arrives for a plan nobody has been told about yet - which is the start of a run.
+        // Reference equality is the right test: one plan object per run.
+        if (!ReferenceEquals(_announcedPlan, _ramp.ActivePlan))
+        {
+            _announcedPlan = _ramp.ActivePlan;
+            if (_announcedPlan is { } plan)
+            {
+                Broadcast(RelayEvents.RampPlanChanged, ToPlanPayload(plan));
+            }
+        }
+
         _lastRampProgress = progress;
         Broadcast(RelayEvents.RampProgressChanged, progress);
     }
+
+    private static RampPlanPayload ToPlanPayload(TemperatureRampPlan plan) =>
+        new(plan.Points, plan.HoldDuration);
 
     private void OnRampWarmupCompleted(object? sender, EventArgs e) =>
         Broadcast<object?>(RelayEvents.RampWarmupCompleted, null);
@@ -457,18 +476,21 @@ public sealed class VolcanoRelayServer : IAsyncDisposable
     private void OnRampCompleted(object? sender, double resetTemperatureCelsius)
     {
         _lastRampProgress = null;
+        _announcedPlan = null;
         Broadcast(RelayEvents.RampCompleted, new RampCompletedPayload(resetTemperatureCelsius));
     }
 
     private void OnRampErrorOccurred(object? sender, string message)
     {
         _lastRampProgress = null;
+        _announcedPlan = null;
         Broadcast(RelayEvents.RampErrorOccurred, new ErrorOccurredPayload(message));
     }
 
     private void OnRampStopped(object? sender, EventArgs e)
     {
         _lastRampProgress = null;
+        _announcedPlan = null;
         Broadcast<object?>(RelayEvents.RampStopped, null);
     }
 
@@ -481,6 +503,13 @@ public sealed class VolcanoRelayServer : IAsyncDisposable
 
         if (_ramp.IsRunning && _lastRampProgress is { } progress)
         {
+            // Shape before numbers: the client builds its strip from the plan, and a progress event
+            // arriving first would have it draw the bare fallback and rebuild a tick later.
+            if (_ramp.ActivePlan is { } plan)
+            {
+                connection.Send(BuildEvent(RelayEvents.RampPlanChanged, ToPlanPayload(plan)));
+            }
+
             connection.Send(BuildEvent(RelayEvents.RampProgressChanged, progress));
         }
     }

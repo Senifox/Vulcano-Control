@@ -341,7 +341,7 @@
     <value>Pumpe aus</value>
   </data>
   <data name="Run.AutoShutOffHeld" xml:space="preserve">
-    <value>Die Auto-Abschaltung ist während der Rampe ausgesetzt</value>
+    <value>Schaltet das Gerät die Heizung ab, schaltet die Rampe sie wieder ein</value>
   </data>
   <data name="Device.Title" xml:space="preserve">
     <value>Gerät</value>

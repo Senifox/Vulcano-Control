@@ -429,6 +429,91 @@ public sealed class RelayTests
         Assert.True(remote.IsRunning);
     }
 
+    /// <summary>
+    /// The numbers alone are not enough for the client's Run tab: without the plan it can say "1 of 2"
+    /// but not which curve the segment follows, what it is heating towards, or how long the hold is,
+    /// and its strip collapses to bare numbered blocks. So the host describes the running ramp, and
+    /// it has to reach a client that was not there when it started.
+    /// </summary>
+    [Fact]
+    public async Task A_client_that_joins_mid_ramp_is_given_the_plan()
+    {
+        await using var host = new Host();
+        await host.Ramp.StartAsync(new TemperatureRampPlan(Points, TimeSpan.FromMinutes(3)), heaterCurrentlyOn: true);
+
+        var client = host.CreateClient();
+        using var remote = new RemoteRampController(client);
+        Assert.True(await client.ScanAndConnectAsync());
+
+        await Wait.ForAsync(() => remote.ActivePlan is not null, "the plan to reach the joining client");
+
+        var plan = remote.ActivePlan!;
+        Assert.Equal(TimeSpan.FromMinutes(3), plan.HoldDuration);
+        Assert.Equal(180, plan.StartTemperatureCelsius);
+        Assert.Equal(200, plan.EndTemperatureCelsius);
+        Assert.Equal(host.Ramp.ActivePlan!.SegmentCount, plan.SegmentCount);
+        Assert.Equal(CurveKind.Linear, plan.Points[0].CurveToNext);
+    }
+
+    [Fact]
+    public async Task A_client_gets_the_plan_when_a_ramp_starts_while_it_is_connected()
+    {
+        await using var host = new Host();
+        var client = await host.JoinAsync();
+        using var remote = new RemoteRampController(client);
+
+        Assert.Null(remote.ActivePlan);
+
+        await host.Ramp.StartAsync(new TemperatureRampPlan(Points, TimeSpan.FromMinutes(1)), heaterCurrentlyOn: true);
+
+        await Wait.ForAsync(() => remote.ActivePlan is not null, "the plan to be announced");
+        Assert.Equal(200, remote.ActivePlan!.EndTemperatureCelsius);
+    }
+
+    [Fact]
+    public async Task The_plan_is_let_go_of_when_the_ramp_ends()
+    {
+        await using var host = new Host();
+        var client = await host.JoinAsync();
+        using var remote = new RemoteRampController(client);
+
+        await host.Ramp.StartAsync(new TemperatureRampPlan(Points, TimeSpan.FromMinutes(1)), heaterCurrentlyOn: true);
+        await Wait.ForAsync(() => remote.ActivePlan is not null, "the plan to be announced");
+
+        host.Ramp.Stop();
+
+        await Wait.ForAsync(() => remote.ActivePlan is null, "the plan to be dropped when the ramp stops");
+        Assert.False(remote.IsRunning);
+    }
+
+    /// <summary>Once per run, not once per tick - the plan does not change while a ramp runs and the
+    /// progress events arrive every second.</summary>
+    [Fact]
+    public async Task The_plan_is_sent_once_per_run()
+    {
+        await using var host = new Host();
+        var raw = await host.ConnectRawAsync();
+        Assert.NotNull(await host.SayHelloAsync(raw));
+
+        await host.Ramp.StartAsync(new TemperatureRampPlan(Points, TimeSpan.FromMinutes(1)), heaterCurrentlyOn: true);
+
+        // Counted on the wire, because the client's plan event is internal to Core - and this is the
+        // question anyway: how many times does it go out, not how many times is it received.
+        var plans = 0;
+        var ticks = 0;
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        while (ticks < 4)
+        {
+            var message = await raw.ReceiveAsync(cts.Token);
+            if (message is null) break;
+            if (message.Method == RelayEvents.RampPlanChanged) plans++;
+            if (message.Method == RelayEvents.RampProgressChanged) ticks++;
+        }
+
+        Assert.Equal(4, ticks);
+        Assert.Equal(1, plans);
+    }
+
     // --- A peer that does not behave ---
 
     [Fact]

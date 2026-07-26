@@ -12,6 +12,7 @@ public sealed class RemoteRampController : IRampSessionController
     private readonly VolcanoRelayClient _client;
     private bool _isRunning;
     private bool _isPaused;
+    private TemperatureRampPlan? _activePlan;
 
     /// <summary>Not meaningful client-side - pacing of pushed target-temperature writes is owned
     /// by the host's local <see cref="RampSessionController"/>. Kept only for interface parity.</summary>
@@ -22,9 +23,13 @@ public sealed class RemoteRampController : IRampSessionController
     /// <summary>Mirrored from the host's progress events - pausing is decided over there.</summary>
     public bool IsPaused => _isPaused;
 
-    /// <summary>Always null: the plan lives on the host, and this client may well have joined
-    /// after it started.</summary>
-    public TemperatureRampPlan? ActivePlan => null;
+    /// <summary>
+    /// The plan the host is driving, as the host described it - including to a client that joined
+    /// after the ramp had already started, which is why it arrives over the wire rather than being
+    /// remembered from a local Start. Null when no ramp is running, or if the host announced a plan
+    /// this build cannot make sense of.
+    /// </summary>
+    public TemperatureRampPlan? ActivePlan => _activePlan;
 
     public event EventHandler<RampProgressEventArgs>? ProgressChanged;
     public event EventHandler? WarmupCompleted;
@@ -36,6 +41,7 @@ public sealed class RemoteRampController : IRampSessionController
     {
         _client = client;
         _client.RampProgressChanged += OnRampProgressChanged;
+        _client.RampPlanChanged += OnRampPlanChanged;
         _client.RampWarmupCompleted += OnRampWarmupCompleted;
         _client.RampCompleted += OnRampCompleted;
         _client.RampErrorOccurred += OnRampErrorOccurred;
@@ -61,6 +67,7 @@ public sealed class RemoteRampController : IRampSessionController
         // immediately, not once a round trip to the host completes.
         _isRunning = false;
         _isPaused = false;
+        _activePlan = null;
 
         await SendAsync(RelayMethods.StopRamp, "Error.CannotStopRamp");
     }
@@ -97,6 +104,13 @@ public sealed class RemoteRampController : IRampSessionController
         ProgressChanged?.Invoke(this, progress);
     }
 
+    /// <summary>Rebuilt rather than trusted: the host's own validation is what a plan has to pass to
+    /// run at all, so a payload that will not build is one this build should not pretend to know.</summary>
+    private void OnRampPlanChanged(object? sender, RampPlanPayload payload) =>
+        _activePlan = TemperatureRampPlan.TryCreate(payload.Points, payload.HoldDuration, out var plan, out _)
+            ? plan
+            : null;
+
     private void OnRampWarmupCompleted(object? sender, EventArgs e) =>
         WarmupCompleted?.Invoke(this, EventArgs.Empty);
 
@@ -104,6 +118,7 @@ public sealed class RemoteRampController : IRampSessionController
     {
         _isRunning = false;
         _isPaused = false;
+        _activePlan = null;
         Completed?.Invoke(this, resetTemperatureCelsius);
     }
 
@@ -111,6 +126,7 @@ public sealed class RemoteRampController : IRampSessionController
     {
         _isRunning = false;
         _isPaused = false;
+        _activePlan = null;
         ErrorOccurred?.Invoke(this, message);
     }
 
@@ -118,12 +134,14 @@ public sealed class RemoteRampController : IRampSessionController
     {
         _isRunning = false;
         _isPaused = false;
+        _activePlan = null;
         Stopped?.Invoke(this, EventArgs.Empty);
     }
 
     public void Dispose()
     {
         _client.RampProgressChanged -= OnRampProgressChanged;
+        _client.RampPlanChanged -= OnRampPlanChanged;
         _client.RampWarmupCompleted -= OnRampWarmupCompleted;
         _client.RampCompleted -= OnRampCompleted;
         _client.RampErrorOccurred -= OnRampErrorOccurred;

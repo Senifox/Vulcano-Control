@@ -75,6 +75,7 @@ public sealed class VolcanoRelayClient : IVolcanoDevice
     public event EventHandler<int>? RemainingAutoOffSecondsChanged;
 
     internal event EventHandler<RampProgressEventArgs>? RampProgressChanged;
+    internal event EventHandler<RampPlanPayload>? RampPlanChanged;
     internal event EventHandler? RampWarmupCompleted;
     internal event EventHandler<double>? RampCompleted;
     internal event EventHandler<string>? RampErrorOccurred;
@@ -330,6 +331,10 @@ public sealed class VolcanoRelayClient : IVolcanoDevice
 
             case RelayEvents.RampProgressChanged:
                 RampProgressChanged?.Invoke(this, args.Deserialize<RampProgressEventArgs>(RelayJson.Options)!);
+                break;
+
+            case RelayEvents.RampPlanChanged:
+                RampPlanChanged?.Invoke(this, args.Deserialize<RampPlanPayload>(RelayJson.Options)!);
                 break;
 
             case RelayEvents.RampCompleted:
