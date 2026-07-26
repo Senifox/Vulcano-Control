@@ -282,9 +282,19 @@ public partial class RampViewModel : ObservableObject, IDisposable
             problems.Select(s => Strings.Get(
                 s.IsCooling ? "Ramp.TooFast.Cooling" : "Ramp.TooFast.Heating",
                 s.SegmentNumber,
-                Formatting.Duration(s.Needed),
-                Formatting.Duration(s.Allowed))));
+                RoughMinutes(s.Needed),
+                Formatting.Minutes((int)s.Allowed.TotalMinutes))));
     }
+
+    /// <summary>
+    /// Whole minutes, or seconds below one. The estimate comes from a table measured on one device
+    /// in one room, so "about 55 min" is the honest amount of precision - "54:10" would claim to
+    /// know the ten seconds.
+    /// </summary>
+    private static string RoughMinutes(TimeSpan value) =>
+        value.TotalMinutes < 1
+            ? Formatting.WithUnit(((int)Math.Round(value.TotalSeconds)).ToString(), "s")
+            : Formatting.Minutes((int)Math.Round(value.TotalMinutes));
 
     /// <summary>Raised whenever the curve itself changed, so the editor can redraw.</summary>
     public event EventHandler? PlanChanged;

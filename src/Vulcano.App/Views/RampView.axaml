@@ -6,7 +6,7 @@
              x:Class="Vulcano.App.Views.RampView"
              x:DataType="vm:RampViewModel">
 
-  <Grid RowDefinitions="Auto,290,*" Margin="14">
+  <Grid RowDefinitions="Auto,290,Auto,*" Margin="14">
 
     <!-- ============ Header ============
          Pick a profile, rename it in the box beside it, add one, throw one away. The name is part of
@@ -89,7 +89,19 @@
     </Border>
 
     <!-- ============ Table · Inspector ============ -->
-    <Grid Grid.Row="2" ColumnDefinitions="*,12,300" Margin="0,12,0,0">
+    <!-- ============ What the device cannot follow ============
+         Under the curve and across the full width, because it is about the curve rather than about
+         whichever point happens to be selected - and because a warning nobody scrolls to is not a
+         warning. It is one, though, not a refusal: the figures behind it are measurements from one
+         device in one room, and a climb drawn steeper than the device manages is a fair way of
+         saying "as fast as you can". The falls are the ones worth reading. -->
+    <TextBlock Grid.Row="2"
+               Text="{Binding ReachabilityNote}"
+               Classes="warn"
+               Margin="2,10,2,0"
+               IsVisible="{Binding ReachabilityNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+    <Grid Grid.Row="3" ColumnDefinitions="*,12,300" Margin="0,12,0,0">
 
       <Border Grid.Column="0" Classes="card flush">
         <DockPanel>
@@ -187,14 +199,6 @@
           <TextBlock Text="{Binding ValidationMessage}"
                      Classes="error"
                      IsVisible="{Binding ValidationMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-
-          <!-- What the device cannot follow. A warning, not a refusal: the numbers behind it are
-               measurements rather than limits, and a climb drawn too steep is a fair way of saying
-               "as fast as you can". A fall is the one worth reading. -->
-          <TextBlock Text="{Binding ReachabilityNote}"
-                     Classes="sub warn"
-                     TextWrapping="Wrap"
-                     IsVisible="{Binding ReachabilityNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
 
           <TextBlock Text="{Binding WarmUpNote}"
                      Classes="sub"
