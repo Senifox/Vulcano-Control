@@ -709,11 +709,20 @@
   <data name="Log.Notify" xml:space="preserve">
     <value>Benachrichtigung: {0}</value>
   </data>
+  <data name="Log.Notify.Registered" xml:space="preserve">
+    <value>Benachrichtigungs-Identität „{0}" registriert.</value>
+  </data>
+  <data name="Log.Notify.RegisterFailed" xml:space="preserve">
+    <value>Benachrichtigungs-Identität konnte nicht registriert werden: {0}</value>
+  </data>
   <data name="Log.Notify.Nowhere" xml:space="preserve">
     <value>Benachrichtigung konnte nirgends angezeigt werden: {0}</value>
   </data>
   <data name="Log.Notify.NoIdentity" xml:space="preserve">
-    <value>Für „{0}" ist keine Windows-Benachrichtigungs-Identität registriert; Benachrichtigungen laufen über das Fenster.</value>
+    <value>Diese Kopie hat keine Windows-Benachrichtigungs-Identität; Benachrichtigungen laufen über das Fenster.</value>
+  </data>
+  <data name="Log.Notify.NotInstalled" xml:space="preserve">
+    <value>Keine installierte Kopie, also hat Windows keine Identität für Benachrichtigungen; das Fenster übernimmt sie.</value>
   </data>
   <data name="Log.Notify.NoToasts" xml:space="preserve">
     <value>Windows wollte keine Benachrichtigung anzeigen ({0}); stattdessen über das Fenster. Installierte Kopien bekommen System-Benachrichtigungen.</value>

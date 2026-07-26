@@ -44,6 +44,10 @@ public partial class App : Application
                 PushThresholdCelsius = settings.RampPushThresholdCelsius,
             };
 
+            // Before the notifier: it checks for this registration and quietly writes notifications
+            // to the window instead when it is missing.
+            WindowsAppIdentity.Register(log);
+
             _sound = new WindowsSoundPlayer(log);
             var sounds = new SoundService(_sound, log) { SoundEnabled = settings.SoundEnabled };
             var notifier = new WindowsToastNotifier(log) { Enabled = settings.DesktopNotifications };

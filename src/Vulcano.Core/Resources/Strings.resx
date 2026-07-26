@@ -709,11 +709,20 @@
   <data name="Log.Notify" xml:space="preserve">
     <value>Notification: {0}</value>
   </data>
+  <data name="Log.Notify.Registered" xml:space="preserve">
+    <value>Registered the notification identity "{0}".</value>
+  </data>
+  <data name="Log.Notify.RegisterFailed" xml:space="preserve">
+    <value>Could not register the notification identity: {0}</value>
+  </data>
   <data name="Log.Notify.Nowhere" xml:space="preserve">
     <value>Notification had nowhere to go: {0}</value>
   </data>
   <data name="Log.Notify.NoIdentity" xml:space="preserve">
-    <value>No Windows notification identity registered for "{0}"; notifications go to the window instead.</value>
+    <value>No Windows notification identity for this copy; notifications go to the window instead.</value>
+  </data>
+  <data name="Log.Notify.NotInstalled" xml:space="preserve">
+    <value>Not an installed copy, so Windows has no identity to show notifications under; the window handles them.</value>
   </data>
   <data name="Log.Notify.NoToasts" xml:space="preserve">
     <value>Windows would not show a notification ({0}); using the window instead. Installed copies get system notifications.</value>
