@@ -901,6 +901,9 @@
   <data name="Log.NoInitialTemperature" xml:space="preserve">
     <value>The device kept answering the temperature read with zero; waiting for it to report one by itself.</value>
   </data>
+  <data name="Log.ZeroTemperature" xml:space="preserve">
+    <value>The device reported zero instead of a temperature; keeping the last reading until it says otherwise.</value>
+  </data>
   <data name="Log.BleConnecting" xml:space="preserve">
     <value>Connecting to {0}</value>
   </data>

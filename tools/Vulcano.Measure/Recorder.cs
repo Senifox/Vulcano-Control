@@ -28,6 +28,7 @@ public sealed class Recorder : IDisposable
     private DateTime _phaseStartedUtc = DateTime.UtcNow;
     private string _phase = "-";
     private double _lastMeasured = double.NaN;
+    private DateTime _lastNotifyUtc = DateTime.UtcNow;
     private double _target = double.NaN;
     private bool _heater;
     private bool _pump;
@@ -84,9 +85,21 @@ public sealed class Recorder : IDisposable
 
     public void Note(string note) => Write("event", note);
 
+    /// <summary>When the device last said something, so a phase can tell "still cooling slowly" from
+    /// "has stopped reporting" instead of waiting out a timeout.</summary>
+    public DateTime LastNotifyUtc
+    {
+        get { lock (_lock) { return _lastNotifyUtc; } }
+    }
+
     public void OnTemperature(double celsius)
     {
-        lock (_lock) { _lastMeasured = celsius; }
+        lock (_lock)
+        {
+            _lastMeasured = celsius;
+            _lastNotifyUtc = DateTime.UtcNow;
+        }
+
         Write("notify");
     }
 

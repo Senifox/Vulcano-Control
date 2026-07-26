@@ -901,6 +901,9 @@
   <data name="Log.NoInitialTemperature" xml:space="preserve">
     <value>Das Gerät hat die Temperaturabfrage wiederholt mit null beantwortet; warte, bis es von selbst eine meldet.</value>
   </data>
+  <data name="Log.ZeroTemperature" xml:space="preserve">
+    <value>Das Gerät meldete null statt einer Temperatur; behalte den letzten Wert, bis es etwas anderes sagt.</value>
+  </data>
   <data name="Log.BleConnecting" xml:space="preserve">
     <value>Verbinde mit {0}</value>
   </data>

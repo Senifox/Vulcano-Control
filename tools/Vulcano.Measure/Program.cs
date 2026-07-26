@@ -26,11 +26,21 @@ internal static class Program
 {
     private const double MaxTargetCelsius = 230;
     private const double ColdEnoughToStartCelsius = 40;
-    private const double CoolDownFloorCelsius = 50;
+    /// <summary>
+    /// Deliberately below 40. The device is suspected of reporting nothing once it drops under the
+    /// temperature it is willing to display, which is around there - so the cooling phase is asked
+    /// to walk past that point. If the readings stop while the tick rows keep repeating the last
+    /// one, that is the answer, and the last real reading says where the threshold sits.
+    /// </summary>
+    private const double CoolDownFloorCelsius = 32;
 
     private static readonly TimeSpan HeatTimeout = TimeSpan.FromMinutes(12);
     private static readonly TimeSpan CoolTimeout = TimeSpan.FromMinutes(45);
     private static readonly TimeSpan StallWindow = TimeSpan.FromSeconds(90);
+
+    /// <summary>Long enough that slow cooling near the end is not mistaken for silence: down there a
+    /// tenth of a degree still takes a while, but not three minutes.</summary>
+    private static readonly TimeSpan SilenceWindow = TimeSpan.FromMinutes(3);
 
     private static async Task<int> Main(string[] args)
     {
@@ -243,6 +253,18 @@ internal static class Program
                 recorder.Note($"reached {CoolDownFloorCelsius:0}");
                 Console.WriteLine();
                 Console.WriteLine($"  down to {now:0.#} °C after {elapsed.TotalMinutes:0.0} min.");
+                return;
+            }
+
+            // Going quiet is a result, not a stall - the suspicion is that the device stops reporting
+            // below the temperature it will display. Ending here records where that happened instead
+            // of sitting out the timeout with a flat line.
+            if (DateTime.UtcNow - recorder.LastNotifyUtc > SilenceWindow)
+            {
+                recorder.Note($"device stopped reporting at {now:0.#}");
+                Console.WriteLine();
+                Console.WriteLine($"  no new reading for {SilenceWindow.TotalMinutes:0} min - it went quiet at {now:0.#} °C.");
+                Console.WriteLine("  That is the threshold question answered; noted in the data.");
                 return;
             }
 

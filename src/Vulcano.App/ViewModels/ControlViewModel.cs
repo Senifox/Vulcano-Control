@@ -127,11 +127,10 @@ public partial class ControlViewModel : ObservableObject, IDisposable
     public ObservableCollection<int> QuickTemperatures { get; }
 
     /// <summary>
-    /// The big number, or a dash while there is nothing to put there. An idle Volcano that has not
-    /// heated since it was switched on does not fill in its temperature at all - it answers the read
-    /// with zero and sends no notification, because notifications only follow a change. Showing 0 °C
-    /// for that is a made-up reading; a dash is the truth, and it turns into a number the moment the
-    /// device says anything.
+    /// The big number, or a dash while the device has not said anything yet. A cold Volcano sitting
+    /// idle answers the temperature read with zero and notifies nothing, so there is genuinely no
+    /// reading to show - and 0 °C would be one this app made up. The dash turns into a number the
+    /// moment the device reports one, which for a cold device means when it starts heating.
     /// </summary>
     public string CurrentTemperatureText =>
         IsConnected && _hasReading ? Math.Round(CurrentTemperature).ToString("0") : "—";

@@ -45,6 +45,9 @@ public sealed class BluetoothVolcanoDevice : IVolcanoDevice
     private CancellationTokenSource? _autoOffPollCts;
     private ConnectionState _state = ConnectionState.Disconnected;
 
+    /// <summary>So a device that has gone quiet is logged once rather than on every notification.</summary>
+    private bool _sawZeroTemperature;
+
     /// <param name="scanTimeout">How long to keep scanning before giving up. Only tests pass this -
     /// they would otherwise sit out the full fifteen seconds to check the "nothing found" path.</param>
     public BluetoothVolcanoDevice(
@@ -356,14 +359,17 @@ public sealed class BluetoothVolcanoDevice : IVolcanoDevice
     /// <summary>
     /// Reads the temperature once on connect, retrying while the device answers with a raw zero.
     ///
-    /// Straight after subscribing it does answer with zero - the characteristic has not been filled
-    /// in yet - and a single read therefore reported 0.0 °C. On a device that is warm or cooling
-    /// nobody noticed, because a notification followed within the second and overwrote it; on a cold
-    /// one standing idle there is nothing to notify, so the reading stayed at zero until somebody
-    /// switched the heater on.
+    /// What was observed: connecting to a cold device that was sitting idle, the read answered zero
+    /// five times over a second and a half, and no notification followed - notifications only come
+    /// on a change, and nothing was changing. Every earlier session had the device either heating or
+    /// cooling from a heat, which is why this never showed up before.
     ///
-    /// A raw zero is the device saying "not yet" rather than a temperature: the Volcano works from
-    /// 40 °C upwards and stands in a room, so 0.0 °C is not a reading this has to be able to report.
+    /// Why it answers zero is not established. It may be that the reading is only maintained above
+    /// the temperature the device is willing to display, around 40 °C, in which case a cooling
+    /// device goes quiet at the same point. That is worth measuring rather than assuming, and the
+    /// measurement tool's cooling phase runs past 40 °C precisely to find out.
+    ///
+    /// Either way zero is not a temperature: the Volcano works from 40 °C up and stands in a room.
     /// </summary>
     private async Task ReadInitialTemperatureAsync()
     {
@@ -386,7 +392,24 @@ public sealed class BluetoothVolcanoDevice : IVolcanoDevice
     private void OnTemperatureValue(byte[] value)
     {
         if (value.Length < 2) return;
-        CurrentTemperatureChanged?.Invoke(this, BleEncoding.DecodeTemperature(BleEncoding.FromUInt16LEBytes(value)));
+
+        var raw = BleEncoding.FromUInt16LEBytes(value);
+
+        // Zero is the device declining to say, not a temperature. Passing it on would put 0 °C on
+        // screen and into a recording, and 0 °C is not a state a Volcano standing in a room is in -
+        // it works from 40 °C up. See ReadInitialTemperatureAsync for where this was first seen.
+        if (raw == 0)
+        {
+            if (!_sawZeroTemperature)
+            {
+                _sawZeroTemperature = true;
+                _logService.Log(Strings.Get("Log.ZeroTemperature"), LogLevel.Debug);
+            }
+            return;
+        }
+
+        _sawZeroTemperature = false;
+        CurrentTemperatureChanged?.Invoke(this, BleEncoding.DecodeTemperature(raw));
     }
 
     private void OnActivityValue(byte[] value)
