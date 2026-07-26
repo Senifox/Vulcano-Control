@@ -283,6 +283,40 @@
     <Setter Property="Height" Value="26" />
   </ControlTheme>
 
+  <!--
+    A title-bar button that stays pressed, for always-on-top in the compact window. Same 28 x 26 as
+    the buttons beside it, so the bar keeps its rhythm; checked is carried by the accent colour
+    rather than a filled background, because at this size a filled square next to two flat icons
+    reads as a different kind of control rather than as the same one switched on.
+  -->
+  <ControlTheme x:Key="CompactWindowToggle" TargetType="ToggleButton">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="Width" Value="28" />
+    <Setter Property="Height" Value="26" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="{TemplateBinding Background}">
+          <ContentPresenter Content="{TemplateBinding Content}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center" />
+        </Border>
+      </ControlTemplate>
+    </Setter>
+    <Style Selector="^:pointerover">
+      <Setter Property="Background" Value="{DynamicResource Bg.Field}" />
+      <Setter Property="Foreground" Value="{DynamicResource Text}" />
+    </Style>
+    <Style Selector="^:checked">
+      <Setter Property="Foreground" Value="{DynamicResource Accent}" />
+    </Style>
+    <Style Selector="^:checked:pointerover">
+      <Setter Property="Foreground" Value="{DynamicResource Accent}" />
+    </Style>
+  </ControlTheme>
+
   <!-- 34 x 34 icon tiles in the compact window: heater, pump. Checked means "on", and with
        Classes="heat" that reads as warm rather than as merely selected. -->
   <ControlTheme x:Key="CompactTile" TargetType="ToggleButton">

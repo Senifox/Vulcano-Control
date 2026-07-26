@@ -14,7 +14,7 @@
             BorderBrush="{DynamicResource Border}"
             BorderThickness="0,0,0,1"
             PointerPressed="OnTitleBarPointerPressed">
-      <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto">
+      <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto">
         <Image Grid.Column="0" Width="11" Height="11" Margin="9,0,7,0"
                Source="avares://vulcano-control/Assets/Icons/vulcano-control-16.png" />
         <TextBlock Grid.Column="1" Text="{DynamicResource S.Compact.Title}" FontSize="10.5"
@@ -28,13 +28,22 @@
                    IsVisible="{Binding IsSimulated}"
                    ToolTip.Tip="{DynamicResource S.Simulation.Tip}" />
 
+        <!-- Always on top, here as well as in the full window: this is the mode it is actually
+             wanted in - a small window parked over something else while a ramp runs - and having to
+             switch it on beforehand meant leaving compact to change your mind. -->
+        <ToggleButton Grid.Column="3" Theme="{StaticResource CompactWindowToggle}"
+                      IsChecked="{Binding IsAlwaysOnTop, Mode=TwoWay}"
+                      ToolTip.Tip="{DynamicResource S.Action.AlwaysOnTop}">
+          <c:Icon Data="{StaticResource Icon.Pin}" Width="11" Height="11" />
+        </ToggleButton>
+
         <!-- Same button as in the full window's title bar, pointing the other way. -->
-        <Button Grid.Column="3" Theme="{StaticResource CompactWindowButton}"
+        <Button Grid.Column="4" Theme="{StaticResource CompactWindowButton}"
                 Command="{Binding ToggleCompactCommand}"
                 ToolTip.Tip="{DynamicResource S.Compact.BackToFull}">
           <c:Icon Data="{StaticResource Icon.Maximize2}" Width="11" Height="11" />
         </Button>
-        <Button Grid.Column="4" Theme="{StaticResource CompactWindowButton}" Classes="close"
+        <Button Grid.Column="5" Theme="{StaticResource CompactWindowButton}" Classes="close"
                 Click="OnCloseClick">
           <c:Icon Data="{StaticResource Icon.X}" Width="11" Height="11" />
         </Button>
