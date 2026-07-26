@@ -53,10 +53,18 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsRunTabVisible))]
+    [NotifyPropertyChangedFor(nameof(CompactDetailText))]
     private bool _isRampRunning;
 
     [ObservableProperty]
     private bool _isAlwaysOnTop;
+
+    /// <summary>
+    /// The small always-in-sight window. Same window, different content and size - not a second
+    /// window, so the connection, the running ramp and always-on-top all survive the switch.
+    /// </summary>
+    [ObservableProperty]
+    private bool _isCompact;
 
     public ShellViewModel(
         VolcanoDeviceOrchestrator device,
@@ -75,6 +83,11 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
         Network = new NetworkViewModel(device, settingsService, settings, log);
         Log = new LogViewModel(log);
         Settings = new SettingsViewModel(settingsService, settings, themeManager, device);
+
+        // The compact line is stitched together from both, so it follows either of them changing.
+        // Cheap enough to refresh on any of their properties - it is one short string.
+        Control.PropertyChanged += (_, _) => OnPropertyChanged(nameof(CompactDetailText));
+        Run.PropertyChanged += (_, _) => OnPropertyChanged(nameof(CompactDetailText));
 
         _device.ConnectionStateChanged += OnConnectionStateChanged;
         _device.ProgressChanged += OnRampProgressChanged;
@@ -180,6 +193,18 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
 
     [RelayCommand]
     private void ShowTab(AppTab tab) => SelectedTab = tab;
+
+    [RelayCommand]
+    private void ToggleCompact() => IsCompact = !IsCompact;
+
+    /// <summary>
+    /// The one line under the big number in compact mode. With a ramp running it is about the ramp,
+    /// otherwise about the target and how long the device will stay on - in both cases the thing
+    /// you glanced over for.
+    /// </summary>
+    public string CompactDetailText => IsRampRunning
+        ? $"plan {Formatting.Celsius(Run.PlanNow)} · {Run.TimeLeftText} left"
+        : $"target {Formatting.Celsius(Control.TargetTemperature)} · auto-off {Control.AutoShutOffText}";
 
     // --- Device events, all arriving off the UI thread ---
 

@@ -1,0 +1,87 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:Vulcano.App.Controls"
+             xmlns:vm="clr-namespace:Vulcano.App.ViewModels"
+             x:Class="Vulcano.App.Views.CompactView"
+             x:DataType="vm:ShellViewModel">
+
+  <Grid RowDefinitions="26,*" Background="{DynamicResource Bg.App}">
+
+    <!-- ============ Title bar · 26 ============ -->
+    <Border Grid.Row="0"
+            Name="CompactTitleBar"
+            Background="{DynamicResource Bg.Chrome}"
+            BorderBrush="{DynamicResource Border}"
+            BorderThickness="0,0,0,1"
+            PointerPressed="OnTitleBarPointerPressed">
+      <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto">
+        <Border Grid.Column="0" Width="10" Height="10" Margin="9,0,7,0"
+                CornerRadius="2" Background="{DynamicResource Accent}" />
+        <TextBlock Grid.Column="1" Text="Vulcano" FontSize="10.5"
+                   Foreground="{DynamicResource Text.Dim}" VerticalAlignment="Center" />
+
+        <!-- Same button as in the full window's title bar, pointing the other way. -->
+        <Button Grid.Column="3" Theme="{StaticResource CompactWindowButton}"
+                Command="{Binding ToggleCompactCommand}"
+                ToolTip.Tip="Back to the full window">
+          <c:Icon Data="{StaticResource Icon.Maximize2}" Width="11" Height="11" />
+        </Button>
+        <Button Grid.Column="4" Theme="{StaticResource CompactWindowButton}" Classes="close"
+                Click="OnCloseClick">
+          <c:Icon Data="{StaticResource Icon.X}" Width="11" Height="11" />
+        </Button>
+      </Grid>
+    </Border>
+
+    <!-- ============ Content ============ -->
+    <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="14,10,12,12">
+
+      <StackPanel Grid.Column="0" VerticalAlignment="Center">
+        <StackPanel Orientation="Horizontal" Spacing="3">
+          <TextBlock Text="{Binding Control.CurrentTemperatureText}"
+                     FontFamily="{StaticResource Font.Mono}"
+                     FontSize="{StaticResource Text.DisplayRemote}"
+                     FontWeight="Medium"
+                     LineHeight="46"
+                     Foreground="{DynamicResource Text}" />
+          <TextBlock Text="°C"
+                     FontFamily="{StaticResource Font.Mono}"
+                     FontSize="13"
+                     Foreground="{DynamicResource Text.Dim}"
+                     VerticalAlignment="Bottom"
+                     Margin="0,0,0,7" />
+        </StackPanel>
+
+        <TextBlock Text="{Binding CompactDetailText}" Classes="mono footnote" />
+      </StackPanel>
+
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+        <ToggleButton Theme="{StaticResource CompactTile}"
+                      Classes="heat"
+                      IsChecked="{Binding Control.IsHeaterOn, Mode=OneWay}"
+                      Command="{Binding Control.ToggleHeaterCommand}"
+                      IsEnabled="{Binding IsConnected}"
+                      ToolTip.Tip="Heater">
+          <c:Icon Data="{StaticResource Icon.Flame}" Width="17" Height="17" />
+        </ToggleButton>
+
+        <ToggleButton Theme="{StaticResource CompactTile}"
+                      IsChecked="{Binding Control.IsPumpOn, Mode=OneWay}"
+                      Command="{Binding Control.TogglePumpCommand}"
+                      IsEnabled="{Binding IsConnected}"
+                      ToolTip.Tip="Pump">
+          <c:Icon Data="{StaticResource Icon.Fan}" Width="17" Height="17" />
+        </ToggleButton>
+
+        <!-- Only there while there is a ramp to stop. -->
+        <Button Theme="{StaticResource CompactButton}"
+                Command="{Binding Run.StopRampCommand}"
+                IsVisible="{Binding IsRampRunning}"
+                ToolTip.Tip="Stop the ramp">
+          <c:Icon Data="{StaticResource Icon.Square}" Width="14" Height="14" />
+        </Button>
+      </StackPanel>
+    </Grid>
+  </Grid>
+
+</UserControl>

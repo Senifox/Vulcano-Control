@@ -277,6 +277,82 @@
     </Style>
   </ControlTheme>
 
+  <!-- The compact window's title bar is 26 px, so its two buttons are too. -->
+  <ControlTheme x:Key="CompactWindowButton" TargetType="Button" BasedOn="{StaticResource WindowButton}">
+    <Setter Property="Width" Value="28" />
+    <Setter Property="Height" Value="26" />
+  </ControlTheme>
+
+  <!-- 34 x 34 icon tiles in the compact window: heater, pump. Checked means "on", and with
+       Classes="heat" that reads as warm rather than as merely selected. -->
+  <ControlTheme x:Key="CompactTile" TargetType="ToggleButton">
+    <Setter Property="Width" Value="34" />
+    <Setter Property="Height" Value="34" />
+    <Setter Property="Background" Value="{DynamicResource Bg.Field}" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Border}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="9" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                CornerRadius="{TemplateBinding CornerRadius}">
+          <ContentPresenter Content="{TemplateBinding Content}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center" />
+        </Border>
+      </ControlTemplate>
+    </Setter>
+    <Style Selector="^:pointerover">
+      <Setter Property="BorderBrush" Value="{DynamicResource Border.Strong}" />
+      <Setter Property="Foreground" Value="{DynamicResource Text}" />
+    </Style>
+    <Style Selector="^:checked">
+      <Setter Property="Background" Value="{DynamicResource Surface.Accent}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+      <Setter Property="Foreground" Value="{DynamicResource Accent.Text}" />
+    </Style>
+    <Style Selector="^.heat:checked">
+      <Setter Property="Background" Value="{DynamicResource Surface.Heat}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Heat}" />
+      <Setter Property="Foreground" Value="{DynamicResource Heat}" />
+    </Style>
+    <Style Selector="^:disabled">
+      <Setter Property="Opacity" Value="0.4" />
+      <Setter Property="Cursor" Value="Arrow" />
+    </Style>
+  </ControlTheme>
+
+  <ControlTheme x:Key="CompactButton" TargetType="Button">
+    <Setter Property="Width" Value="34" />
+    <Setter Property="Height" Value="34" />
+    <Setter Property="Background" Value="{DynamicResource Bg.Field}" />
+    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Border}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="9" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                CornerRadius="{TemplateBinding CornerRadius}">
+          <ContentPresenter Content="{TemplateBinding Content}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center" />
+        </Border>
+      </ControlTemplate>
+    </Setter>
+    <Style Selector="^:pointerover">
+      <Setter Property="BorderBrush" Value="{DynamicResource Error}" />
+      <Setter Property="Foreground" Value="{DynamicResource Error.Text}" />
+    </Style>
+  </ControlTheme>
+
   <!-- One tab of the Control / Ramp / Run segment control. Active is an accent fill. -->
   <ControlTheme x:Key="SegmentButton" TargetType="ToggleButton">
     <Setter Property="Background" Value="Transparent" />
