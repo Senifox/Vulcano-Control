@@ -43,12 +43,13 @@ other machines on the network.
   per-level filtering and export to a text file.
 - **Light and dark theme**, following the system by default, and an **English or German** interface.
 
-Settings, ramp profiles and the quick-pick temperatures are remembered across restarts.
+- **Updates that wait their turn** — a new version is fetched in the background and installed when
+  you close the app, never while it is running. Restarting for it right away is a button, and that
+  button is unavailable during a ramp: applying an update means stopping the app, and stopping the
+  app mid-ramp leaves a device heating with nothing watching it. The automatic check can be
+  switched off; the manual one stays.
 
-Updating in place is not back yet: 1.x checked GitHub Releases on startup and installed updates
-itself, and 2.0 does not. It returns together with the Linux packaging, so both platforms behave the
-same rather than one of them silently differing. Until then a new version means downloading the
-installer and running it — it keeps your settings and ramp profiles.
+Settings, ramp profiles and the quick-pick temperatures are remembered across restarts.
 
 ## Requirements
 
@@ -59,10 +60,15 @@ installer and running it — it keeps your settings and ramp profiles.
 ## Installation
 
 Grab the latest installer from the [Releases page](https://github.com/Senifox/Vulcano-Control/releases) —
-download and run `Vulcano-Control-win-Setup.exe`.
+download and run `Vulcano-Control-win-Setup.exe`. It keeps itself up to date after that.
 
 Settings and ramp profiles live in `%AppData%\Vulcano-Control`, which no installer touches, so
 reinstalling or updating keeps them.
+
+If a **preview build** from the rewrite is installed (`Vulcano Control (Preview)`), run
+[`Cleanup.ps1`](Cleanup.ps1) *before* installing this — it removes the preview and carries its
+settings across. The preview is a separate application to the installer, so it is neither replaced
+nor updated by this one, and its data sits in the folder this installer clears.
 
 ## Building from source
 
@@ -73,7 +79,7 @@ dotnet build
 Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download). The app is built on
 [Avalonia](https://avaloniaui.net) with [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet)
 for MVVM, [LiveCharts](https://livecharts.dev) for the ramp chart, and
-[Velopack](https://velopack.io) for packaging.
+[Velopack](https://velopack.io) for packaging and updates.
 
 The solution is laid out as:
 

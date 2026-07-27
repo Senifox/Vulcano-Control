@@ -84,6 +84,13 @@
                   ToolTip.Tip="{DynamicResource S.Simulation.Tip}">
             <TextBlock Text="{DynamicResource S.Simulation}" />
           </Border>
+
+          <!-- A downloaded version waiting to be installed. Here rather than in a dialog: it is
+               news, not a question, and the answer is "when you close the app anyway". -->
+          <Border Classes="chip" IsVisible="{Binding IsUpdateReady}"
+                  ToolTip.Tip="{DynamicResource S.Update.Chip.Tip}">
+            <TextBlock Text="{DynamicResource S.Update.Chip}" />
+          </Border>
         </StackPanel>
 
         <StackPanel Grid.Column="3" Orientation="Horizontal">

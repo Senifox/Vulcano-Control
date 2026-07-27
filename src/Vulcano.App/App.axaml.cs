@@ -53,8 +53,14 @@ public partial class App : Application
             var notifier = new WindowsToastNotifier(log) { Enabled = settings.DesktopNotifications };
 
             _shell = new ShellViewModel(
-                orchestrator, settingsService, _themeManager, settings, log, sounds, notifier, simulate);
+                orchestrator, settingsService, _themeManager, settings, log, sounds, notifier, simulate,
+                new VelopackUpdateSource(log));
             desktop.MainWindow = new MainWindow { DataContext = _shell };
+
+            // After the window, and not awaited: an update check is a network call, and a repository
+            // that is slow to answer must not be able to delay the app coming up. Whatever it finds
+            // is downloaded and then waits for the app to be closed - see UpdateViewModel.
+            _ = _shell.CheckForUpdatesAsync(settings.AutomaticUpdates);
 
             desktop.ShutdownRequested += async (_, _) =>
             {

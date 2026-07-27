@@ -32,10 +32,10 @@
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="LiveChartsCore.SkiaSharpView.Avalonia" />
 
-    <!-- For packaging only. Velopack's own update *checking* is deliberately not wired up yet -
-         that comes back together with the Linux packaging - but VelopackApp.Build().Run() still has
-         to be the first thing Main does, because the installer drives the app through it to create
-         shortcuts and finish an install. Without it, installing appears to do nothing. -->
+    <!-- Packaging and updates. VelopackApp.Build().Run() has to be the first thing Main does,
+         because the installer drives the app through it to create shortcuts and finish an install;
+         without it, installing appears to do nothing. The update side is reached only through
+         VelopackUpdateSource, so everything above it can be built and tested without an install. -->
     <PackageReference Include="Velopack" />
   </ItemGroup>
 

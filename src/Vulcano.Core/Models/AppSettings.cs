@@ -18,6 +18,13 @@ public sealed class AppSettings
     /// <summary>Notify through the desktop when a target is reached while the window is minimised.</summary>
     public bool DesktopNotifications { get; set; } = true;
 
+    /// <summary>
+    /// Look for a new version at startup and fetch it, to be installed the next time the app is
+    /// closed. On by default: an app that talks to a heating element is one where a fix should not
+    /// wait for somebody to think of looking. Nothing is ever installed while it is running.
+    /// </summary>
+    public bool AutomaticUpdates { get; set; } = true;
+
     /// <summary>Saved multi-point ramps, in the order shown in the profile picker.</summary>
     public List<RampProfile> RampProfiles { get; set; } = new();
 

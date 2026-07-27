@@ -136,13 +136,18 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
         LogService log,
         SoundService? sound = null,
         INotifier? notifier = null,
-        bool isSimulated = false)
+        bool isSimulated = false,
+        IUpdateSource? updateSource = null)
     {
         _device = device;
         _log = log;
         _sound = sound;
         _notifier = notifier;
         IsSimulated = isSimulated;
+
+        // Built here rather than in the Settings tab because two things need it: the tab shows it,
+        // and the window carries the chip that says a version is waiting.
+        Update = new UpdateViewModel(updateSource ?? new NoUpdateSource());
 
         // The orchestrator is both a device and a ramp controller, and these three want it as one or
         // the other rather than as itself - which is what lets them be built in a test around a fake
@@ -153,7 +158,13 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
         Device = new DeviceViewModel(device, log);
         Network = new NetworkViewModel(device, settingsService, settings, log);
         Log = new LogViewModel(log);
-        Settings = new SettingsViewModel(settingsService, settings, themeManager, device, sound, notifier);
+        Settings = new SettingsViewModel(settingsService, settings, themeManager, device, sound, notifier, Update);
+
+        // The chip in the title bar appears the moment a version finishes downloading.
+        Update.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is nameof(UpdateViewModel.IsReady)) OnPropertyChanged(nameof(IsUpdateReady));
+        };
 
         // The compact line is stitched together from both, so it follows either of them changing.
         // Cheap enough to refresh on any of their properties - it is one short string.
@@ -201,6 +212,7 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
         Network.RefreshText();
         Log.RefreshText();
         Settings.RefreshText();
+        Update.RefreshText();
     }
 
     /// <summary>The cockpit. Owns everything about live temperature, heater, pump and target.</summary>
@@ -223,6 +235,18 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
 
     /// <summary>Application settings; every change saves itself.</summary>
     public SettingsViewModel Settings { get; }
+
+    /// <summary>Checking for and holding on to a new version.</summary>
+    public UpdateViewModel Update { get; }
+
+    /// <summary>Drives the chip in the title bar: a version is downloaded and waiting.</summary>
+    public bool IsUpdateReady => Update.IsReady;
+
+    /// <summary>
+    /// The startup update check, kicked off once the window is up. Not in the constructor: it goes
+    /// to the network, and nothing on the way to a visible window should wait on a server.
+    /// </summary>
+    public Task CheckForUpdatesAsync(bool automatic) => Update.RunStartupCheckAsync(automatic);
 
     public bool IsConnected => ConnectionState == ConnectionState.Connected;
 
@@ -343,6 +367,8 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
             IsRampRunning = true;
             Control.IsRampRunning = true;
             Ramp.IsRampRunning = true;
+            // Takes the restart button away: a downloaded update waits for the run to be over.
+            Update.IsRampRunning = true;
             // A ramp that starts anywhere - here, or on another machine through the relay - brings
             // the Run tab up by itself.
             SelectedTab = AppTab.Run;
@@ -380,6 +406,7 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
             IsRampRunning = false;
             Control.IsRampRunning = false;
             Ramp.IsRampRunning = false;
+            Update.IsRampRunning = false;
             Run.Reset();
             if (SelectedTab == AppTab.Run) SelectedTab = AppTab.Control;
         });
@@ -406,6 +433,11 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
         _log.Log(Strings.Get("Log.ShuttingDown"));
         _device.Dispose();
         await _device.DisposeAsync();
+
+        // Last, and only once the device has been let go of: this hands a downloaded update to an
+        // installer that waits for this process to end. Anything still holding the Bluetooth
+        // connection at that point would be replaced mid-grip.
+        Update.ApplyOnExit();
     }
 
     /// <summary>Re-reads every computed label. Called after a language change; passing a

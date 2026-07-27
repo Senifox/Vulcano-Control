@@ -61,6 +61,9 @@ public partial class SettingsViewModel : ObservableObject
     private bool _desktopNotifications;
 
     [ObservableProperty]
+    private bool _automaticUpdates;
+
+    [ObservableProperty]
     private int _newQuickTemperature = 195;
 
     public SettingsViewModel(
@@ -69,7 +72,8 @@ public partial class SettingsViewModel : ObservableObject
         ThemeManager themeManager,
         VolcanoDeviceOrchestrator device,
         SoundService? sound = null,
-        INotifier? notifier = null)
+        INotifier? notifier = null,
+        UpdateViewModel? update = null)
     {
         _loading = true;
 
@@ -87,11 +91,19 @@ public partial class SettingsViewModel : ObservableObject
         _timeAxisMode = settings.TimeAxisMode;
         _soundEnabled = settings.SoundEnabled;
         _desktopNotifications = settings.DesktopNotifications;
+        _automaticUpdates = settings.AutomaticUpdates;
 
         QuickTemperatures = new ObservableCollection<int>(settings.PredefinedTemperatures);
 
+        // The shell builds it and hands it over, because the window needs it too. A tab built on its
+        // own in a test gets one that reports there is no update mechanism, which is true.
+        Update = update ?? new UpdateViewModel(new NoUpdateSource());
+
         _loading = false;
     }
+
+    /// <summary>Checking for and holding on to a new version, shown in the About card.</summary>
+    public UpdateViewModel Update { get; }
 
     public ObservableCollection<int> QuickTemperatures { get; }
 
@@ -194,6 +206,11 @@ public partial class SettingsViewModel : ObservableObject
         if (_notifier is not null) _notifier.Enabled = value;
         Persist(() => _settings.DesktopNotifications = value);
     }
+
+    /// <summary>Only governs the check that runs unasked at startup. The button next to it always
+    /// works - switching this off means "do not go looking on your own", not "never update".</summary>
+    partial void OnAutomaticUpdatesChanged(bool value) =>
+        Persist(() => _settings.AutomaticUpdates = value);
 
     [RelayCommand]
     private void AddQuickTemperature()

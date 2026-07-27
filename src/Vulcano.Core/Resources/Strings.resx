@@ -625,10 +625,69 @@
   <data name="Settings.AppName" xml:space="preserve">
     <value>Vulcano Control</value>
   </data>
-  <data name="Settings.UpdatesOff" xml:space="preserve">
-    <value>Automatic updates are switched off in this build. They come back together with the Linux packaging, so both platforms get the same behaviour rather than one silently different one.</value>
+  <data name="Settings.Updates" xml:space="preserve">
+    <value>Updates</value>
   </data>
-  <data name="Compact.Title" xml:space="preserve">
+  <data name="Settings.Updates.Auto" xml:space="preserve">
+    <value>Keep up to date automatically</value>
+  </data>
+  <data name="Settings.Updates.Auto.Hint" xml:space="preserve">
+    <value>looks for a new version at startup and fetches it; it installs when you close the app, never while a ramp is running</value>
+  </data>
+  <data name="Update.Check" xml:space="preserve">
+    <value>Check now</value>
+  </data>
+  <data name="Update.Checking" xml:space="preserve">
+    <value>Looking for a new version...</value>
+  </data>
+  <data name="Update.UpToDate" xml:space="preserve">
+    <value>This is the newest version.</value>
+  </data>
+  <data name="Update.Downloading" xml:space="preserve">
+    <value>Downloading version {0}...</value>
+  </data>
+  <data name="Update.Ready" xml:space="preserve">
+    <value>Version {0} is ready. It installs itself the next time you close the app.</value>
+  </data>
+  <data name="Update.Failed" xml:space="preserve">
+    <value>Could not check for updates: {0}</value>
+  </data>
+  <data name="Update.Failed.Download" xml:space="preserve">
+    <value>the download did not finish</value>
+  </data>
+  <data name="Update.Unsupported" xml:space="preserve">
+    <value>This copy cannot update itself - it was not installed, it is just running from a folder.</value>
+  </data>
+  <data name="Update.RestartNow" xml:space="preserve">
+    <value>Install and restart</value>
+  </data>
+  <data name="Update.RestartBlocked" xml:space="preserve">
+    <value>Not while a ramp is running - it installs when you close the app.</value>
+  </data>
+  <data name="Update.Chip" xml:space="preserve">
+    <value>Update ready</value>
+  </data>
+  <data name="Update.Chip.Tip" xml:space="preserve">
+    <value>A new version has been downloaded. It installs itself when you close the app.</value>
+  </data>
+  <data name="Log.Update.Found" xml:space="preserve">
+    <value>Update available: version {0}.</value>
+  </data>
+  <data name="Log.Update.None" xml:space="preserve">
+    <value>No update available.</value>
+  </data>
+  <data name="Log.Update.Downloaded" xml:space="preserve">
+    <value>Version {0} downloaded.</value>
+  </data>
+  <data name="Log.Update.OnExit" xml:space="preserve">
+    <value>Version {0} will be installed after this app closes.</value>
+  </data>
+  <data name="Log.Update.Restarting" xml:space="preserve">
+    <value>Installing version {0} and restarting...</value>
+  </data>
+  <data name="Log.Update.Failed" xml:space="preserve">
+    <value>Update failed: {0}</value>
+  </data>  <data name="Compact.Title" xml:space="preserve">
     <value>Vulcano</value>
   </data>
   <data name="Compact.BackToFull" xml:space="preserve">

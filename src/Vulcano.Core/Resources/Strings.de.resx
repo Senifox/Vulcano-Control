@@ -625,10 +625,69 @@
   <data name="Settings.AppName" xml:space="preserve">
     <value>Vulcano Control</value>
   </data>
-  <data name="Settings.UpdatesOff" xml:space="preserve">
-    <value>Automatische Updates sind in diesem Build abgeschaltet. Sie kommen gemeinsam mit dem Linux-Packaging zurück, damit beide Plattformen sich gleich verhalten und nicht eine still anders.</value>
+  <data name="Settings.Updates" xml:space="preserve">
+    <value>Updates</value>
   </data>
-  <data name="Compact.Title" xml:space="preserve">
+  <data name="Settings.Updates.Auto" xml:space="preserve">
+    <value>Automatisch aktuell halten</value>
+  </data>
+  <data name="Settings.Updates.Auto.Hint" xml:space="preserve">
+    <value>sucht beim Start nach einer neuen Version und lädt sie; installiert wird beim Schließen der App, nie während eine Rampe läuft</value>
+  </data>
+  <data name="Update.Check" xml:space="preserve">
+    <value>Jetzt prüfen</value>
+  </data>
+  <data name="Update.Checking" xml:space="preserve">
+    <value>Suche nach einer neuen Version...</value>
+  </data>
+  <data name="Update.UpToDate" xml:space="preserve">
+    <value>Das ist die neueste Version.</value>
+  </data>
+  <data name="Update.Downloading" xml:space="preserve">
+    <value>Lade Version {0}...</value>
+  </data>
+  <data name="Update.Ready" xml:space="preserve">
+    <value>Version {0} liegt bereit. Sie installiert sich beim nächsten Schließen der App.</value>
+  </data>
+  <data name="Update.Failed" xml:space="preserve">
+    <value>Update-Prüfung fehlgeschlagen: {0}</value>
+  </data>
+  <data name="Update.Failed.Download" xml:space="preserve">
+    <value>der Download wurde nicht fertig</value>
+  </data>
+  <data name="Update.Unsupported" xml:space="preserve">
+    <value>Diese Kopie kann sich nicht selbst aktualisieren - sie wurde nicht installiert, sondern läuft aus einem Ordner.</value>
+  </data>
+  <data name="Update.RestartNow" xml:space="preserve">
+    <value>Installieren und neu starten</value>
+  </data>
+  <data name="Update.RestartBlocked" xml:space="preserve">
+    <value>Nicht während eine Rampe läuft - installiert wird beim Schließen.</value>
+  </data>
+  <data name="Update.Chip" xml:space="preserve">
+    <value>Update bereit</value>
+  </data>
+  <data name="Update.Chip.Tip" xml:space="preserve">
+    <value>Eine neue Version wurde geladen. Sie installiert sich beim Schließen der App.</value>
+  </data>
+  <data name="Log.Update.Found" xml:space="preserve">
+    <value>Update verfügbar: Version {0}.</value>
+  </data>
+  <data name="Log.Update.None" xml:space="preserve">
+    <value>Kein Update verfügbar.</value>
+  </data>
+  <data name="Log.Update.Downloaded" xml:space="preserve">
+    <value>Version {0} geladen.</value>
+  </data>
+  <data name="Log.Update.OnExit" xml:space="preserve">
+    <value>Version {0} wird nach dem Beenden installiert.</value>
+  </data>
+  <data name="Log.Update.Restarting" xml:space="preserve">
+    <value>Installiere Version {0} und starte neu...</value>
+  </data>
+  <data name="Log.Update.Failed" xml:space="preserve">
+    <value>Update fehlgeschlagen: {0}</value>
+  </data>  <data name="Compact.Title" xml:space="preserve">
     <value>Vulcano</value>
   </data>
   <data name="Compact.BackToFull" xml:space="preserve">
