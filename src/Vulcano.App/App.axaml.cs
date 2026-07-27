@@ -64,6 +64,18 @@ public partial class App : Application
 
             desktop.ShutdownRequested += async (_, _) =>
             {
+                // Synchronously, and first. This hands a downloaded update to an installer that
+                // waits for this process to end, and it is the one thing here that must happen -
+                // the rest is tidying up after a process that is going away anyway.
+                //
+                // Not inside DisposeAsync, where it was: an async handler is not awaited by the
+                // shutdown, so everything past the first suspension point is a race the app can
+                // lose. It did lose it - the update downloaded, the app closed, and the version on
+                // disk stayed the old one. And no test can see that, because a fake device
+                // disposes synchronously and the method then runs to the end regardless. So it
+                // lives here, where the ordering is the whole of what this handler says.
+                _shell?.Update.ApplyOnExit();
+
                 if (_shell is not null) await _shell.DisposeAsync();
                 _sound?.Dispose();
             };

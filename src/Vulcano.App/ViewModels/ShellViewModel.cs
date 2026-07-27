@@ -433,11 +433,6 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
         _log.Log(Strings.Get("Log.ShuttingDown"));
         _device.Dispose();
         await _device.DisposeAsync();
-
-        // Last, and only once the device has been let go of: this hands a downloaded update to an
-        // installer that waits for this process to end. Anything still holding the Bluetooth
-        // connection at that point would be replaced mid-grip.
-        Update.ApplyOnExit();
     }
 
     /// <summary>Re-reads every computed label. Called after a language change; passing a

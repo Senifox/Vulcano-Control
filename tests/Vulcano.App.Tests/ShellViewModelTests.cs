@@ -222,4 +222,24 @@ public sealed class ShellViewModelTests : IAsyncDisposable
     {
         Assert.False(_shell.IsSimulated);
     }
+
+    // --- Updates ---
+
+    /// <summary>
+    /// The ramp reaches the update view model, which is what takes the restart button away. Where
+    /// the handover to the installer itself happens is not testable from here and deliberately is
+    /// not attempted: see the shutdown handler in App.axaml.cs.
+    /// </summary>
+    [AvaloniaFact]
+    public async Task A_running_ramp_holds_the_restart_back()
+    {
+        await StartRampAsync();
+        await Wait.ForAsync(() => { Pump(); return _shell.IsRampRunning; }, "the ramp to be running");
+
+        Assert.True(_shell.Update.IsRampRunning);
+
+        ((IRampSessionController)_device).Stop();
+
+        await Wait.ForAsync(() => { Pump(); return !_shell.Update.IsRampRunning; }, "the ramp to end");
+    }
 }
