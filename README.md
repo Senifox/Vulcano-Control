@@ -25,9 +25,10 @@ other machines on the network.
 - **Share one device over the LAN** — the machine with the Bluetooth connection hosts, the others
   join with an address, a port and a four-digit PIN. Joining machines either control the device or
   only watch, the host sees who is connected and can drop them, and everyone sees the same ramp,
-  including one already underway when they arrive. A client shows its round trip to the host, timed
-  against a reply that does not touch the Volcano — so it measures the network and stays readable
-  when the device itself has gone quiet.
+  including one already underway when they arrive. Both ends show the round trip between them —
+  the client next to the host it joined, the host next to each client in its list — timed against a
+  reply that does not touch the Volcano, so it measures the network and stays readable when the
+  device itself has gone quiet.
 - **Sounds and desktop notifications** — for the start temperature being reached, a ramp finishing,
   and a connection lost. When Windows will not show a notification, the window says it instead
   rather than swallowing it.

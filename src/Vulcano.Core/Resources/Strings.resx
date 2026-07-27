@@ -472,6 +472,12 @@
   <data name="Network.Clients.Empty" xml:space="preserve">
     <value>No one has joined yet.</value>
   </data>
+  <data name="Log.ClientNotTimed" xml:space="preserve">
+    <value>{0} does not answer the timing request - probably an older version.</value>
+  </data>
+  <data name="Network.Client.Latency" xml:space="preserve">
+    <value>{0} ms</value>
+  </data>
   <data name="Network.Client.Since" xml:space="preserve">
     <value>since {0} · {1}</value>
   </data>

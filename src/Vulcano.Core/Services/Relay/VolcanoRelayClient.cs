@@ -374,6 +374,9 @@ public sealed class VolcanoRelayClient : IVolcanoDevice
                     case RelayMessageKind.Event:
                         DispatchEvent(message);
                         break;
+                    case RelayMessageKind.Request:
+                        AnswerRequest(connection, message);
+                        break;
                 }
             }
         }
@@ -381,6 +384,28 @@ public sealed class VolcanoRelayClient : IVolcanoDevice
         {
             HandleReadLoopEnded();
         }
+    }
+
+    /// <summary>
+    /// The one thing a client answers rather than asks. Requests normally travel the other way -
+    /// this exists so the host can time each of its clients, which it cannot do from events it
+    /// only ever sends.
+    ///
+    /// Anything else is answered with an error rather than ignored: a host left waiting on a reply
+    /// that will never come would report the client as unreachable, which is a worse lie than
+    /// "I do not know that method". A client is not becoming a general RPC server here.
+    /// </summary>
+    private static void AnswerRequest(RelayConnection connection, RelayMessage request)
+    {
+        var known = request.Method == RelayMethods.Ping;
+
+        connection.Send(new RelayMessage
+        {
+            Id = request.Id,
+            Kind = RelayMessageKind.Response,
+            Result = known ? JsonSerializer.SerializeToElement(true, RelayJson.Options) : null,
+            Error = known ? null : $"Unknown method: {request.Method}",
+        });
     }
 
     private void DispatchResponse(RelayMessage message)

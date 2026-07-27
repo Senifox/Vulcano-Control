@@ -75,17 +75,24 @@
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:ConnectedClientRow">
                   <Border Classes="row">
-                    <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                    <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
                       <Ellipse Grid.Column="0" Width="7" Height="7" Margin="0,0,9,0"
                                VerticalAlignment="Center" Fill="{DynamicResource Success}" />
                       <StackPanel Grid.Column="1" Spacing="2">
                         <TextBlock Text="{Binding Name}" />
                         <TextBlock Text="{Binding Detail}" Classes="footnote" />
                       </StackPanel>
-                      <Border Grid.Column="2" Classes="chip" Margin="0,0,8,0">
+
+                      <!-- Absent rather than dashed for a client too old to answer the request. -->
+                      <TextBlock Grid.Column="2" Text="{Binding LatencyText}"
+                                 Classes="mono footnote" Margin="0,0,10,0"
+                                 VerticalAlignment="Center"
+                                 IsVisible="{Binding HasLatency}" />
+
+                      <Border Grid.Column="3" Classes="chip" Margin="0,0,8,0">
                         <TextBlock Text="{Binding Role}" />
                       </Border>
-                      <Button Grid.Column="3" Theme="{StaticResource SecondaryButton}"
+                      <Button Grid.Column="4" Theme="{StaticResource SecondaryButton}"
                               Content="{DynamicResource S.Action.Revoke}"
                               Command="{Binding $parent[ItemsControl].((vm:NetworkViewModel)DataContext).RevokeCommand}"
                               CommandParameter="{Binding}" />

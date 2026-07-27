@@ -10,11 +10,13 @@ namespace Vulcano.TestSupport;
 /// </summary>
 public static class Wait
 {
-    private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(5);
 
-    public static async Task ForAsync(Func<bool> condition, string because)
+    /// <param name="timeout">Longer than the default only where the thing being waited for has its
+    /// own deadline - a network timeout, say - and cannot possibly happen sooner.</param>
+    public static async Task ForAsync(Func<bool> condition, string because, TimeSpan? timeout = null)
     {
-        var deadline = DateTime.UtcNow + Timeout;
+        var deadline = DateTime.UtcNow + (timeout ?? DefaultTimeout);
         while (DateTime.UtcNow < deadline)
         {
             if (condition()) return;

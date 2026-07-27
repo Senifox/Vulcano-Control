@@ -472,6 +472,12 @@
   <data name="Network.Clients.Empty" xml:space="preserve">
     <value>Noch niemand verbunden.</value>
   </data>
+  <data name="Log.ClientNotTimed" xml:space="preserve">
+    <value>{0} beantwortet die Laufzeitmessung nicht - vermutlich eine ältere Version.</value>
+  </data>
+  <data name="Network.Client.Latency" xml:space="preserve">
+    <value>{0} ms</value>
+  </data>
   <data name="Network.Client.Since" xml:space="preserve">
     <value>seit {0} · {1}</value>
   </data>

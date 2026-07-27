@@ -56,6 +56,11 @@ public sealed class VolcanoDeviceOrchestrator : IVolcanoDevice, IRampSessionCont
     /// <summary>Raised when a client joins, leaves or is revoked, on a background thread.</summary>
     public event EventHandler? HostedClientsChanged;
 
+    /// <summary>Raised when one hosted client's round trip has been measured again, on a background
+    /// thread. Separate from <see cref="HostedClientsChanged"/>: it fires per client every few
+    /// seconds, and the list itself has not changed.</summary>
+    public event EventHandler<RelayClientLatency>? HostedClientLatencyChanged;
+
     // --- IVolcanoDevice ---
 
     public ConnectionState State => _device.State;
@@ -153,6 +158,7 @@ public sealed class VolcanoDeviceOrchestrator : IVolcanoDevice, IRampSessionCont
         {
             _relayServer = new VolcanoRelayServer(_device, _ramp, _logService);
             _relayServer.ClientsChanged += OnHostedClientsChanged;
+            _relayServer.ClientLatencyChanged += OnHostedClientLatencyChanged;
         }
 
         _relayServer.Start(port, pin);
@@ -250,6 +256,9 @@ public sealed class VolcanoDeviceOrchestrator : IVolcanoDevice, IRampSessionCont
 
     private void OnHostedClientsChanged(object? sender, EventArgs e) =>
         HostedClientsChanged?.Invoke(this, EventArgs.Empty);
+
+    private void OnHostedClientLatencyChanged(object? sender, RelayClientLatency latency) =>
+        HostedClientLatencyChanged?.Invoke(this, latency);
 
     private void SubscribeDevice(IVolcanoDevice device)
     {

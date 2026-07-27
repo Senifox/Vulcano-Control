@@ -15,14 +15,42 @@ using Vulcano.Core.Services.Relay;
 
 namespace Vulcano.App.ViewModels;
 
-/// <summary>One row of the host's client list.</summary>
-public sealed record ConnectedClientRow(RelayClientInfo Info)
+/// <summary>
+/// One row of the host's client list.
+///
+/// An observable object rather than the record it used to be, because the latency arrives every few
+/// seconds and only for one client at a time: rebuilding the collection at that rate would replace
+/// every row, which throws away the selection and makes the list flicker for a number that changed
+/// on one line.
+/// </summary>
+public sealed partial class ConnectedClientRow : ObservableObject
 {
+    public ConnectedClientRow(RelayClientInfo info)
+    {
+        Info = info;
+        _latency = info.Latency;
+    }
+
+    public RelayClientInfo Info { get; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(LatencyText))]
+    [NotifyPropertyChangedFor(nameof(HasLatency))]
+    private TimeSpan? _latency;
+
     public string Name => Info.Name;
 
     public string Detail => Strings.Get("Network.Client.Since", Info.ConnectedAt.ToString("HH:mm"), Info.Address);
 
     public string Role => Strings.Get($"Network.Role.{Info.Role}");
+
+    /// <summary>False for a client that never answers - one from before the host could time its
+    /// clients. Nothing is shown for it rather than a dash that invites a bug report.</summary>
+    public bool HasLatency => Latency is not null;
+
+    public string LatencyText => Latency is { } latency
+        ? Strings.Get("Network.Client.Latency", NetworkViewModel.FormatMilliseconds(latency))
+        : "";
 }
 
 /// <summary>
@@ -104,6 +132,7 @@ public partial class NetworkViewModel : ObservableObject, IDisposable
         _device.HostedClientsChanged += OnHostedClientsChanged;
         _device.ConnectionStateChanged += OnConnectionStateChanged;
         _device.RelayLatencyChanged += OnRelayLatencyChanged;
+        _device.HostedClientLatencyChanged += OnHostedClientLatencyChanged;
     }
 
     public ObservableCollection<ConnectedClientRow> Clients { get; } = new();
@@ -146,7 +175,7 @@ public partial class NetworkViewModel : ObservableObject, IDisposable
 
     /// <summary>Whole milliseconds, and never "0 ms" - on a wired LAN this is genuinely under a
     /// millisecond, and a zero reads as a broken readout rather than a fast one.</summary>
-    private static string FormatMilliseconds(TimeSpan latency) =>
+    internal static string FormatMilliseconds(TimeSpan latency) =>
         latency.TotalMilliseconds < 1 ? "<1" : ((int)Math.Round(latency.TotalMilliseconds)).ToString();
 
     public string ClientsTitle => Strings.Get("Network.Clients", Clients.Count);
@@ -255,6 +284,15 @@ public partial class NetworkViewModel : ObservableObject, IDisposable
     private void OnHostedClientsChanged(object? sender, EventArgs e) =>
         Dispatcher.UIThread.Post(RefreshClients);
 
+    /// <summary>One row's number, changed in place. A client that has just left has no row any
+    /// more, which is not a problem - the measurement simply lands nowhere.</summary>
+    private void OnHostedClientLatencyChanged(object? sender, RelayClientLatency measured) =>
+        Dispatcher.UIThread.Post(() =>
+        {
+            var row = Clients.FirstOrDefault(c => c.Info.Id == measured.Id);
+            if (row is not null) row.Latency = measured.Latency;
+        });
+
     /// <summary>Arrives from the client's ping loop, off the UI thread like everything else here.</summary>
     private void OnRelayLatencyChanged(object? sender, TimeSpan? latency) =>
         Dispatcher.UIThread.Post(() => Latency = latency);
@@ -301,6 +339,7 @@ public partial class NetworkViewModel : ObservableObject, IDisposable
         _device.HostedClientsChanged -= OnHostedClientsChanged;
         _device.ConnectionStateChanged -= OnConnectionStateChanged;
         _device.RelayLatencyChanged -= OnRelayLatencyChanged;
+        _device.HostedClientLatencyChanged -= OnHostedClientLatencyChanged;
     }
 
     /// <summary>Re-reads every computed label. Called after a language change; passing a

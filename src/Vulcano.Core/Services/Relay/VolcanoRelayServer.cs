@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text.Json;
@@ -6,12 +7,21 @@ using Vulcano.Core.Models;
 namespace Vulcano.Core.Services.Relay;
 
 /// <summary>What the host's client list shows for one connected participant.</summary>
+/// <param name="Latency">The last measured round trip to this client, or null when there has not
+/// been one. Null is also what a client from before the host could time its clients looks like -
+/// it never answers the request, so there is nothing to report rather than something bad.</param>
 public sealed record RelayClientInfo(
     Guid Id,
     string Name,
     string Address,
     RelayClientRole Role,
-    DateTime ConnectedAt);
+    DateTime ConnectedAt)
+{
+    public TimeSpan? Latency { get; init; }
+}
+
+/// <summary>One client's freshly measured round trip, as announced by the host.</summary>
+public sealed record RelayClientLatency(Guid Id, TimeSpan? Latency);
 
 /// <summary>
 /// Hosts a TCP listener that exposes an already-connected <see cref="IVolcanoDevice"/> and its
@@ -31,6 +41,27 @@ public sealed class VolcanoRelayServer : IAsyncDisposable
     {
         public required RelayConnection Connection { get; init; }
         public required RelayClientInfo Info { get; init; }
+
+        /// <summary>
+        /// Replies this server is waiting for, by message id. The client has had one of these all
+        /// along; the server needed none until it started asking clients something, which is what
+        /// timing them requires.
+        /// </summary>
+        public Dictionary<string, TaskCompletionSource<RelayMessage>> Pending { get; } = new();
+
+        public object PendingLock { get; } = new();
+
+        /// <summary>The last round trip to this client, or null when none has come back.</summary>
+        public TimeSpan? Latency { get; set; }
+
+        /// <summary>
+        /// Set once a ping to this client has gone unanswered, so the log says it a single time.
+        /// A client from before this existed never answers, and it must not turn into a warning
+        /// every few seconds for as long as it stays connected.
+        /// </summary>
+        public bool ReportedSilent { get; set; }
+
+        public CancellationTokenSource? PingCts { get; set; }
     }
 
     private readonly IVolcanoDevice _device;
@@ -68,13 +99,21 @@ public sealed class VolcanoRelayServer : IAsyncDisposable
         _logService = logService;
     }
 
+    /// <summary>Raised when one client's round trip has been measured again, on a background
+    /// thread. Separate from <see cref="ClientsChanged"/> because it fires every few seconds per
+    /// client, and rebuilding the whole list that often would throw away what the list is for.</summary>
+    public event EventHandler<RelayClientLatency>? ClientLatencyChanged;
+
     public IReadOnlyList<RelayClientInfo> Clients
     {
         get
         {
             lock (_clientsLock)
             {
-                return _clients.Select(c => c.Info).ToArray();
+                // The latency is read off the session here rather than kept in the record, so a
+                // snapshot taken at any moment carries the current number without the record having
+                // to be replaced every time one arrives.
+                return _clients.Select(c => c.Info with { Latency = c.Latency }).ToArray();
             }
         }
     }
@@ -231,11 +270,21 @@ public sealed class VolcanoRelayServer : IAsyncDisposable
 
             _logService.Log(Strings.Get("Log.ClientConnected", session.Info.Name, session.Info.Role));
             SendSnapshot(connection);
+            StartPinging(session);
 
             while (true)
             {
                 var message = await connection.ReceiveAsync(connection.Closed);
                 if (message is null) break;
+
+                // Answers to what this server asked - the only messages that ever travel this way
+                // besides requests, and the reason the loop no longer skips everything else.
+                if (message.Kind == RelayMessageKind.Response)
+                {
+                    CompletePending(session, message);
+                    continue;
+                }
+
                 if (message.Kind != RelayMessageKind.Request) continue;
 
                 _ = ProcessRequestAsync(session, message);
@@ -249,6 +298,8 @@ public sealed class VolcanoRelayServer : IAsyncDisposable
         {
             if (session is not null)
             {
+                StopPinging(session);
+
                 lock (_clientsLock)
                 {
                     _clients.Remove(session);
@@ -259,6 +310,112 @@ public sealed class VolcanoRelayServer : IAsyncDisposable
 
             await connection.DisposeAsync();
         }
+    }
+
+    // --- Timing each client ---
+
+    /// <summary>How often each connected client is timed.</summary>
+    private static readonly TimeSpan PingInterval = TimeSpan.FromSeconds(5);
+
+    /// <summary>Past this a client is not slow, it is not answering - and a client old enough not
+    /// to know the request will never answer at all.</summary>
+    private static readonly TimeSpan PingTimeout = TimeSpan.FromSeconds(4);
+
+    private void StartPinging(ClientSession session)
+    {
+        session.PingCts = new CancellationTokenSource();
+        _ = RunPingLoopAsync(session, session.PingCts.Token);
+    }
+
+    private void StopPinging(ClientSession session)
+    {
+        var cts = session.PingCts;
+        session.PingCts = null;
+        cts?.Cancel();
+        cts?.Dispose();
+    }
+
+    private async Task RunPingLoopAsync(ClientSession session, CancellationToken ct)
+    {
+        try
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                var measured = await MeasureAsync(session, ct);
+                if (ct.IsCancellationRequested) break;
+
+                if (measured is null && !session.ReportedSilent)
+                {
+                    session.ReportedSilent = true;
+                    _logService.Log(Strings.Get("Log.ClientNotTimed", session.Info.Name), LogLevel.Debug);
+                }
+
+                session.Latency = measured;
+                ClientLatencyChanged?.Invoke(this, new RelayClientLatency(session.Info.Id, measured));
+
+                await Task.Delay(PingInterval, ct);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // The client left.
+        }
+    }
+
+    /// <summary>
+    /// One round trip to a client. Null when it did not come back, which covers both a client that
+    /// has gone quiet and one built before it knew how to answer.
+    /// </summary>
+    private async Task<TimeSpan?> MeasureAsync(ClientSession session, CancellationToken ct)
+    {
+        var id = Guid.NewGuid().ToString("N");
+        var tcs = new TaskCompletionSource<RelayMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        lock (session.PendingLock)
+        {
+            session.Pending[id] = tcs;
+        }
+
+        var started = Stopwatch.GetTimestamp();
+
+        session.Connection.Send(new RelayMessage
+        {
+            Id = id,
+            Kind = RelayMessageKind.Request,
+            Method = RelayMethods.Ping,
+        });
+
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct, session.Connection.Closed);
+        timeout.CancelAfter(PingTimeout);
+        using var registration = timeout.Token.Register(
+            static state => ((TaskCompletionSource<RelayMessage>)state!).TrySetCanceled(), tcs);
+
+        try
+        {
+            var response = await tcs.Task;
+            return response.Error is null ? Stopwatch.GetElapsedTime(started) : null;
+        }
+        catch
+        {
+            return null;
+        }
+        finally
+        {
+            lock (session.PendingLock)
+            {
+                session.Pending.Remove(id);
+            }
+        }
+    }
+
+    private static void CompletePending(ClientSession session, RelayMessage response)
+    {
+        TaskCompletionSource<RelayMessage>? tcs;
+        lock (session.PendingLock)
+        {
+            session.Pending.TryGetValue(response.Id, out tcs);
+        }
+        tcs?.TrySetResult(response);
     }
 
     private async Task ProcessRequestAsync(ClientSession session, RelayMessage request)

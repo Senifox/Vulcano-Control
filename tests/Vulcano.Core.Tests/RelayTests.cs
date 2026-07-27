@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Sockets;
 using System.Text.Json;
 using Vulcano.Core.Models;
@@ -592,6 +593,202 @@ public sealed class RelayTests
 
         Assert.Null(client.Latency);
         Assert.Null(await client.MeasureLatencyAsync());
+    }
+
+    // --- Timing the clients, from the host ---
+
+    [Fact]
+    public async Task The_host_times_each_client_it_is_serving()
+    {
+        await using var host = new Host();
+        await host.JoinAsync();
+
+        await Wait.ForAsync(
+            () => host.Server.Clients.FirstOrDefault()?.Latency is not null,
+            "the host to measure its client");
+
+        var client = Assert.Single(host.Server.Clients);
+        Assert.True(client.Latency < TimeSpan.FromSeconds(1), $"loopback should be immediate, was {client.Latency}");
+    }
+
+    [Fact]
+    public async Task A_measured_client_is_announced_by_id()
+    {
+        await using var host = new Host();
+
+        // Subscribed before the client is anywhere near connecting. The first measurement happens
+        // the moment it joins, and over loopback that is fast enough to be gone before a
+        // subscription made afterwards exists - which is a race in the test, and one this test
+        // originally lost about one full run in three.
+        RelayClientLatency? announced = null;
+        host.Server.ClientLatencyChanged += (_, value) => announced = value;
+
+        await host.JoinAsync();
+
+        await Wait.ForAsync(() => announced is not null, "a measurement to be announced");
+        await Wait.ForAsync(() => host.Server.Clients.Count == 1, "the client to be listed");
+
+        Assert.Equal(host.Server.Clients[0].Id, announced!.Id);
+        Assert.NotNull(announced.Latency);
+    }
+
+    /// <summary>
+    /// The compatibility case, and the reason this is a measurement rather than a health check.
+    /// Clients built before the host could time them have no case for an incoming request and never
+    /// answer one. That has to read as "no number" - not as a client in trouble, and not as a log
+    /// line every few seconds for as long as it stays connected.
+    /// </summary>
+    [Fact]
+    public async Task A_client_that_never_answers_is_simply_not_timed()
+    {
+        await using var host = new Host();
+
+        // A peer that speaks the protocol but ignores requests, exactly as an older client does.
+        var raw = await host.ConnectRawAsync();
+        Assert.NotNull(await host.SayHelloAsync(raw));
+        await Wait.ForAsync(() => host.Server.Clients.Count == 1, "the peer to be listed");
+
+        var announcements = 0;
+        host.Server.ClientLatencyChanged += (_, _) => Interlocked.Increment(ref announcements);
+
+        await Wait.ForAsync(() => announcements > 0, "the unanswered measurement to be given up on", TimeSpan.FromSeconds(15));
+
+        Assert.Null(host.Server.Clients[0].Latency);
+
+        // Still a client in good standing: it is listed, and it still gets answers.
+        raw.Send(Host.Request(RelayMethods.ReadBrightness, null));
+        var response = await Host.ReadResponseAsync(raw);
+        Assert.NotNull(response);
+        Assert.Null(response!.Error);
+    }
+
+    /// <summary>A watcher is timed like anyone else - the host is asking, not the client.</summary>
+    [Fact]
+    public async Task A_watching_client_is_timed_too()
+    {
+        await using var host = new Host();
+        await host.JoinAsync(RelayClientRole.Watching);
+
+        await Wait.ForAsync(
+            () => host.Server.Clients.FirstOrDefault()?.Latency is not null,
+            "the host to measure its watcher");
+    }
+
+    /// <summary>Both directions at once, which is the state a real session is in: the client is
+    /// timing the host while the host is timing the client, over the one connection.</summary>
+    [Fact]
+    public async Task Both_ends_can_time_each_other_at_the_same_time()
+    {
+        await using var host = new Host();
+        var client = await host.JoinAsync();
+
+        await Wait.ForAsync(() => client.Latency is not null, "the client to measure the host");
+        await Wait.ForAsync(
+            () => host.Server.Clients.FirstOrDefault()?.Latency is not null,
+            "the host to measure the client");
+    }
+
+    /// <summary>
+    /// A host built by hand, so a test can send a real <see cref="VolcanoRelayClient"/> whatever it
+    /// likes and read what comes back. The other direction of <see cref="Host.ConnectRawAsync"/>,
+    /// and the only way to ask the client something the real server has no reason to send - without
+    /// opening a hole in the server's API for a test to reach through.
+    /// </summary>
+    private sealed class RawHost : IAsyncDisposable
+    {
+        private readonly TcpListener _listener;
+        private RelayConnection? _accepted;
+
+        public RawHost()
+        {
+            _listener = new TcpListener(IPAddress.Loopback, 0);
+            _listener.Start();
+            Port = ((IPEndPoint)_listener.LocalEndpoint).Port;
+        }
+
+        public int Port { get; }
+
+        /// <summary>Accepts one client and completes its handshake, so it believes it has joined.</summary>
+        public async Task AcceptAsync()
+        {
+            var tcp = await _listener.AcceptTcpClientAsync();
+            _accepted = new RelayConnection(tcp);
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            var hello = await _accepted.ReceiveAsync(cts.Token);
+            Assert.NotNull(hello);
+
+            _accepted.Send(new RelayMessage
+            {
+                Id = hello!.Id,
+                Kind = RelayMessageKind.Response,
+                Result = JsonSerializer.SerializeToElement(new HelloResult(true, null), RelayJson.Options),
+            });
+        }
+
+        /// <summary>Sends a request to the client and reads its answer.</summary>
+        public async Task<RelayMessage?> AskAsync(string method)
+        {
+            var request = Host.Request(method, null);
+            _accepted!.Send(request);
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            while (true)
+            {
+                var message = await _accepted.ReceiveAsync(cts.Token);
+                if (message is null) return null;
+                if (message.Kind == RelayMessageKind.Response && message.Id == request.Id) return message;
+            }
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            if (_accepted is not null) await _accepted.DisposeAsync();
+            _listener.Stop();
+        }
+    }
+
+    [Fact]
+    public async Task A_client_answers_the_one_request_it_knows()
+    {
+        await using var rawHost = new RawHost();
+        var logFile = Path.Combine(Path.GetTempPath(), $"vulcano-raw-{Guid.NewGuid():N}.log");
+        await using var client = new VolcanoRelayClient("127.0.0.1", rawHost.Port, Pin, RelayClientRole.Controlling, new LogService(logFile));
+
+        var accepting = rawHost.AcceptAsync();
+        Assert.True(await client.ScanAndConnectAsync());
+        await accepting;
+
+        var response = await rawHost.AskAsync(RelayMethods.Ping);
+
+        Assert.NotNull(response);
+        Assert.Null(response!.Error);
+
+        try { File.Delete(logFile); } catch { /* best-effort */ }
+    }
+
+    /// <summary>
+    /// Anything else is refused rather than ignored. A host left waiting on a reply that never comes
+    /// would time out and report the client as unreachable, which is a worse answer than "I do not
+    /// know that method" - and it would take four seconds to be wrong in.
+    /// </summary>
+    [Fact]
+    public async Task A_client_refuses_a_request_it_does_not_know_rather_than_going_quiet()
+    {
+        await using var rawHost = new RawHost();
+        var logFile = Path.Combine(Path.GetTempPath(), $"vulcano-raw-{Guid.NewGuid():N}.log");
+        await using var client = new VolcanoRelayClient("127.0.0.1", rawHost.Port, Pin, RelayClientRole.Controlling, new LogService(logFile));
+
+        var accepting = rawHost.AcceptAsync();
+        Assert.True(await client.ScanAndConnectAsync());
+        await accepting;
+
+        var response = await rawHost.AskAsync("LaunchTheRocket");
+
+        Assert.NotNull(response);
+        Assert.False(string.IsNullOrWhiteSpace(response!.Error));
+
+        try { File.Delete(logFile); } catch { /* best-effort */ }
     }
 
     // --- A peer that does not behave ---
