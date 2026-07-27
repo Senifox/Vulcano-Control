@@ -72,7 +72,14 @@ public partial class NetworkViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanHost))]
     [NotifyPropertyChangedFor(nameof(RemoteBanner))]
+    [NotifyPropertyChangedFor(nameof(IsLatencyVisible))]
     private bool _isRemote;
+
+    /// <summary>The last round trip to the host, or null when none came back.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(LatencyText))]
+    [NotifyPropertyChangedFor(nameof(IsLatencySlow))]
+    private TimeSpan? _latency;
 
     public NetworkViewModel(
         VolcanoDeviceOrchestrator device,
@@ -96,6 +103,7 @@ public partial class NetworkViewModel : ObservableObject, IDisposable
 
         _device.HostedClientsChanged += OnHostedClientsChanged;
         _device.ConnectionStateChanged += OnConnectionStateChanged;
+        _device.RelayLatencyChanged += OnRelayLatencyChanged;
     }
 
     public ObservableCollection<ConnectedClientRow> Clients { get; } = new();
@@ -114,6 +122,32 @@ public partial class NetworkViewModel : ObservableObject, IDisposable
     public string RemoteBanner => IsRemote
         ? Strings.Get("Network.RemoteBanner", _device.HostName)
         : "";
+
+    /// <summary>
+    /// Above this, something is wrong with the path rather than merely busy: on a wired or
+    /// reasonable wireless LAN this round trip is single-digit milliseconds, and a quarter of a
+    /// second is the point at which pressing a button stops feeling like it did anything.
+    /// </summary>
+    private static readonly TimeSpan SlowLink = TimeSpan.FromMilliseconds(250);
+
+    /// <summary>Only worth showing while this instance is actually borrowing someone's device.</summary>
+    public bool IsLatencyVisible => IsRemote;
+
+    public bool IsLatencySlow => Latency is { } latency && latency > SlowLink;
+
+    /// <summary>
+    /// The round trip, or that there was not one. Deliberately different sentences: an unanswered
+    /// ping is not a slow connection, it is one that has stopped answering, and reading the timeout
+    /// as "4000 ms" would say the opposite of what happened.
+    /// </summary>
+    public string LatencyText => Latency is { } latency
+        ? Strings.Get("Network.Latency", FormatMilliseconds(latency))
+        : Strings.Get("Network.Latency.NoAnswer");
+
+    /// <summary>Whole milliseconds, and never "0 ms" - on a wired LAN this is genuinely under a
+    /// millisecond, and a zero reads as a broken readout rather than a fast one.</summary>
+    private static string FormatMilliseconds(TimeSpan latency) =>
+        latency.TotalMilliseconds < 1 ? "<1" : ((int)Math.Round(latency.TotalMilliseconds)).ToString();
 
     public string ClientsTitle => Strings.Get("Network.Clients", Clients.Count);
 
@@ -221,11 +255,19 @@ public partial class NetworkViewModel : ObservableObject, IDisposable
     private void OnHostedClientsChanged(object? sender, EventArgs e) =>
         Dispatcher.UIThread.Post(RefreshClients);
 
+    /// <summary>Arrives from the client's ping loop, off the UI thread like everything else here.</summary>
+    private void OnRelayLatencyChanged(object? sender, TimeSpan? latency) =>
+        Dispatcher.UIThread.Post(() => Latency = latency);
+
     private void OnConnectionStateChanged(object? sender, ConnectionState state) =>
         Dispatcher.UIThread.Post(() =>
         {
             IsRemote = _device.IsRemote;
             IsHosting = _device.IsHosting;
+
+            // Leaving takes the number with it: a millisecond count left over from a host this
+            // instance is no longer talking to is worse than no number.
+            if (!IsRemote) Latency = null;
         });
 
     /// <summary>
@@ -258,6 +300,7 @@ public partial class NetworkViewModel : ObservableObject, IDisposable
     {
         _device.HostedClientsChanged -= OnHostedClientsChanged;
         _device.ConnectionStateChanged -= OnConnectionStateChanged;
+        _device.RelayLatencyChanged -= OnRelayLatencyChanged;
     }
 
     /// <summary>Re-reads every computed label. Called after a language change; passing a

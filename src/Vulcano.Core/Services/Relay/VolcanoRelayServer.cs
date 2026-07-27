@@ -296,6 +296,11 @@ public sealed class VolcanoRelayServer : IAsyncDisposable
 
         switch (request.Method)
         {
+            // First, and deliberately not touching the device: this exists to be timed, and a
+            // reply that waited on Bluetooth would measure the Volcano rather than the network.
+            case RelayMethods.Ping:
+                return (Ok(), null);
+
             case RelayMethods.ReadTargetTemperature:
                 return (ToElement(await _device.ReadTargetTemperatureAsync()), null);
 

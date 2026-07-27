@@ -502,6 +502,15 @@
   <data name="Network.Join.Failed" xml:space="preserve">
     <value>Beitreten fehlgeschlagen - Adresse, Port und PIN prüfen.</value>
   </data>
+  <data name="Network.Latency" xml:space="preserve">
+    <value>{0} ms zum Host</value>
+  </data>
+  <data name="Network.Latency.NoAnswer" xml:space="preserve">
+    <value>der Host antwortet nicht</value>
+  </data>
+  <data name="Network.Latency.Slow" xml:space="preserve">
+    <value>Langsam für ein lokales Netz - prüf die WLAN-Strecke zwischen den beiden Rechnern.</value>
+  </data>
   <data name="Network.RemoteBanner" xml:space="preserve">
     <value>Verbunden über {0}. Das Gerät ist mit diesem Rechner gepaart.</value>
   </data>

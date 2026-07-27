@@ -64,6 +64,16 @@ public sealed class VolcanoDeviceOrchestrator : IVolcanoDevice, IRampSessionCont
 
     public string? HostName => _device.HostName;
 
+    /// <summary>
+    /// The round trip to the host, while this instance is a client of one. Null otherwise, and null
+    /// between a measurement failing and the next one succeeding - a local device has no latency to
+    /// report rather than a latency of zero.
+    /// </summary>
+    public TimeSpan? RelayLatency => (_device as Relay.VolcanoRelayClient)?.Latency;
+
+    /// <summary>Raised from the client's ping loop, on a background thread.</summary>
+    public event EventHandler<TimeSpan?>? RelayLatencyChanged;
+
     public event EventHandler<ConnectionState>? ConnectionStateChanged;
 
     event EventHandler<string>? IVolcanoDevice.ErrorOccurred
@@ -248,6 +258,13 @@ public sealed class VolcanoDeviceOrchestrator : IVolcanoDevice, IRampSessionCont
         device.CurrentTemperatureChanged += OnDeviceCurrentTemperatureChanged;
         device.ActivityChanged += OnDeviceActivityChanged;
         device.RemainingAutoOffSecondsChanged += OnDeviceRemainingAutoOffSecondsChanged;
+
+        // Only a relay client has one. Subscribed here rather than at the join, so that leaving and
+        // rejoining cannot end up with two subscriptions or none.
+        if (device is Relay.VolcanoRelayClient client)
+        {
+            client.LatencyChanged += OnRelayLatencyChanged;
+        }
     }
 
     private void UnsubscribeDevice(IVolcanoDevice device)
@@ -257,7 +274,15 @@ public sealed class VolcanoDeviceOrchestrator : IVolcanoDevice, IRampSessionCont
         device.CurrentTemperatureChanged -= OnDeviceCurrentTemperatureChanged;
         device.ActivityChanged -= OnDeviceActivityChanged;
         device.RemainingAutoOffSecondsChanged -= OnDeviceRemainingAutoOffSecondsChanged;
+
+        if (device is Relay.VolcanoRelayClient client)
+        {
+            client.LatencyChanged -= OnRelayLatencyChanged;
+        }
     }
+
+    private void OnRelayLatencyChanged(object? sender, TimeSpan? latency) =>
+        RelayLatencyChanged?.Invoke(this, latency);
 
     private void OnDeviceConnectionStateChanged(object? sender, ConnectionState state) =>
         ConnectionStateChanged?.Invoke(this, state);

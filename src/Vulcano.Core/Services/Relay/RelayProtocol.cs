@@ -70,6 +70,13 @@ public static class RelayMethods
 {
     public const string Hello = "Hello";
 
+    /// <summary>
+    /// Answered immediately, out of the server's own dispatch, without the device being touched.
+    /// That is the whole point of it: every other request waits on Bluetooth, so timing one of
+    /// those measures the Volcano and the link together and tells you nothing about either.
+    /// </summary>
+    public const string Ping = "Ping";
+
     public const string ReadTargetTemperature = "ReadTargetTemperature";
     public const string SetTargetTemperature = "SetTargetTemperature";
     public const string SetHeater = "SetHeater";

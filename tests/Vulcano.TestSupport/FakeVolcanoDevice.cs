@@ -17,6 +17,30 @@ public sealed class FakeVolcanoDevice : IVolcanoDevice
     public List<bool> WrittenPumpStates { get; } = new();
     public List<int> WrittenBrightness { get; } = new();
 
+    /// <summary>
+    /// Makes the device stop answering: every read waits on this until it is completed. A real
+    /// Volcano can be slow or wedged while its Bluetooth link is perfectly fine, and some things -
+    /// timing the network between two machines, for one - have to keep working when it is.
+    /// Use <see cref="Stall"/> and <see cref="Resume"/> rather than setting it directly.
+    /// </summary>
+    private TaskCompletionSource? _stall;
+
+    /// <summary>Every read from here on hangs until <see cref="Resume"/>.</summary>
+    public void Stall() => _stall ??= new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public void Resume()
+    {
+        var stall = _stall;
+        _stall = null;
+        stall?.TrySetResult();
+    }
+
+    private async Task<T> ReadAsync<T>(T value)
+    {
+        if (_stall is { } stall) await stall.Task;
+        return value;
+    }
+
     /// <summary>What the read methods hand back. Left null by default so a test has to say what the
     /// device knows before it can claim a round trip carried it.</summary>
     public VolcanoDeviceInfo? DeviceInfo { get; set; }
@@ -74,7 +98,7 @@ public sealed class FakeVolcanoDevice : IVolcanoDevice
     }
 
     public Task<double?> ReadTargetTemperatureAsync() =>
-        Task.FromResult<double?>(WrittenTargets.Count > 0 ? WrittenTargets[^1] : null);
+        ReadAsync<double?>(WrittenTargets.Count > 0 ? WrittenTargets[^1] : null);
 
     public Task SetHeaterAsync(bool on)
     {
@@ -88,8 +112,8 @@ public sealed class FakeVolcanoDevice : IVolcanoDevice
         return Task.CompletedTask;
     }
 
-    public Task<VolcanoDeviceInfo?> ReadDeviceInfoAsync() => Task.FromResult(DeviceInfo);
-    public Task<int?> ReadBrightnessAsync() => Task.FromResult(Brightness);
+    public Task<VolcanoDeviceInfo?> ReadDeviceInfoAsync() => ReadAsync(DeviceInfo);
+    public Task<int?> ReadBrightnessAsync() => ReadAsync(Brightness);
 
     public Task SetBrightnessAsync(int level)
     {
@@ -97,13 +121,12 @@ public sealed class FakeVolcanoDevice : IVolcanoDevice
         return Task.CompletedTask;
     }
 
-    public Task<int?> ReadAutoOffMinutesAsync() => Task.FromResult(AutoOffMinutes);
+    public Task<int?> ReadAutoOffMinutesAsync() => ReadAsync(AutoOffMinutes);
     public Task SetAutoOffMinutesAsync(int minutes) => Task.CompletedTask;
-    public Task<(bool Fahrenheit, bool DisplayOnCooling)?> ReadDisplayFlagsAsync() =>
-        Task.FromResult(DisplayFlags);
+    public Task<(bool Fahrenheit, bool DisplayOnCooling)?> ReadDisplayFlagsAsync() => ReadAsync(DisplayFlags);
     public Task SetFahrenheitAsync(bool enabled) => Task.CompletedTask;
     public Task SetDisplayOnCoolingAsync(bool enabled) => Task.CompletedTask;
-    public Task<bool?> ReadVibrationAsync() => Task.FromResult(Vibration);
+    public Task<bool?> ReadVibrationAsync() => ReadAsync(Vibration);
     public Task SetVibrationAsync(bool enabled) => Task.CompletedTask;
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;

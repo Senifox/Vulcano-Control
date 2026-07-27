@@ -502,6 +502,15 @@
   <data name="Network.Join.Failed" xml:space="preserve">
     <value>Could not join - check the address, the port and the PIN.</value>
   </data>
+  <data name="Network.Latency" xml:space="preserve">
+    <value>{0} ms to the host</value>
+  </data>
+  <data name="Network.Latency.NoAnswer" xml:space="preserve">
+    <value>the host is not answering</value>
+  </data>
+  <data name="Network.Latency.Slow" xml:space="preserve">
+    <value>Slow for a local network - check the wireless link between the two machines.</value>
+  </data>
   <data name="Network.RemoteBanner" xml:space="preserve">
     <value>Connected through {0}. The device is paired with that machine.</value>
   </data>

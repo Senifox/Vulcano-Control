@@ -514,6 +514,86 @@ public sealed class RelayTests
         Assert.Equal(1, plans);
     }
 
+    // --- Timing the link ---
+
+    [Fact]
+    public async Task A_round_trip_to_the_host_is_measured()
+    {
+        await using var host = new Host();
+        var client = await host.JoinAsync();
+
+        var latency = await client.MeasureLatencyAsync();
+
+        Assert.NotNull(latency);
+        Assert.True(latency >= TimeSpan.Zero, "a round trip cannot take less than no time");
+        Assert.True(latency < TimeSpan.FromSeconds(1), $"loopback should be immediate, was {latency}");
+    }
+
+    /// <summary>
+    /// The reason the ping is answered without the device being touched. A Volcano that has stopped
+    /// answering - out of range, mid-firmware-sulk - would otherwise take the latency reading with
+    /// it, and the number is at its most useful exactly then: it says whether the machines can still
+    /// hear each other, which is a different question from whether the device can.
+    /// </summary>
+    [Fact]
+    public async Task The_link_can_still_be_timed_while_the_device_has_stopped_answering()
+    {
+        await using var host = new Host();
+        var client = await host.JoinAsync();
+
+        host.Device.Stall();
+
+        // Proof the device really is wedged: this one goes to it and does not come back.
+        var read = client.ReadBrightnessAsync();
+        var ping = await client.MeasureLatencyAsync();
+
+        Assert.NotNull(ping);
+        Assert.False(read.IsCompleted, "the device read should still be waiting");
+
+        host.Device.Resume();
+        await read;
+    }
+
+    /// <summary>A watcher may ask how far away the host is - it is not a change to anything.</summary>
+    [Fact]
+    public async Task A_watching_client_may_ping()
+    {
+        await using var host = new Host();
+        var client = await host.JoinAsync(RelayClientRole.Watching);
+
+        Assert.NotNull(await client.MeasureLatencyAsync());
+    }
+
+    [Fact]
+    public async Task Joining_starts_reporting_the_latency_by_itself()
+    {
+        await using var host = new Host();
+        var client = host.CreateClient();
+
+        TimeSpan? reported = null;
+        client.LatencyChanged += (_, value) => reported = value;
+
+        Assert.True(await client.ScanAndConnectAsync());
+
+        await Wait.ForAsync(() => reported is not null, "the first measurement to be reported");
+        Assert.Equal(reported, client.Latency);
+    }
+
+    /// <summary>Leaving takes the number with it: a millisecond count from a host this client is no
+    /// longer talking to is worse than none.</summary>
+    [Fact]
+    public async Task Leaving_forgets_the_latency()
+    {
+        await using var host = new Host();
+        var client = await host.JoinAsync();
+        await Wait.ForAsync(() => client.Latency is not null, "a first measurement");
+
+        await client.DisconnectAsync();
+
+        Assert.Null(client.Latency);
+        Assert.Null(await client.MeasureLatencyAsync());
+    }
+
     // --- A peer that does not behave ---
 
     [Fact]

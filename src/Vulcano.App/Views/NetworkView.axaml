@@ -170,9 +170,20 @@
             <Border Classes="card tight" Background="{DynamicResource Surface.Info}"
                     BorderThickness="0"
                     IsVisible="{Binding IsRemote}">
-              <TextBlock Text="{Binding RemoteBanner}" TextWrapping="Wrap"
-                         Foreground="{DynamicResource Info}"
-                         FontSize="{StaticResource Text.Small}" />
+              <StackPanel Spacing="4">
+                <TextBlock Text="{Binding RemoteBanner}" TextWrapping="Wrap"
+                           Foreground="{DynamicResource Info}"
+                           FontSize="{StaticResource Text.Small}" />
+
+                <!-- Timed against a reply the host sends without touching the Volcano, so this is
+                     the network between the two machines and nothing else. -->
+                <TextBlock Text="{Binding LatencyText}" Classes="mono footnote"
+                           IsVisible="{Binding IsLatencyVisible}" />
+
+                <TextBlock Text="{DynamicResource S.Network.Latency.Slow}"
+                           Classes="footnote warn" TextWrapping="Wrap"
+                           IsVisible="{Binding IsLatencySlow}" />
+              </StackPanel>
             </Border>
           </StackPanel>
         </Border>

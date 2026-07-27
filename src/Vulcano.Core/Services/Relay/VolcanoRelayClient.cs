@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net.Sockets;
 using System.Text.Json;
 using Vulcano.Core.Models;
@@ -22,6 +23,15 @@ public sealed class VolcanoRelayClient : IVolcanoDevice
     private static readonly TimeSpan HandshakeTimeout = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(45);
 
+    /// <summary>How often the link is timed while connected. Often enough that the number on screen
+    /// is about now, rare enough to be nothing next to the temperature notifications already
+    /// crossing this connection several times a second.</summary>
+    private static readonly TimeSpan PingInterval = TimeSpan.FromSeconds(5);
+
+    /// <summary>A ping that has not come back by here is not a slow link, it is a broken one, and
+    /// reporting five seconds as a latency would be worse than reporting nothing.</summary>
+    private static readonly TimeSpan PingTimeout = TimeSpan.FromSeconds(4);
+
     private readonly string _host;
     private readonly int _port;
     private readonly string _pin;
@@ -35,6 +45,9 @@ public sealed class VolcanoRelayClient : IVolcanoDevice
     private Task? _readLoop;
     private volatile bool _disconnecting;
     private ConnectionState _state = ConnectionState.Disconnected;
+
+    private CancellationTokenSource? _pingCts;
+    private Task? _pingLoop;
 
     public VolcanoRelayClient(
         string host,
@@ -67,6 +80,16 @@ public sealed class VolcanoRelayClient : IVolcanoDevice
 
     /// <summary>What this client asked to be allowed to do when it joined.</summary>
     public RelayClientRole Role => _role;
+
+    /// <summary>
+    /// How long the last round trip to the host took, or null when nothing has come back yet -
+    /// before the first ping, and after one that timed out. Null is a state worth keeping distinct
+    /// from a large number: "no answer" and "a slow answer" are different things to be told.
+    /// </summary>
+    public TimeSpan? Latency { get; private set; }
+
+    /// <summary>Raised from the ping loop's own thread, once per measurement.</summary>
+    public event EventHandler<TimeSpan?>? LatencyChanged;
 
     public event EventHandler<ConnectionState>? ConnectionStateChanged;
     public event EventHandler<string>? ErrorOccurred;
@@ -129,7 +152,89 @@ public sealed class VolcanoRelayClient : IVolcanoDevice
 
         _logService.Log(Strings.Get("Log.JoinedHost", _host, _port, _role));
         State = ConnectionState.Connected;
+
+        StartPinging();
         return true;
+    }
+
+    /// <summary>
+    /// Times one round trip to the host. Null when the answer did not arrive, or when this client
+    /// is not connected - both are "no measurement" rather than a slow one.
+    /// </summary>
+    public async Task<TimeSpan?> MeasureLatencyAsync()
+    {
+        if (_connection is null) return null;
+
+        var started = Stopwatch.GetTimestamp();
+
+        try
+        {
+            var response = await SendRequestAsync(RelayMethods.Ping, null, PingTimeout);
+            if (response.Error is not null) return null;
+        }
+        catch
+        {
+            // A timeout, or the link going away underneath. Neither is a latency.
+            return null;
+        }
+
+        return Stopwatch.GetElapsedTime(started);
+    }
+
+    private void StartPinging()
+    {
+        _pingCts = new CancellationTokenSource();
+        _pingLoop = RunPingLoopAsync(_pingCts.Token);
+    }
+
+    /// <summary>
+    /// Measures on a timer for as long as this client is connected. The first one runs immediately:
+    /// waiting a full interval to say anything would leave the panel reading "measuring" through the
+    /// part of a join where somebody is actually looking at it.
+    /// </summary>
+    private async Task RunPingLoopAsync(CancellationToken ct)
+    {
+        try
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                var measured = await MeasureLatencyAsync();
+
+                if (ct.IsCancellationRequested) break;
+
+                Latency = measured;
+                LatencyChanged?.Invoke(this, measured);
+
+                await Task.Delay(PingInterval, ct);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Leaving.
+        }
+    }
+
+    private async Task StopPingingAsync()
+    {
+        var cts = _pingCts;
+        var loop = _pingLoop;
+        _pingCts = null;
+        _pingLoop = null;
+
+        if (cts is null) return;
+
+        await cts.CancelAsync();
+
+        if (loop is not null)
+        {
+            try { await loop; }
+            catch { /* best-effort shutdown */ }
+        }
+
+        cts.Dispose();
+
+        Latency = null;
+        LatencyChanged?.Invoke(this, null);
     }
 
     public async Task DisconnectAsync()
@@ -368,6 +473,10 @@ public sealed class VolcanoRelayClient : IVolcanoDevice
 
     private async Task TeardownAsync()
     {
+        // Before the connection goes: the loop sends over it, and one already in flight would
+        // otherwise report a link failure as though it were a measurement.
+        await StopPingingAsync();
+
         var connection = _connection;
         _connection = null;
 
