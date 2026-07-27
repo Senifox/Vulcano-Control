@@ -66,9 +66,16 @@ Settings and ramp profiles live in `%AppData%\Vulcano-Control`, which no install
 reinstalling or updating keeps them.
 
 If a **preview build** from the rewrite is installed (`Vulcano Control (Preview)`), run
-[`Cleanup.ps1`](Cleanup.ps1) *before* installing this — it removes the preview and carries its
-settings across. The preview is a separate application to the installer, so it is neither replaced
-nor updated by this one, and its data sits in the folder this installer clears.
+`Cleanup.ps1` — attached to every release, and also [in this repository](Cleanup.ps1) — *before*
+installing this:
+
+```powershell
+powershell -File Cleanup.ps1 -Execute -IncludePreview
+```
+
+It removes the preview and carries its settings across first. The preview is a separate application
+to the installer, so it is neither replaced nor updated by this one, and its data sits in the folder
+this installer clears. Run without `-Execute` first to see what it would do.
 
 ## Building from source
 

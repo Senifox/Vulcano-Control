@@ -32,13 +32,21 @@
 
 .EXAMPLE
     .\Release.ps1 -Version 2.0.0 -Publish
-    Packs and publishes it as a GitHub Release (tag v2.0.0).
+    Packs and publishes it as a GitHub Release (tag v2.0.0), with Cleanup.ps1 attached.
+
+.EXAMPLE
+    .\Release.ps1 -Version 2.0.0 -AttachOnly
+    Builds nothing. Only puts the extra assets on the release that is already out.
 #>
 param(
     [Parameter(Mandatory = $true)]
     [string]$Version,
 
     [switch]$Publish,
+
+    # Skips building and packing and only attaches the extra assets to a release that is already
+    # out. For fixing up a release, and for exercising that path without cutting a new one.
+    [switch]$AttachOnly,
 
     [string]$Token = $env:GITHUB_TOKEN
 )
@@ -56,11 +64,18 @@ $packTitle = "Vulcano Control"
 $mainExe = "vulcano-control.exe"
 $icon = Join-Path $root "src\Vulcano.App\Assets\Icons\vulcano-control.ico"
 
-Write-Host "Building $packId v$Version"
+if ($AttachOnly) {
+    $Publish = $true
+}
+else {
+    Write-Host "Building $packId v$Version"
+}
 
 # Anything left over from the preview id would be read as this app's history, which it is not.
-$strays = Get-ChildItem $releasesDir -File -ErrorAction SilentlyContinue |
-          Where-Object { $_.Name -like "Vulcano-Control-Preview*" }
+$strays = if ($AttachOnly) { $null } else {
+    Get-ChildItem $releasesDir -File -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -like "Vulcano-Control-Preview*" }
+}
 if ($strays) {
     $archive = Join-Path $releasesDir "preview-archive"
     New-Item -ItemType Directory -Force $archive | Out-Null
@@ -73,21 +88,23 @@ if ($strays) {
     Write-Host "Moved $($strays.Count) package(s) from the preview id into: $archive"
 }
 
-if (Test-Path $publishDir) { Remove-Item $publishDir -Recurse -Force }
+if (-not $AttachOnly) {
+    if (Test-Path $publishDir) { Remove-Item $publishDir -Recurse -Force }
 
-dotnet publish $project -c Release -r win-x64 --self-contained true -o $publishDir
+    dotnet publish $project -c Release -r win-x64 --self-contained true -o $publishDir
 
-vpk pack `
-    --packId $packId `
-    --packTitle $packTitle `
-    --packVersion $Version `
-    --packDir $publishDir `
-    --mainExe $mainExe `
-    --icon $icon `
-    --outputDir $releasesDir
+    vpk pack `
+        --packId $packId `
+        --packTitle $packTitle `
+        --packVersion $Version `
+        --packDir $publishDir `
+        --mainExe $mainExe `
+        --icon $icon `
+        --outputDir $releasesDir
 
-Write-Host ""
-Write-Host "Paket erstellt in: $releasesDir"
+    Write-Host ""
+    Write-Host "Paket erstellt in: $releasesDir"
+}
 
 if (-not $Publish) {
     Write-Host "Naechster Schritt: entweder mit '-Publish' erneut ausfuehren, um direkt als GitHub Release zu"
@@ -103,13 +120,50 @@ if (-not $Token) {
 
 $prerelease = if ($Version -match "-") { "true" } else { "false" }
 
-vpk upload github `
-    --repoUrl $repoUrl `
-    --token $Token `
-    --outputDir $releasesDir `
-    --tag "v$Version" `
-    --publish true `
-    --pre $prerelease
+if (-not $AttachOnly) {
+    vpk upload github `
+        --repoUrl $repoUrl `
+        --token $Token `
+        --outputDir $releasesDir `
+        --tag "v$Version" `
+        --publish true `
+        --pre $prerelease
+}
+
+<#
+    Attaches a file to a release that already exists.
+
+    vpk uploads the packages it built and nothing else, so anything that has to travel with a
+    release goes up separately through the API. Re-uploading replaces what is there, because a
+    release published twice should end up with one copy and not fail on the second run.
+#>
+function Add-ReleaseAsset([string]$tag, [string]$file) {
+    $name = Split-Path $file -Leaf
+    $slug = ($repoUrl -replace "^https://github\.com/", "")
+    $headers = @{ Authorization = "Bearer $Token"; "User-Agent" = "vulcano-release" }
+
+    $release = Invoke-RestMethod "https://api.github.com/repos/$slug/releases/tags/$tag" -Headers $headers
+
+    $existing = $release.assets | Where-Object { $_.name -eq $name }
+    if ($existing) {
+        Invoke-RestMethod "https://api.github.com/repos/$slug/releases/assets/$($existing.id)" `
+            -Headers $headers -Method Delete | Out-Null
+    }
+
+    Invoke-RestMethod "https://uploads.github.com/repos/$slug/releases/$($release.id)/assets?name=$name" `
+        -Headers $headers -Method Post `
+        -ContentType "text/plain" -InFile $file | Out-Null
+
+    Write-Host "  attached: $name"
+}
+
+Write-Host ""
+Write-Host "Extra assets..."
+
+# Anyone still on a preview build from the rewrite has to run this before installing: the preview
+# is a separate application to the installer, and its settings sit in the folder this installer
+# clears. Shipping it with the release is the difference between finding it and losing the profiles.
+Add-ReleaseAsset "v$Version" (Join-Path $root "Cleanup.ps1")
 
 Write-Host ""
 Write-Host "Release v$Version veroeffentlicht: $repoUrl/releases/tag/v$Version"
