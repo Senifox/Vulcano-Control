@@ -1,7 +1,8 @@
 # Vulcano Control
 
 A Windows desktop app for controlling a **Storz & Bickel Volcano** vaporizer over Bluetooth LE —
-live temperature control, scripted temperature ramps with a live chart, device settings, and more.
+live temperature control, temperature ramps drawn as a curve, and a device that can be shared with
+other machines on the network.
 
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-0078D6)
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4)
@@ -16,24 +17,38 @@ live temperature control, scripted temperature ramps with a live chart, device s
   finishes. Ramps are saved as named profiles. The app re-enables the heater if the Volcano's own
   auto-shutoff timer cuts it before the ramp completes, and says so when a segment asks for more
   than the device can physically do.
-- **Live ramp chart** — plots the planned (Soll) curve against the measured (Ist) history on a
-  sliding "now" timeline, with a locked temperature axis, a capped ±24h time zoom range, and a
-  one-click view reset.
-- **Device settings** — serial number, operating hours, firmware versions, LED display brightness,
-  auto-shutoff timer, vibration alarm, "show temperature while cooling", and the Celsius/Fahrenheit
-  display unit — all read from and written to the device live.
-- **Auto-shutoff awareness** — shows a live countdown to the device's own auto-shutoff, and keeps
-  the heater on through an active ramp even if that timer would otherwise cut it.
-- **Persistent settings** — the last-used ramp shape, history retention, update threshold, and
-  theme are remembered across restarts.
-- **Light/Dark theme** — native Fluent theming on Windows 11+, with a hand-rolled fallback theme
-  (including a dark title bar) for Windows 10, where the native theme renders incorrectly.
-- **Built-in protocol log** — a dedicated log window with Debug/Info/Warning/Error severity levels
-  and per-level filtering, covering both the BLE connection lifecycle and every command sent to the
-  device.
+- **Running a ramp** — a tab that only exists while one is running: the segment underway, time left,
+  the finishing time, and how far along the plan the device actually is.
+- **Live chart** — the measured temperature against the planned curve. The time axis follows the
+  run, shows the whole session, or stays at a fixed 15 or 60 minutes, and how much history is kept
+  is yours to set.
+- **Share one device over the LAN** — the machine with the Bluetooth connection hosts, the others
+  join with an address, a port and a four-digit PIN. Joining machines either control the device or
+  only watch, the host sees who is connected and can drop them, and everyone sees the same ramp,
+  including one already underway when they arrive.
+- **Sounds and desktop notifications** — for the start temperature being reached, a ramp finishing,
+  and a connection lost. When Windows will not show a notification, the window says it instead
+  rather than swallowing it.
+- **Compact mode** — the same window shrunk to the temperature, the ramp progress and the essential
+  controls, with a pin to keep it above everything else.
+- **Device settings** — serial number, hours of heating, firmware versions, LED brightness,
+  auto-shutoff timer, vibration alarm and "show temperature while cooling", read from and written to
+  the device live. The device's own °C/°F display is deliberately left alone for now; the app works
+  in °C throughout.
+- **Auto-shutoff awareness** — a live countdown to the device's own auto-shutoff, and the heater is
+  switched back on if that timer would cut an active ramp short.
+- **Simulation mode** — `--simulate` runs the whole app against a simulated Volcano, with a chip in
+  the title bar so simulated readings are never mistaken for real ones.
+- **Protocol log** — the BLE connection lifecycle and every command sent, with severity levels,
+  per-level filtering and export to a text file.
+- **Light and dark theme**, following the system by default, and an **English or German** interface.
+
+Settings, ramp profiles and the quick-pick temperatures are remembered across restarts.
+
 Updating in place is not back yet: 1.x checked GitHub Releases on startup and installed updates
-itself, and 2.0 does not do this. Until it does, a new version means downloading the installer and
-running it — it keeps your settings and ramp profiles.
+itself, and 2.0 does not. It returns together with the Linux packaging, so both platforms behave the
+same rather than one of them silently differing. Until then a new version means downloading the
+installer and running it — it keeps your settings and ramp profiles.
 
 ## Requirements
 
