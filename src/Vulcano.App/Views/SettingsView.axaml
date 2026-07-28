@@ -244,6 +244,44 @@
           </StackPanel>
         </Border>
 
+        <Border Classes="card" IsVisible="{Binding HasChangelog}">
+          <StackPanel Spacing="10">
+            <TextBlock Classes="label" Text="{DynamicResource S.Changelog}" />
+            <TextBlock Text="{DynamicResource S.Changelog.Hint}" Classes="sub" TextWrapping="Wrap" />
+
+            <!-- Scrolled rather than allowed to grow: the list only gets longer, and it must not be
+                 the reason the whole settings page becomes a scroll to the bottom of. -->
+            <ScrollViewer MaxHeight="260" HorizontalScrollBarVisibility="Disabled">
+              <ItemsControl ItemsSource="{Binding Changelog}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ChangelogEntryViewModel">
+                    <StackPanel Spacing="4" Margin="0,0,0,14">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="{Binding Heading}" Classes="mono" FontWeight="SemiBold" />
+                        <Border Classes="chip" IsVisible="{Binding IsCurrent}">
+                          <TextBlock Text="{DynamicResource S.Changelog.Current}" />
+                        </Border>
+                      </StackPanel>
+
+                      <ItemsControl ItemsSource="{Binding Items}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="x:String">
+                            <Grid ColumnDefinitions="Auto,*" Margin="0,2,0,0">
+                              <TextBlock Grid.Column="0" Text="·" Classes="sub" Margin="0,0,7,0" />
+                              <TextBlock Grid.Column="1" Text="{Binding}" Classes="sub"
+                                         TextWrapping="Wrap" />
+                            </Grid>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </StackPanel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+          </StackPanel>
+        </Border>
+
         <Border Classes="card">
           <StackPanel Spacing="10">
             <TextBlock Classes="label" Text="{DynamicResource S.Settings.About}" />

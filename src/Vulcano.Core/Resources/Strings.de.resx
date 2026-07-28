@@ -634,6 +634,18 @@
   <data name="Settings.Files.Hint" xml:space="preserve">
     <value>Einstellungen, Rampenprofile und exportierte Protokolle</value>
   </data>
+  <data name="Changelog" xml:space="preserve">
+    <value>Was sich geändert hat</value>
+  </data>
+  <data name="Changelog.Hint" xml:space="preserve">
+    <value>Neueste zuerst. Die laufende Version ist markiert.</value>
+  </data>
+  <data name="Changelog.Current" xml:space="preserve">
+    <value>installiert</value>
+  </data>
+  <data name="Changelog.WhatsNew" xml:space="preserve">
+    <value>Aktualisiert auf {0}</value>
+  </data>
   <data name="Settings.About" xml:space="preserve">
     <value>ÜBER</value>
   </data>

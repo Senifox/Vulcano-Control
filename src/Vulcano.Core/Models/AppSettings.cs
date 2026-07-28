@@ -25,6 +25,13 @@ public sealed class AppSettings
     /// </summary>
     public bool AutomaticUpdates { get; set; } = true;
 
+    /// <summary>
+    /// The version whose changes have already been shown. Updates install themselves while nobody
+    /// is watching, so without this a version arrives with no sign that anything is different.
+    /// Empty on a first install, which is deliberately not a moment to be told what changed.
+    /// </summary>
+    public string LastSeenVersion { get; set; } = "";
+
     /// <summary>Saved multi-point ramps, in the order shown in the profile picker.</summary>
     public List<RampProfile> RampProfiles { get; set; } = new();
 

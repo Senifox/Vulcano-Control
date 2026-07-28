@@ -51,6 +51,9 @@ public sealed class ShellViewModelTests : IAsyncDisposable
     private readonly VolcanoDeviceOrchestrator _device;
     private readonly ShellViewModel _shell;
 
+    /// <summary>The same instance the shell holds, so a test can set what it would have read.</summary>
+    private readonly AppSettings _settings;
+
     private static readonly RampPoint[] Points =
     [
         new(0, 180, CurveKind.Linear),
@@ -64,7 +67,7 @@ public sealed class ShellViewModelTests : IAsyncDisposable
         // on conditions rather than assuming anything about timing.
         _device = new VolcanoDeviceOrchestrator(() => _fake, log);
 
-        var settings = new AppSettings
+        _settings = new AppSettings
         {
             RampProfiles = [new RampProfile { Name = "Evening", Points = [.. Points], HoldMinutes = 0 }],
             ActiveRampProfileName = "Evening",
@@ -74,7 +77,7 @@ public sealed class ShellViewModelTests : IAsyncDisposable
             _device,
             new SettingsService(_settingsFile, []),
             new ThemeManager(),
-            settings,
+            _settings,
             log,
             new SoundService(_player, log) { SoundEnabled = true },
             _notifier);
@@ -221,6 +224,56 @@ public sealed class ShellViewModelTests : IAsyncDisposable
     public void The_simulation_chip_only_shows_for_a_simulated_device()
     {
         Assert.False(_shell.IsSimulated);
+    }
+
+    // --- What changed ---
+
+    /// <summary>
+    /// The version on disk changes while nobody is watching, so the first start on a new one is the
+    /// only chance to say what it brought. The changelog has to have an entry for it - the version
+    /// under test is the one this assembly reports, which is whatever is being built.
+    /// </summary>
+    [AvaloniaFact]
+    public void A_version_that_has_changed_is_announced_once()
+    {
+        var shipped = Vulcano.Core.Services.Changelog.Entries.First(e => !e.IsUnreleased);
+        _settings.LastSeenVersion = "0.0.1";
+
+        _shell.ShowWhatsNewIfVersionChanged(shipped.Version);
+
+        Assert.True(_shell.IsNoticeVisible);
+        Assert.Contains(shipped.Version, _shell.NoticeTitle);
+        Assert.Contains(shipped.Items[0], _shell.NoticeMessage);
+
+        // Once: the version has been seen now, so a second start says nothing.
+        _shell.DismissNoticeCommand.Execute(null);
+        _shell.ShowWhatsNewIfVersionChanged(shipped.Version);
+
+        Assert.False(_shell.IsNoticeVisible);
+    }
+
+    /// <summary>
+    /// A fresh install has not "updated" to anything. Being handed a list of what changed since a
+    /// version you never ran is noise at the worst moment - the first time the app is opened.
+    /// </summary>
+    [AvaloniaFact]
+    public void A_first_install_is_told_nothing()
+    {
+        _settings.LastSeenVersion = "";
+
+        _shell.ShowWhatsNewIfVersionChanged("2.3.0");
+
+        Assert.False(_shell.IsNoticeVisible);
+    }
+
+    [AvaloniaFact]
+    public void A_version_with_no_entry_says_nothing_rather_than_nothing_in_particular()
+    {
+        _settings.LastSeenVersion = "0.0.1";
+
+        _shell.ShowWhatsNewIfVersionChanged("99.0.0");
+
+        Assert.False(_shell.IsNoticeVisible);
     }
 
     // --- Updates ---

@@ -634,6 +634,18 @@
   <data name="Settings.Files.Hint" xml:space="preserve">
     <value>settings, ramp profiles and exported logs</value>
   </data>
+  <data name="Changelog" xml:space="preserve">
+    <value>What has changed</value>
+  </data>
+  <data name="Changelog.Hint" xml:space="preserve">
+    <value>Newest first. The version you are running is marked.</value>
+  </data>
+  <data name="Changelog.Current" xml:space="preserve">
+    <value>installed</value>
+  </data>
+  <data name="Changelog.WhatsNew" xml:space="preserve">
+    <value>Updated to {0}</value>
+  </data>
   <data name="Settings.About" xml:space="preserve">
     <value>ABOUT</value>
   </data>

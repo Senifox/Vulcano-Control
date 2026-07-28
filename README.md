@@ -54,6 +54,10 @@ other machines on the network.
 
 Settings, ramp profiles and the quick-pick temperatures are remembered across restarts.
 
+What changed in each version is in [CHANGELOG.md](CHANGELOG.md). The app ships that file inside
+itself and shows it under *Settings → What has changed*, and says what a version brought the first
+time you start it after an update — which matters here, because updates install themselves quietly.
+
 ## Requirements
 
 - Windows 10 (2004/build 19041 or later) or Windows 11

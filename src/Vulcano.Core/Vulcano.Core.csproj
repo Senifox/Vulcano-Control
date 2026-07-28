@@ -16,6 +16,12 @@
     <EmbeddedResource Update="Resources\Strings.de.resx">
       <Generator></Generator>
     </EmbeddedResource>
+
+    <!-- The changelog ships inside the assembly rather than beside it: the app updates itself in
+         the background, and notes that travel with the binary are the only ones guaranteed to
+         describe the version actually running. Linked from the repository root so there is one
+         file, readable on GitHub and by the app. -->
+    <EmbeddedResource Include="..\..\CHANGELOG.md" LogicalName="Vulcano.Core.CHANGELOG.md" />
   </ItemGroup>
 
 </Project>

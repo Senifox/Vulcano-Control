@@ -157,6 +157,50 @@ function Add-ReleaseAsset([string]$tag, [string]$file) {
     Write-Host "  attached: $name"
 }
 
+<#
+    Puts this version's changelog section into the release description.
+
+    The same file the app reads, so what somebody is told on GitHub and what the app shows them
+    afterwards cannot drift apart. A version with no section is left with an empty description
+    rather than a made-up one - a release note that says nothing is better than one that is wrong.
+#>
+function Set-ReleaseNotes([string]$tag, [string]$version) {
+    $changelog = Join-Path $root "CHANGELOG.md"
+    if (-not (Test-Path $changelog)) { return }
+
+    $lines = Get-Content $changelog
+    $notes = @()
+    $inSection = $false
+
+    foreach ($line in $lines) {
+        if ($line -match '^##\s+(\S+)') {
+            # The next version's heading ends this one.
+            if ($inSection) { break }
+            $inSection = ($Matches[1] -eq $version)
+            continue
+        }
+
+        if ($inSection) { $notes += $line }
+    }
+
+    $body = ($notes -join "`n").Trim()
+    if (-not $body) {
+        Write-Host "  no changelog section for $version - description left alone"
+        return
+    }
+
+    $slug = ($repoUrl -replace "^https://github\.com/", "")
+    $headers = @{ Authorization = "Bearer $Token"; "User-Agent" = "vulcano-release" }
+    $release = Invoke-RestMethod "https://api.github.com/repos/$slug/releases/tags/$tag" -Headers $headers
+
+    Invoke-RestMethod "https://api.github.com/repos/$slug/releases/$($release.id)" `
+        -Headers $headers -Method Patch `
+        -ContentType "application/json" `
+        -Body (@{ body = $body } | ConvertTo-Json) | Out-Null
+
+    Write-Host "  description set from CHANGELOG.md"
+}
+
 Write-Host ""
 Write-Host "Extra assets..."
 
@@ -164,6 +208,8 @@ Write-Host "Extra assets..."
 # is a separate application to the installer, and its settings sit in the folder this installer
 # clears. Shipping it with the release is the difference between finding it and losing the profiles.
 Add-ReleaseAsset "v$Version" (Join-Path $root "Cleanup.ps1")
+
+Set-ReleaseNotes "v$Version" $Version
 
 Write-Host ""
 Write-Host "Release v$Version veroeffentlicht: $repoUrl/releases/tag/v$Version"

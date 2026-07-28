@@ -33,6 +33,8 @@ public enum AppTab
 public partial class ShellViewModel : ObservableObject, IAsyncDisposable
 {
     private readonly VolcanoDeviceOrchestrator _device;
+    private readonly SettingsService _settingsService;
+    private readonly AppSettings _settings;
     private readonly LogService _log;
     private readonly SoundService? _sound;
     private readonly INotifier? _notifier;
@@ -115,6 +117,21 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
             _noticeTimer.Start();
         });
 
+    /// <summary>
+    /// Says what a newly arrived version changed, once. Shown without the eight-second timer the
+    /// other notices get: those report something that just happened and is still true a minute
+    /// later, this one is the only chance to mention a version that installed itself while nobody
+    /// was looking. It goes when it is dismissed.
+    /// </summary>
+    private void ShowWhatsNew(ChangelogEntry entry)
+    {
+        _noticeTimer?.Stop();
+
+        NoticeTitle = Strings.Get("Changelog.WhatsNew", entry.Version);
+        NoticeMessage = string.Join("\n", entry.Items.Select(item => $"· {item}"));
+        IsNoticeVisible = true;
+    }
+
     private void OnNoticeExpired(object? sender, EventArgs e)
     {
         _noticeTimer?.Stop();
@@ -140,6 +157,8 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
         IUpdateSource? updateSource = null)
     {
         _device = device;
+        _settingsService = settingsService;
+        _settings = settings;
         _log = log;
         _sound = sound;
         _notifier = notifier;
@@ -247,6 +266,24 @@ public partial class ShellViewModel : ObservableObject, IAsyncDisposable
     /// to the network, and nothing on the way to a visible window should wait on a server.
     /// </summary>
     public Task CheckForUpdatesAsync(bool automatic) => Update.RunStartupCheckAsync(automatic);
+
+    /// <summary>
+    /// Shows what changed, if this is the first start on a version the person has not seen. Nothing
+    /// on a first install - somebody who has just installed the app is not owed a list of what is
+    /// different from a version they never ran - and nothing when the changelog has no entry for
+    /// it, which is better than an empty panel saying "what's new".
+    /// </summary>
+    public void ShowWhatsNewIfVersionChanged(string runningVersion)
+    {
+        var seen = _settings.LastSeenVersion;
+
+        _settings.LastSeenVersion = runningVersion;
+        _settingsService.Save(_settings);
+
+        if (string.IsNullOrEmpty(seen) || seen == runningVersion) return;
+
+        if (Changelog.For(runningVersion) is { } entry) ShowWhatsNew(entry);
+    }
 
     public bool IsConnected => ConnectionState == ConnectionState.Connected;
 

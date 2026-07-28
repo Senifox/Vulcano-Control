@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
@@ -14,6 +15,24 @@ namespace Vulcano.App.ViewModels;
 
 /// <summary>A time-axis mode plus the name it goes by in the interface.</summary>
 public sealed record TimeAxisOption(TimeAxisMode Mode, string Name);
+
+/// <summary>
+/// One version in the changelog list. The heading is assembled here rather than in the view so the
+/// two halves - a version that is always a version, and a date that may be missing - do not become
+/// a binding with a trailing separator hanging off it.
+/// </summary>
+public sealed class ChangelogEntryViewModel(ChangelogEntry entry)
+{
+    public string Heading => string.IsNullOrEmpty(entry.Date)
+        ? entry.Version
+        : $"{entry.Version} · {entry.Date}";
+
+    public IReadOnlyList<string> Items => entry.Items;
+
+    /// <summary>The version this app is running, called out in the list so it is obvious which of
+    /// these you actually have.</summary>
+    public bool IsCurrent { get; init; }
+}
 
 /// <summary>
 /// A language and its own name for itself. Deliberately not translated: a list that reads
@@ -150,6 +169,19 @@ public partial class SettingsViewModel : ObservableObject
         Assembly.GetEntryAssembly()?.GetName().Version?.ToString(3) ?? "0.0.0";
 
     public string BuildNote => "Avalonia 11 · net10.0";
+
+    /// <summary>
+    /// What changed, newest first. The unreleased section is left out here: it describes a build
+    /// nobody running this has, and reading about changes you do not have is worse than not
+    /// reading about them.
+    /// </summary>
+    public IReadOnlyList<ChangelogEntryViewModel> Changelog =>
+        Core.Services.Changelog.Entries
+            .Where(e => !e.IsUnreleased)
+            .Select(e => new ChangelogEntryViewModel(e) { IsCurrent = e.Version == Version })
+            .ToList();
+
+    public bool HasChangelog => Core.Services.Changelog.Entries.Count > 0;
 
     partial void OnThemeChanged(AppTheme value)
     {

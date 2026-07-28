@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Reflection;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
@@ -61,6 +62,11 @@ public partial class App : Application
             // that is slow to answer must not be able to delay the app coming up. Whatever it finds
             // is downloaded and then waits for the app to be closed - see UpdateViewModel.
             _ = _shell.CheckForUpdatesAsync(settings.AutomaticUpdates);
+
+            // The other half of updating in the background: saying so afterwards. The version on
+            // disk changed while nobody was watching, so this is the one moment to mention it.
+            _shell.ShowWhatsNewIfVersionChanged(
+                Assembly.GetEntryAssembly()?.GetName().Version?.ToString(3) ?? "");
 
             desktop.ShutdownRequested += async (_, _) =>
             {
