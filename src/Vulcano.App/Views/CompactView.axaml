@@ -55,7 +55,7 @@
          cannot be squeezed: it is the reason this window exists, and a reading clipped to its first
          digit is worse than no reading at all - 185 that renders as 1 is not obviously wrong.
          Whatever is short of room, it is the buttons, and they are 34 px squares with tooltips. -->
-    <Grid Grid.Row="1" ColumnDefinitions="Auto,*" Margin="14,10,12,12">
+    <Grid Grid.Row="1" ColumnDefinitions="Auto,*" Margin="14,4,12,6">
 
       <StackPanel Grid.Column="0" VerticalAlignment="Center">
         <StackPanel Orientation="Horizontal" Spacing="3">

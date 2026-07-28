@@ -17,10 +17,26 @@ namespace Vulcano.App.Views;
 /// </summary>
 public partial class MainWindow : Window
 {
-    /// <summary>Compact mode is 360 x 150; the full window's size is remembered so leaving it
-    /// puts everything back where it was rather than at some default.</summary>
+    /// <summary>
+    /// Compact mode is 360 wide; the full window's size is remembered so leaving it puts everything
+    /// back where it was rather than at some default.
+    ///
+    /// The height is not a number here. It used to be - 150 - and the window came out around 190 px
+    /// tall for content needing barely 105, which is where the empty bottom third came from: with
+    /// ExtendClientAreaToDecorationsHint the height set on the window and the height it ends up
+    /// occupying differ by the system title bar, and that difference was being paid twice over.
+    /// Letting the layout decide is both smaller and honest, and it survives whatever that offset
+    /// turns out to be on a machine that is not this one.
+    ///
+    /// What keeps it readable is inside the view: the temperature's line height has to clear its
+    /// own 48 px font or the digits are cut off at the top, which is how this window once showed a
+    /// three-digit reading as a single 2.
+    /// </summary>
     private const double CompactWidth = 360;
-    private const double CompactHeight = 150;
+
+    /// <summary>Never smaller than this, whatever the content does - a window that has collapsed to
+    /// its title bar cannot be got out of again except from the taskbar.</summary>
+    private const double CompactMinHeight = 80;
 
     private double _fullWidth;
     private double _fullHeight;
@@ -122,13 +138,19 @@ public partial class MainWindow : Window
             _fullHeight = Height;
 
             MinWidth = CompactWidth;
-            MinHeight = CompactHeight;
+            MinHeight = CompactMinHeight;
             Width = CompactWidth;
-            Height = CompactHeight;
             CanResize = false;
+
+            // The width stays fixed and the height follows the content, which is the only way to
+            // get "exactly as tall as it needs" without guessing at what the window manager adds.
+            SizeToContent = SizeToContent.Height;
         }
         else
         {
+            // Back to a height this window controls, before restoring the one it had.
+            SizeToContent = SizeToContent.Manual;
+
             CanResize = true;
             Width = _fullWidth;
             Height = _fullHeight;
