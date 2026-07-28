@@ -7,6 +7,11 @@ Each version is a `## ` heading of `version — date`, and everything under it i
 
 ## Unreleased
 
+## 2.4.1 — 2026-07-27
+
+- Nothing you will notice. The app is unchanged; this release exists to exercise the packaging after
+  it was reworked, and is noted here so a version that appears out of nowhere has an explanation.
+
 ## 2.4.0 — 2026-07-27
 
 - This list. Settings has a *What has changed* card, and after an update the app says once what the
