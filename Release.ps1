@@ -48,6 +48,11 @@ param(
     # out. For fixing up a release, and for exercising that path without cutting a new one.
     [switch]$AttachOnly,
 
+    # How many full packages to keep in .\Releases after packing. One is what a delta needs; the
+    # second is insurance. Set higher to keep more history locally - every version is on its
+    # GitHub release regardless.
+    [int]$KeepPackages = 2,
+
     [string]$Token = $env:GITHUB_TOKEN
 )
 
@@ -88,6 +93,38 @@ if ($strays) {
     Write-Host "Moved $($strays.Count) package(s) from the preview id into: $archive"
 }
 
+<#
+    Drops packages older than the last few.
+
+    vpk builds one delta, against the newest full package, so that is the only one a future release
+    needs. The rest accumulate at 54 MB a version and are already on the GitHub release they belong
+    to - keeping them locally is keeping a second copy of something nobody reads.
+
+    Two are kept rather than one: the newest is what the next delta is built from, and the one
+    behind it costs little and means a release that has to be re-cut still has something to fall
+    back on. Deltas are matched to the fulls they were built alongside.
+#>
+function Remove-SupersededPackages {
+    $fulls = Get-ChildItem $releasesDir -Filter "*-full.nupkg" -File -ErrorAction SilentlyContinue |
+             Sort-Object LastWriteTime -Descending
+
+    if ($fulls.Count -le $KeepPackages) { return }
+
+    $doomed = $fulls | Select-Object -Skip $KeepPackages
+    $freed = 0
+
+    foreach ($full in $doomed) {
+        $version = $full.Name -replace "^$packId-", "" -replace "-full\.nupkg$", ""
+        foreach ($file in Get-ChildItem $releasesDir -Filter "$packId-$version-*.nupkg" -File) {
+            $freed += $file.Length
+            Remove-Item $file.FullName -Force
+        }
+    }
+
+    Write-Host ("Removed {0} superseded package(s), {1:N0} MB - they are on their GitHub release." -f `
+        $doomed.Count, ($freed / 1MB))
+}
+
 if (-not $AttachOnly) {
     if (Test-Path $publishDir) { Remove-Item $publishDir -Recurse -Force }
 
@@ -104,6 +141,8 @@ if (-not $AttachOnly) {
 
     Write-Host ""
     Write-Host "Paket erstellt in: $releasesDir"
+
+    Remove-SupersededPackages
 }
 
 if (-not $Publish) {
