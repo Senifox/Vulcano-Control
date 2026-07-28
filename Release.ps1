@@ -103,6 +103,11 @@ if ($strays) {
     Two are kept rather than one: the newest is what the next delta is built from, and the one
     behind it costs little and means a release that has to be re-cut still has something to fall
     back on. Deltas are matched to the fulls they were built alongside.
+
+    Called before packing, not after. vpk writes the feed from whatever is in the directory, so
+    pruning afterwards leaves the feed naming packages that are no longer there - and that feed is
+    what goes up with the release. It happened once, in 2.4.1, which lists a 2.3.0 that is not among
+    its assets.
 #>
 function Remove-SupersededPackages {
     $fulls = Get-ChildItem $releasesDir -Filter "*-full.nupkg" -File -ErrorAction SilentlyContinue |
@@ -126,6 +131,8 @@ function Remove-SupersededPackages {
 }
 
 if (-not $AttachOnly) {
+    Remove-SupersededPackages
+
     if (Test-Path $publishDir) { Remove-Item $publishDir -Recurse -Force }
 
     dotnet publish $project -c Release -r win-x64 --self-contained true -o $publishDir
@@ -142,7 +149,6 @@ if (-not $AttachOnly) {
     Write-Host ""
     Write-Host "Paket erstellt in: $releasesDir"
 
-    Remove-SupersededPackages
 }
 
 if (-not $Publish) {
