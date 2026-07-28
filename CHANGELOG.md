@@ -7,6 +7,10 @@ Each version is a `## ` heading of `version — date`, and everything under it i
 
 ## Unreleased
 
+## 2.4.0 — 2026-07-27
+
+- This list. Settings has a *What has changed* card, and after an update the app says once what the
+  new version brought — worth having now that updates install themselves quietly.
 - The compact window is now only as tall as what it shows. It used to leave about a third of itself
   empty.
 
