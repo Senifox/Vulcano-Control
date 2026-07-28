@@ -99,6 +99,25 @@ public sealed class ChangelogTests
         Assert.Equal(date, entry.Date);
     }
 
+    /// <summary>
+    /// An Unreleased heading with nothing under it is what the file looks like from the moment a
+    /// release is cut until the next change lands. It is not an entry and not a mistake.
+    /// </summary>
+    [Fact]
+    public void A_heading_with_nothing_under_it_is_not_an_entry()
+    {
+        var entries = Changelog.Parse("""
+            ## Unreleased
+
+            ## 2.4.0 — 2026-07-27
+
+            - Something that shipped.
+            """);
+
+        var entry = Assert.Single(entries);
+        Assert.Equal("2.4.0", entry.Version);
+    }
+
     [Fact]
     public void Nothing_at_all_is_no_entries_rather_than_a_failure()
     {

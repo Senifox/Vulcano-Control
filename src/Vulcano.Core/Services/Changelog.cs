@@ -52,7 +52,10 @@ public static class Changelog
 
         void Flush()
         {
-            if (version is null) return;
+            // A heading with nothing under it is not an entry. That is the normal state of the
+            // Unreleased section for as long as nothing is waiting in it, and a heading describing
+            // no changes is not worth showing to anyone or worth calling a mistake.
+            if (version is null || items.Count == 0) return;
 
             entries.Add(new ChangelogEntry(version, date, items));
             items = new List<string>();
