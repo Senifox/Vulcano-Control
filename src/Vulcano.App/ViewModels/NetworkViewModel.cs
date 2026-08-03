@@ -91,11 +91,25 @@ public partial class NetworkViewModel : ObservableObject, IDisposable
     private string _hostError = "";
 
     /// <summary>
-    /// True once this session has started hosting by itself, so it happens at most once. Without
-    /// it, a connection that drops and comes back would restart hosting that somebody had
-    /// deliberately stopped in between.
+    /// Set when hosting is stopped by hand, and never cleared. Sharing that somebody switched off
+    /// stays off for the rest of the session, however often the device comes and goes - an app that
+    /// turns a switch back on because it disagrees is an app nobody can turn off.
+    ///
+    /// Stopping that this view model did itself does not set it, which is what lets sharing come
+    /// back when a device that went away returns.
     /// </summary>
-    private bool _hasAutoHosted;
+    private bool _autoHostSuspended;
+
+    /// <summary>
+    /// Runs while the device is gone, and closes the sharing when it fires. A connection that drops
+    /// mid-ramp is treated everywhere else as temporary - the ramp pauses and resumes by itself -
+    /// so closing at the first sign of trouble would throw every client out of a run that was never
+    /// actually interrupted. Long enough to sit out a stumble, short enough that a Volcano switched
+    /// off at the end of an evening does not leave a server running behind it.
+    /// </summary>
+    private DispatcherTimer? _graceTimer;
+
+    private readonly TimeSpan _hostGracePeriod;
 
     [ObservableProperty]
     private string _joinAddress = "";
@@ -121,7 +135,18 @@ public partial class NetworkViewModel : ObservableObject, IDisposable
     [NotifyPropertyChangedFor(nameof(CanHost))]
     [NotifyPropertyChangedFor(nameof(RemoteBanner))]
     [NotifyPropertyChangedFor(nameof(IsLatencyVisible))]
+    [NotifyCanExecuteChangedFor(nameof(StartHostingCommand))]
     private bool _isRemote;
+
+    /// <summary>
+    /// Whether this machine has a device of its own. Sharing is offered only then: a server with
+    /// nothing behind it gives whoever joins an empty connection, and the button that starts one
+    /// should not be available for that.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowConnectFirstHint))]
+    [NotifyCanExecuteChangedFor(nameof(StartHostingCommand))]
+    private bool _isConnected;
 
     /// <summary>The last round trip to the host, or null when none came back.</summary>
     [ObservableProperty]
@@ -129,16 +154,21 @@ public partial class NetworkViewModel : ObservableObject, IDisposable
     [NotifyPropertyChangedFor(nameof(IsLatencySlow))]
     private TimeSpan? _latency;
 
+    /// <param name="hostGracePeriod">How long a lost device may stay lost before the sharing is
+    /// closed. Injectable so a test does not have to wait out the real one.</param>
     public NetworkViewModel(
         VolcanoDeviceOrchestrator device,
         SettingsService settingsService,
         AppSettings settings,
-        LogService log)
+        LogService log,
+        TimeSpan? hostGracePeriod = null)
     {
         _device = device;
         _settingsService = settingsService;
         _settings = settings;
         _log = log;
+        _hostGracePeriod = hostGracePeriod ?? TimeSpan.FromSeconds(30);
+        _isConnected = device.State == ConnectionState.Connected;
 
         _port = settings.RelayServerPort;
         _pin = settings.RelayPin;
@@ -202,14 +232,25 @@ public partial class NetworkViewModel : ObservableObject, IDisposable
 
     public bool HasClients => Clients.Count > 0;
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanStartHosting))]
     private void StartHosting() => StartHosting(automatic: false);
+
+    /// <summary>Only with a device of this machine's own, and not while borrowing someone else's.</summary>
+    private bool CanStartHosting() => IsConnected && !IsRemote;
+
+    /// <summary>Says why the button is unavailable, rather than leaving a grey button to explain
+    /// itself.</summary>
+    public bool ShowConnectFirstHint => !IsConnected && !IsRemote;
 
     /// <param name="automatic">True when this came from the setting rather than the button. Only
     /// changes what is said about a failure: somebody who pressed a button is watching for the
     /// answer, somebody whose device just connected is not.</param>
     private void StartHosting(bool automatic)
     {
+        // Checked here as well as on the command: ICommand.Execute never consults CanExecute, so a
+        // binding or a later caller can walk straight past it.
+        if (!CanStartHosting()) return;
+
         HostError = "";
 
         try
@@ -232,8 +273,18 @@ public partial class NetworkViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private async Task StopHostingAsync()
     {
+        // By hand, so it stays off for the rest of the session.
+        _autoHostSuspended = true;
+        StopGraceTimer();
+
+        await StopHostingInternalAsync();
+    }
+
+    private async Task StopHostingInternalAsync()
+    {
         await _device.StopHostingAsync();
         IsHosting = _device.IsHosting;
+        HostError = "";
         RefreshClients();
     }
 
@@ -333,31 +384,91 @@ public partial class NetworkViewModel : ObservableObject, IDisposable
         {
             IsRemote = _device.IsRemote;
             IsHosting = _device.IsHosting;
+            IsConnected = !IsRemote && state == ConnectionState.Connected;
 
             // Leaving takes the number with it: a millisecond count left over from a host this
             // instance is no longer talking to is worse than no number.
             if (!IsRemote) Latency = null;
 
-            AutoHostIfWanted(state);
+            FollowTheDevice(state);
         });
 
     /// <summary>
-    /// Starts sharing by itself, the moment this machine has a device of its own to share.
+    /// Sharing follows the device: it exists while this machine has one to share and not otherwise.
     ///
-    /// Not at application start, which is what the setting used to be called and what it never in
-    /// fact did: hosting before there is a device gives anyone who joins an empty connection to
-    /// look at. And not when this instance is a client - it is borrowing someone else's device, and
-    /// passing it on is not ours to do.
+    /// Deliberately not tied to the app starting, which is what the setting used to be called and
+    /// what it never in fact did. Hosting before there is a device hands whoever joins an empty
+    /// connection; hosting after it has gone leaves a server nobody can get anything out of.
     /// </summary>
-    private void AutoHostIfWanted(ConnectionState state)
+    private void FollowTheDevice(ConnectionState state)
     {
-        if (!HostOnStart || _hasAutoHosted) return;
-        if (state != ConnectionState.Connected || IsRemote || IsHosting) return;
+        if (IsRemote) return;
 
-        _hasAutoHosted = true;
+        if (state == ConnectionState.Connected)
+        {
+            StopGraceTimer();
+            AutoHostIfWanted();
+            return;
+        }
+
+        if (!IsHosting) return;
+
+        // Told to go, rather than having gone: no reason to wait and see.
+        if (state == ConnectionState.Disconnected)
+        {
+            CloseSharing();
+            return;
+        }
+
+        // Lost, which may only be for a moment. Scanning and connecting are on the way back.
+        if (state == ConnectionState.Error) StartGraceTimer();
+    }
+
+    private void AutoHostIfWanted()
+    {
+        if (!HostOnStart || _autoHostSuspended || IsHosting) return;
+
         StartHosting(automatic: true);
 
         if (IsHosting) _log.Log(Strings.Get("Log.HostingAuto", _device.HostingPort ?? Port));
+    }
+
+    private void StartGraceTimer()
+    {
+        if (_graceTimer is not null) return;
+
+        _graceTimer = new DispatcherTimer { Interval = _hostGracePeriod };
+        _graceTimer.Tick += OnGraceExpired;
+        _graceTimer.Start();
+    }
+
+    private void StopGraceTimer()
+    {
+        if (_graceTimer is null) return;
+
+        _graceTimer.Stop();
+        _graceTimer.Tick -= OnGraceExpired;
+        _graceTimer = null;
+    }
+
+    private void OnGraceExpired(object? sender, EventArgs e)
+    {
+        StopGraceTimer();
+
+        if (_device.State != ConnectionState.Connected) CloseSharing();
+    }
+
+    /// <summary>
+    /// Closes the sharing because there is no longer a device behind it. Not a manual stop, so it
+    /// can come back when the device does - that is the difference this and
+    /// <see cref="StopHostingAsync"/> exist to keep.
+    /// </summary>
+    private void CloseSharing()
+    {
+        StopGraceTimer();
+        _log.Log(Strings.Get("Log.HostingClosed"));
+
+        _ = StopHostingInternalAsync();
     }
 
     public bool HasHostError => HostError.Length > 0;
@@ -394,6 +505,7 @@ public partial class NetworkViewModel : ObservableObject, IDisposable
         _device.ConnectionStateChanged -= OnConnectionStateChanged;
         _device.RelayLatencyChanged -= OnRelayLatencyChanged;
         _device.HostedClientLatencyChanged -= OnHostedClientLatencyChanged;
+        StopGraceTimer();
     }
 
     /// <summary>Re-reads every computed label. Called after a language change; passing a

@@ -442,6 +442,12 @@
   <data name="Network.Share.Title" xml:space="preserve">
     <value>Dieses Gerät freigeben</value>
   </data>
+  <data name="Log.HostingClosed" xml:space="preserve">
+    <value>Freigabe geschlossen - dieser Rechner hat kein Gerät mehr, das er teilen könnte.</value>
+  </data>
+  <data name="Network.ConnectFirst" xml:space="preserve">
+    <value>Erst mit dem Vulcano verbinden - vorher gibt es nichts freizugeben.</value>
+  </data>
   <data name="Network.Share.Hint" xml:space="preserve">
     <value>Ein Rechner hält die Bluetooth-Verbindung, die anderen steuern über das Netzwerk mit.</value>
   </data>

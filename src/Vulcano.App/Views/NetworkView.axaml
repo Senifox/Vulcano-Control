@@ -63,6 +63,11 @@
             <TextBlock Text="{Binding HostError}" Classes="footnote warn" TextWrapping="Wrap"
                        IsVisible="{Binding HasHostError}" />
 
+            <!-- Why the button below is unavailable, rather than leaving it to explain itself. -->
+            <TextBlock Text="{DynamicResource S.Network.ConnectFirst}"
+                       Classes="footnote" TextWrapping="Wrap"
+                       IsVisible="{Binding ShowConnectFirstHint}" />
+
             <StackPanel Orientation="Horizontal" Spacing="10">
               <Button Theme="{StaticResource PrimaryButton}"
                       Content="{DynamicResource S.Action.StartHosting}"

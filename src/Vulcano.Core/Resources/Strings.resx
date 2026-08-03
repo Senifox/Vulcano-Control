@@ -442,6 +442,12 @@
   <data name="Network.Share.Title" xml:space="preserve">
     <value>Share this device</value>
   </data>
+  <data name="Log.HostingClosed" xml:space="preserve">
+    <value>Sharing closed - this machine no longer has a device to share.</value>
+  </data>
+  <data name="Network.ConnectFirst" xml:space="preserve">
+    <value>Connect to the Volcano first - there is nothing to share until then.</value>
+  </data>
   <data name="Network.Share.Hint" xml:space="preserve">
     <value>One machine keeps the Bluetooth connection; the others steer it over the network.</value>
   </data>

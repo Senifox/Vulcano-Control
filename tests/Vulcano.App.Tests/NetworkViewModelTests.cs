@@ -18,6 +18,8 @@ public sealed class NetworkViewModelTests : IDisposable
 {
     private const string Pin = "2468";
 
+    private static readonly TimeSpan GracePeriod = TimeSpan.FromMilliseconds(800);
+
     private readonly List<string> _files = new();
     private readonly List<IDisposable> _disposables = new();
 
@@ -46,7 +48,9 @@ public sealed class NetworkViewModelTests : IDisposable
             RelayPin = pin,
             HostOnStart = hostOnStart,
         };
-        var vm = new NetworkViewModel(orchestrator, settingsService, settings, log);
+        // Long enough that "closed at once" and "closed after the grace period" are far enough
+        // apart to tell from each other, short enough not to slow the suite down.
+        var vm = new NetworkViewModel(orchestrator, settingsService, settings, log, GracePeriod);
 
         _disposables.Add(vm);
         return new Side(orchestrator, vm, fake);
@@ -63,6 +67,24 @@ public sealed class NetworkViewModelTests : IDisposable
 
     private static void Pump() => Dispatcher.UIThread.RunJobs();
 
+    /// <summary>
+    /// Connects the side's own device, which sharing now requires: a server with nothing behind it
+    /// is not something the button offers any more.
+    /// </summary>
+    private static async Task ConnectAsync(Side side)
+    {
+        await side.Device.ScanAndConnectAsync();
+        Pump();
+    }
+
+    /// <summary>Connected and sharing - the state most of these tests start from.</summary>
+    private static async Task HostAsync(Side side)
+    {
+        await ConnectAsync(side);
+        side.ViewModel.StartHostingCommand.Execute(null);
+        Assert.True(side.ViewModel.IsHosting, "the side should be hosting");
+    }
+
     private static async Task JoinAsync(Side client, Side host, bool watcher = false)
     {
         client.ViewModel.JoinAddress = "127.0.0.1";
@@ -77,11 +99,11 @@ public sealed class NetworkViewModelTests : IDisposable
     // --- Hosting ---
 
     [AvaloniaFact]
-    public void Hosting_starts_and_the_address_gains_a_port()
+    public async Task Hosting_starts_and_the_address_gains_a_port()
     {
         var host = CreateSide();
 
-        host.ViewModel.StartHostingCommand.Execute(null);
+        await HostAsync(host);
 
         Assert.True(host.ViewModel.IsHosting);
         Assert.True(host.Device.HostingPort > 0);
@@ -92,7 +114,7 @@ public sealed class NetworkViewModelTests : IDisposable
     public async Task Hosting_stops_again()
     {
         var host = CreateSide();
-        host.ViewModel.StartHostingCommand.Execute(null);
+        await HostAsync(host);
 
         await host.ViewModel.StopHostingCommand.ExecuteAsync(null);
 
@@ -126,8 +148,7 @@ public sealed class NetworkViewModelTests : IDisposable
 
         Assert.False(side.ViewModel.IsHosting);
 
-        await side.Device.ScanAndConnectAsync();
-        Pump();
+        await ConnectAsync(side);
 
         Assert.True(side.ViewModel.IsHosting);
         Assert.True(side.Device.HostingPort > 0);
@@ -138,8 +159,7 @@ public sealed class NetworkViewModelTests : IDisposable
     {
         var side = CreateSide();
 
-        await side.Device.ScanAndConnectAsync();
-        Pump();
+        await ConnectAsync(side);
 
         Assert.False(side.ViewModel.IsHosting);
     }
@@ -153,7 +173,7 @@ public sealed class NetworkViewModelTests : IDisposable
     {
         var host = CreateSide();
         var client = CreateSide(hostOnStart: true);
-        host.ViewModel.StartHostingCommand.Execute(null);
+        await HostAsync(host);
 
         await JoinAsync(client, host);
 
@@ -172,8 +192,7 @@ public sealed class NetworkViewModelTests : IDisposable
     {
         var side = CreateSide(hostOnStart: true);
 
-        await side.Device.ScanAndConnectAsync();
-        Pump();
+        await ConnectAsync(side);
         Assert.True(side.ViewModel.IsHosting);
 
         await side.ViewModel.StopHostingCommand.ExecuteAsync(null);
@@ -195,10 +214,124 @@ public sealed class NetworkViewModelTests : IDisposable
     {
         var side = CreateSide(hostOnStart: true, pin: "");
 
-        await side.Device.ScanAndConnectAsync();
+        await ConnectAsync(side);
+
+        Assert.True(side.ViewModel.IsHosting);
+    }
+
+    // --- Sharing follows the device ---
+
+    /// <summary>Nothing to share, nothing to offer. The button used to be available with no device
+    /// behind it, which produced a server anyone could join and get nothing out of.</summary>
+    [AvaloniaFact]
+    public async Task Sharing_cannot_be_started_before_there_is_a_device()
+    {
+        var side = CreateSide();
+
+        // Said out loud because the fake reports itself connected from the moment it exists, which
+        // a Volcano does not - this is the state a real one starts in.
+        side.Fake.ReportConnectionState(ConnectionState.Disconnected);
+        Pump();
+
+        Assert.False(side.ViewModel.StartHostingCommand.CanExecute(null));
+        Assert.True(side.ViewModel.ShowConnectFirstHint);
+
+        // Not just the button: the command refuses too, so a binding cannot get around it.
+        side.ViewModel.StartHostingCommand.Execute(null);
+        Assert.False(side.ViewModel.IsHosting);
+
+        await ConnectAsync(side);
+
+        Assert.True(side.ViewModel.StartHostingCommand.CanExecute(null));
+        Assert.False(side.ViewModel.ShowConnectFirstHint);
+    }
+
+    [AvaloniaFact]
+    public async Task Disconnecting_on_purpose_closes_the_sharing_at_once()
+    {
+        var side = CreateSide();
+        await HostAsync(side);
+
+        side.Fake.ReportConnectionState(ConnectionState.Disconnected);
+
+        // Well inside the grace period, which is what "at once" means here: told to go is not the
+        // same as having gone, and there is nothing to wait and see about.
+        await Wait.ForAsync(
+            () => { Pump(); return !side.ViewModel.IsHosting; },
+            "the sharing to close without waiting out the grace period",
+            GracePeriod / 3);
+    }
+
+    /// <summary>
+    /// A connection that drops mid-ramp is temporary everywhere else in the app - the ramp pauses
+    /// and resumes by itself - so closing at the first sign of it would throw every client out of a
+    /// run that was never really interrupted.
+    /// </summary>
+    [AvaloniaFact]
+    public async Task A_connection_that_comes_straight_back_leaves_the_sharing_alone()
+    {
+        var side = CreateSide();
+        await HostAsync(side);
+
+        side.Fake.ReportConnectionState(ConnectionState.Error);
+        Pump();
+        Assert.True(side.ViewModel.IsHosting, "a stumble must not close it");
+
+        side.Fake.ReportConnectionState(ConnectionState.Connected);
+        Pump();
+
+        // Past the grace period, to prove the timer was called off rather than merely not yet
+        // fired - which is the difference between surviving a stumble and being lucky.
+        await Task.Delay(GracePeriod * 2);
         Pump();
 
         Assert.True(side.ViewModel.IsHosting);
+    }
+
+    /// <summary>A device switched off at the end of an evening is the same state as a stumble, only
+    /// it does not come back - and then the server behind it has no reason to stay up.</summary>
+    [AvaloniaFact]
+    public async Task A_device_that_stays_away_closes_the_sharing()
+    {
+        var side = CreateSide();
+        await HostAsync(side);
+
+        side.Fake.ReportConnectionState(ConnectionState.Error);
+
+        await Wait.ForAsync(() => { Pump(); return !side.ViewModel.IsHosting; }, "the sharing to close");
+    }
+
+    /// <summary>What was closed because the device went away comes back when the device does.</summary>
+    [AvaloniaFact]
+    public async Task Sharing_closed_by_a_lost_device_returns_with_it()
+    {
+        var side = CreateSide(hostOnStart: true);
+        await ConnectAsync(side);
+        Assert.True(side.ViewModel.IsHosting);
+
+        side.Fake.ReportConnectionState(ConnectionState.Error);
+        await Wait.ForAsync(() => { Pump(); return !side.ViewModel.IsHosting; }, "the sharing to close");
+
+        side.Fake.ReportConnectionState(ConnectionState.Connected);
+        Pump();
+
+        Assert.True(side.ViewModel.IsHosting);
+    }
+
+    /// <summary>But what somebody switched off stays off, however often the device comes and goes.</summary>
+    [AvaloniaFact]
+    public async Task Sharing_stopped_by_hand_stays_stopped_across_a_lost_device()
+    {
+        var side = CreateSide(hostOnStart: true);
+        await ConnectAsync(side);
+        await side.ViewModel.StopHostingCommand.ExecuteAsync(null);
+
+        side.Fake.ReportConnectionState(ConnectionState.Error);
+        Pump();
+        side.Fake.ReportConnectionState(ConnectionState.Connected);
+        Pump();
+
+        Assert.False(side.ViewModel.IsHosting);
     }
 
     // --- Joining ---
@@ -208,7 +341,7 @@ public sealed class NetworkViewModelTests : IDisposable
     {
         var host = CreateSide();
         var client = CreateSide();
-        host.ViewModel.StartHostingCommand.Execute(null);
+        await HostAsync(host);
 
         await JoinAsync(client, host);
 
@@ -225,7 +358,7 @@ public sealed class NetworkViewModelTests : IDisposable
     {
         var host = CreateSide();
         var client = CreateSide();
-        host.ViewModel.StartHostingCommand.Execute(null);
+        await HostAsync(host);
 
         client.ViewModel.JoinAddress = "127.0.0.1";
         client.ViewModel.JoinPort = host.Device.HostingPort ?? 0;
@@ -244,7 +377,7 @@ public sealed class NetworkViewModelTests : IDisposable
     {
         var host = CreateSide();
         var client = CreateSide();
-        host.ViewModel.StartHostingCommand.Execute(null);
+        await HostAsync(host);
 
         await JoinAsync(client, host, watcher: true);
 
@@ -257,7 +390,7 @@ public sealed class NetworkViewModelTests : IDisposable
     {
         var host = CreateSide();
         var client = CreateSide();
-        host.ViewModel.StartHostingCommand.Execute(null);
+        await HostAsync(host);
         await JoinAsync(client, host);
 
         await client.ViewModel.LeaveCommand.ExecuteAsync(null);
@@ -273,7 +406,7 @@ public sealed class NetworkViewModelTests : IDisposable
     {
         var host = CreateSide();
         var client = CreateSide();
-        host.ViewModel.StartHostingCommand.Execute(null);
+        await HostAsync(host);
         await JoinAsync(client, host);
         await Wait.ForAsync(() => { Pump(); return host.ViewModel.Clients.Count == 1; }, "the client to be listed");
 
@@ -289,7 +422,7 @@ public sealed class NetworkViewModelTests : IDisposable
     {
         var host = CreateSide();
         var client = CreateSide();
-        host.ViewModel.StartHostingCommand.Execute(null);
+        await HostAsync(host);
 
         Assert.True(client.ViewModel.CanHost);
 

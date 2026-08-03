@@ -7,6 +7,15 @@ Each version is a `## ` heading of `version — date`, and everything under it i
 
 ## Unreleased
 
+## 2.4.3 — 2026-07-27
+
+- Sharing now follows the device. It closes when this machine loses the Volcano — a shared device
+  nobody is connected to is of no use to whoever joined — and comes back when the device does. A
+  connection that drops for a moment is given half a minute to return first, so a stumble during a
+  ramp no longer throws everyone off a run that the app itself just pauses and resumes.
+- Sharing can only be started once this machine is connected to the Volcano. The button says so
+  while it cannot.
+
 ## 2.4.2 — 2026-07-27
 
 - Fixed: the sharing setting in the Network tab did nothing. It saved its own state and was never
