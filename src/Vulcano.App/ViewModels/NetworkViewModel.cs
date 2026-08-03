@@ -74,8 +74,28 @@ public partial class NetworkViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string _pin = "";
 
+    /// <summary>
+    /// Share this machine's device by itself, once it has one. Stored as HostOnStart because that
+    /// is what the setting has always been called in settings.json; what it does is start the
+    /// server when this instance connects to a Volcano, not when the app starts. A server with no
+    /// device behind it is of no use to anyone who joins it, and starting one at launch would put
+    /// this machine on the network before there was anything to share.
+    /// </summary>
     [ObservableProperty]
     private bool _hostOnStart;
+
+    /// <summary>Why hosting did not start. Shown in the sharing card rather than announced: it is
+    /// read where somebody goes to find out why nobody can join.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasHostError))]
+    private string _hostError = "";
+
+    /// <summary>
+    /// True once this session has started hosting by itself, so it happens at most once. Without
+    /// it, a connection that drops and comes back would restart hosting that somebody had
+    /// deliberately stopped in between.
+    /// </summary>
+    private bool _hasAutoHosted;
 
     [ObservableProperty]
     private string _joinAddress = "";
@@ -183,8 +203,15 @@ public partial class NetworkViewModel : ObservableObject, IDisposable
     public bool HasClients => Clients.Count > 0;
 
     [RelayCommand]
-    private void StartHosting()
+    private void StartHosting() => StartHosting(automatic: false);
+
+    /// <param name="automatic">True when this came from the setting rather than the button. Only
+    /// changes what is said about a failure: somebody who pressed a button is watching for the
+    /// answer, somebody whose device just connected is not.</param>
+    private void StartHosting(bool automatic)
     {
+        HostError = "";
+
         try
         {
             _device.StartHosting(Port, Pin);
@@ -194,6 +221,10 @@ public partial class NetworkViewModel : ObservableObject, IDisposable
         }
         catch (Exception ex)
         {
+            HostError = automatic
+                ? Strings.Get("Network.Host.AutoFailed", ex.Message)
+                : ex.Message;
+
             _log.Log(Strings.Get("Log.HostingFailed", ex.Message), LogLevel.Warning);
         }
     }
@@ -306,7 +337,30 @@ public partial class NetworkViewModel : ObservableObject, IDisposable
             // Leaving takes the number with it: a millisecond count left over from a host this
             // instance is no longer talking to is worse than no number.
             if (!IsRemote) Latency = null;
+
+            AutoHostIfWanted(state);
         });
+
+    /// <summary>
+    /// Starts sharing by itself, the moment this machine has a device of its own to share.
+    ///
+    /// Not at application start, which is what the setting used to be called and what it never in
+    /// fact did: hosting before there is a device gives anyone who joins an empty connection to
+    /// look at. And not when this instance is a client - it is borrowing someone else's device, and
+    /// passing it on is not ours to do.
+    /// </summary>
+    private void AutoHostIfWanted(ConnectionState state)
+    {
+        if (!HostOnStart || _hasAutoHosted) return;
+        if (state != ConnectionState.Connected || IsRemote || IsHosting) return;
+
+        _hasAutoHosted = true;
+        StartHosting(automatic: true);
+
+        if (IsHosting) _log.Log(Strings.Get("Log.HostingAuto", _device.HostingPort ?? Port));
+    }
+
+    public bool HasHostError => HostError.Length > 0;
 
     /// <summary>
     /// The machine's own LAN addresses. Loopback and link-local are filtered out: nobody else can

@@ -464,7 +464,16 @@
     <value>Der PIN steht im Klartext in der Datei und ist eine Türklinke fürs Heimnetz, keine Sicherheit.</value>
   </data>
   <data name="Network.HostOnStart" xml:space="preserve">
-    <value>Beim Start freigeben</value>
+    <value>Automatisch freigeben</value>
+  </data>
+  <data name="Network.HostOnStart.Hint" xml:space="preserve">
+    <value>gibt frei, sobald dieser Rechner mit dem Vulcano verbunden ist</value>
+  </data>
+  <data name="Network.Host.AutoFailed" xml:space="preserve">
+    <value>Automatische Freigabe fehlgeschlagen: {0}</value>
+  </data>
+  <data name="Log.HostingAuto" xml:space="preserve">
+    <value>Freigabe automatisch gestartet auf Port {0}.</value>
   </data>
   <data name="Network.Clients" xml:space="preserve">
     <value>VERBUNDENE CLIENTS · {0}</value>

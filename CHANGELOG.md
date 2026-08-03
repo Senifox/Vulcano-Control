@@ -7,6 +7,14 @@ Each version is a `## ` heading of `version — date`, and everything under it i
 
 ## Unreleased
 
+## 2.4.2 — 2026-07-27
+
+- Fixed: the sharing setting in the Network tab did nothing. It saved its own state and was never
+  acted on, so sharing always had to be started by hand. It now starts by itself — and does so when
+  this machine connects to the Volcano rather than when the app opens, since a shared device nobody
+  is connected to is of no use to whoever joins it. It is called *Share automatically* now, because
+  that is what it does.
+
 ## 2.4.1 — 2026-07-27
 
 - Nothing you will notice. The app is unchanged; this release exists to exercise the packaging after

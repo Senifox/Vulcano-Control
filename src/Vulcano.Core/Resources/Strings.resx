@@ -464,7 +464,16 @@
     <value>The PIN is stored as plain text and is a door latch for a home network, not security.</value>
   </data>
   <data name="Network.HostOnStart" xml:space="preserve">
-    <value>Host on start</value>
+    <value>Share automatically</value>
+  </data>
+  <data name="Network.HostOnStart.Hint" xml:space="preserve">
+    <value>starts sharing as soon as this machine is connected to the Volcano</value>
+  </data>
+  <data name="Network.Host.AutoFailed" xml:space="preserve">
+    <value>Could not start sharing automatically: {0}</value>
+  </data>
+  <data name="Log.HostingAuto" xml:space="preserve">
+    <value>Sharing started automatically on port {0}.</value>
   </data>
   <data name="Network.Clients" xml:space="preserve">
     <value>CONNECTED CLIENTS · {0}</value>

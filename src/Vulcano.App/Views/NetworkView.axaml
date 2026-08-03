@@ -48,11 +48,20 @@
 
             <Border Classes="row last">
               <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Grid.Column="0" Text="{DynamicResource S.Network.HostOnStart}" VerticalAlignment="Center" />
+                <StackPanel Grid.Column="0" Spacing="2">
+                  <TextBlock Text="{DynamicResource S.Network.HostOnStart}" />
+                  <TextBlock Text="{DynamicResource S.Network.HostOnStart.Hint}"
+                             Classes="footnote" TextWrapping="Wrap" />
+                </StackPanel>
                 <ToggleButton Grid.Column="1" Theme="{StaticResource Toggle}"
+                              VerticalAlignment="Center"
                               IsChecked="{Binding HostOnStart, Mode=TwoWay}" />
               </Grid>
             </Border>
+
+            <!-- Why nobody can join, where somebody would go to find out. -->
+            <TextBlock Text="{Binding HostError}" Classes="footnote warn" TextWrapping="Wrap"
+                       IsVisible="{Binding HasHostError}" />
 
             <StackPanel Orientation="Horizontal" Spacing="10">
               <Button Theme="{StaticResource PrimaryButton}"
